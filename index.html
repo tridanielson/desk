@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Havoth Price Desk</title>
+<meta name="description" content="Havoth Cards price desk">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#8a3b12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Price Desk">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<style>
+  :root{--bg:#f6f4ef;--ink:#1d1b17;--muted:#6f6a5f;--accent:#8a3b12}
+  @media (prefers-color-scheme:dark){:root{--bg:#15130f;--ink:#ece6da;--muted:#a39b8c;--accent:#e08a4f}}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 "Segoe UI",system-ui,-apple-system,sans-serif}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block}
+  #fallback{position:fixed;inset:0;display:none;align-items:center;justify-content:center;text-align:center;padding:24px}
+  #fallback a{color:var(--accent);font-weight:600}
+</style>
+</head>
+<body>
+<!-- The Price Desk runs on Google Apps Script; this page shows it under desk.havothcards.com. -->
+<iframe id="app" title="Havoth Price Desk" src="EXEC_URL_HERE" allow="clipboard-write" referrerpolicy="no-referrer"></iframe>
+<div id="fallback"><p>The Price Desk didn't load here.<br><a id="direct" href="EXEC_URL_HERE" target="_top">Open it directly</a></p></div>
+<script>
+  // If the app can't load inside this page within 20s, offer a direct link.
+  var loaded = false;
+  document.getElementById("app").addEventListener("load", function(){ loaded = true; });
+  setTimeout(function(){ if (!loaded) document.getElementById("fallback").style.display = "flex"; }, 20000);
+</script>
+</body>
+</html>
