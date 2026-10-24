@@ -254,6 +254,11 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
         <dt>Collection</dt><dd>What you own (including received Secret Lair items), what you paid, what it's worth now, and profit after fees when you sell.</dd>
         <dt>Auto-track lists</dt><dd>Scryfall searches (e.g. "Reserved List $25+") that automatically add whole groups of cards to All prices.</dd>
         <dt>Settings</dt><dd>Alert defaults, deal filters, condition values and selling fees.</dd>
+      </dl><b style="display:block;margin-top:12px">Words used on the desk</b><dl class="guide">
+        <dt>Watchlist</dt><dd>The specific cards you track one by one, each with its own alert levels.</dd>
+        <dt>★ Top pick</dt><dd>A deal that passed every check and matches your Top-pick settings (USA, condition, graded). Top picks get their own phone alert; other deals are grouped into one summary alert.</dd>
+        <dt>Need</dt><dd>A card you're missing for a set on the Sets tab. These are checked first and can ring during quiet hours.</dd>
+        <dt>Hidden</dt><dd>A deal removed by your ratings, your rules or an automatic check. See them with the "Only hidden &amp; AI-rejected" view.</dd>
       </dl></div>
     <p class="mut" style="font-size:12px">Your GitHub token is stored in the script's settings on Google's side. This page never sees it.</p>
   </div>
@@ -312,7 +317,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option></select>
     <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by anyone</option><option value="you">👎 You</option><option value="rule">📋 Your rules</option><option value="ai">🤖 AI checker</option><option value="auto">🔎 Automatic checks</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
-    <label><input type="checkbox" id="dPref"> ★ Preferred only</label>
+    <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top picks only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
     <select id="dCond" aria-label="Condition"><option value="">Any condition</option><option value="MP">MP or better</option><option value="LP">LP or better</option><option value="NM">Near Mint only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + ungraded</option><option value="raw">Ungraded only</option><option value="graded">Graded only</option></select>
@@ -584,11 +589,11 @@ const SETTINGS = [
   {sec: "prices", title: "Price alerts", fields: [
     ["default_drop_pct", "Default drop %", "num", 15, "Alert when a card is this % below its 30-day average (for cards without their own drop %)."],
     ["max_alert_lines", "Max lines per notification", "num", 20, "The rest are listed in report.md."]]},
-  {sec: "preferences", title: "Your deal preferences", fields: [
-    ["prefer_usa", "Prefer USA sellers", "bool", false, ""],
-    ["prefer_min_condition", "Preferred lowest condition", "mincond", "ANY", ""],
-    ["prefer_graded", "Prefer graded or ungraded", "graded", "both", ""],
-    ["prefer_min_grade", "Preferred minimum grade (graded)", "num", 0, "1-10. 0 = any."]]},
+  {sec: "preferences", title: "★ Top picks - which deals get their own phone alert", fields: [
+    ["prefer_usa", "Only USA sellers", "bool", false, "Deals that don't match still show on the eBay deals tab and in the summary alert - they just don't get a ★ or their own alert."],
+    ["prefer_min_condition", "Lowest condition", "mincond", "ANY", ""],
+    ["prefer_graded", "Graded or ungraded", "graded", "both", ""],
+    ["prefer_min_grade", "Minimum grade (graded cards)", "num", 0, "1-10. 0 = any."]]},
   {sec: "deals", title: "What the eBay scanner catches", fields: [
     ["default_deal_pct", "Deal threshold %", "num", 20, "How far under fair value a listing must be (price + shipping)."],
     ["min_market_value", "Only scan cards worth at least ($)", "num", 20, "Raise this to scan fewer, pricier cards."],
@@ -1059,7 +1064,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
