@@ -224,6 +224,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
   <span id="pending" class="pending" hidden></span>
   <button class="btn" id="saveBtn" disabled>Save to GitHub</button>
   <button class="btn ghost" id="runBtn" disabled title="Run the price + deal update now">Run update</button>
+  <button class="btn ghost small owner-only" id="muteBtn" title="Phone alerts: mute or quiet hours" hidden>🔔</button>
   <button class="btn ghost small" id="signOutBtn" hidden>Sign out</button>
 </header>
 
@@ -456,6 +457,51 @@ const GH = {
 // ---------------------------------------------------------------- sign-in
 const AUTH = {token: store.get("pd_session") || "", device: store.get("pd_device") || ""};
 if (!AUTH.device){ AUTH.device = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); store.set("pd_device", AUTH.device); }
+// ---- 🔔 mute button + quiet-hours indicator (collection/mute.csv for the scans, setMute for the sniper)
+const MUTE = {until: "", sha: null};
+function quietNow(){
+  const A = S.ini.alerts || {}, on = !/^(no|false|0|off)$/i.test(A.quiet_hours || "yes"), mode = (A.quiet_mode || "silent").toLowerCase();
+  if (!on || mode === "off") return false;
+  const tz = A.timezone || "America/Phoenix";
+  const hm = new Date().toLocaleTimeString("en-GB", {timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false}).split(":").map(Number);
+  const p = (v, d) => { const [h, m] = String(v || d).split(":").map(Number); return ((h || 0) % 24) * 60 + (m || 0); };
+  const cur = hm[0] * 60 + hm[1], st = p(A.quiet_start, "22:00"), en = p(A.quiet_end, "07:00");
+  return st < en ? cur >= st && cur < en : cur >= st || cur < en;
+}
+const mutedNow = () => MUTE.until === "forever" || (MUTE.until && new Date(MUTE.until) > new Date());
+function renderMute(){
+  const b = $("#muteBtn"); if (!b || READONLY) return; b.hidden = false;
+  const m = mutedNow(), q = quietNow();
+  b.textContent = m ? "🔕 Muted" : q ? "🌙 Quiet" : "🔔";
+  b.title = m ? (MUTE.until === "forever" ? "Alerts muted until you turn them back on" : "Alerts muted until " + whenAZ(MUTE.until)) : q ? "Quiet hours - alerts are " + ((S.ini.alerts || {}).quiet_mode === "hold" ? "held for a morning summary" : "silent") : "Phone alerts are on - tap to mute";
+}
+async function setMuteUntil(until){
+  try{
+    MUTE.sha = await GH.putFile("collection/mute.csv", "until\n" + (until || "") + "\n", MUTE.sha, until ? "Mute alerts (Price Desk)" : "Unmute alerts (Price Desk)");
+    try{ await server("setMute", until || ""); }catch(e){ if (/UPDATE|Unknown request/.test(e.message)) toast("Muted for the scans. Paste the latest Code.gs to mute the every-minute sniper too.", 7000); else throw e; }
+    MUTE.until = until || ""; renderMute();
+    toast(until ? (until === "forever" ? "Alerts muted until you turn them back on." : "Alerts muted until " + whenAZ(until) + ".") : "Alerts are back on.", 5000);
+  }catch(e){ toast("Couldn't change mute: " + e.message, 6000); }
+}
+function openMute(){
+  const A = S.ini.alerts || {}, [eh, em] = String(A.quiet_end || "07:00").split(":").map(Number);
+  const morning = (() => { const tz = A.timezone || "America/Phoenix";
+    const [h, m] = new Date().toLocaleTimeString("en-GB", {timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false}).split(":").map(Number);
+    let mins = ((eh || 7) * 60 + (em || 0) - (h * 60 + m) + 1440) % 1440; if (!mins) mins = 1440;
+    const t = new Date(Date.now() + mins * 6e4); t.setSeconds(0, 0); return t.toISOString(); })();
+  const opt = (label, until) => `<button class="btn ghost" type="button" data-mute="${esc(until)}" style="justify-content:flex-start">${label}</button>`;
+  const inH = h => new Date(Date.now() + h * 36e5).toISOString();
+  openModal(`<h3>Phone alerts</h3><p class="mut" style="font-size:13px;margin:4px 0 12px">${mutedNow() ? (MUTE.until === "forever" ? "Muted until you turn them back on." : "Muted until " + esc(whenAZ(MUTE.until)) + ".") : "Alerts are on."}
+    Quiet hours: ${esc(A.quiet_start || "22:00")}-${esc(A.quiet_end || "07:00")} (${esc((A.quiet_mode || "silent") === "hold" ? "held for a summary" : (A.quiet_mode === "off" ? "off" : "silent"))}) - change them in Settings.</p>
+    <div style="display:grid;gap:8px">${mutedNow() ? opt("🔔 Turn alerts back on", "") : ""}${opt("🔕 Mute for 1 hour", inH(1))}${opt("🔕 Mute for 4 hours", inH(4))}${opt("🌙 Mute until morning (" + esc(A.quiet_end || "07:00") + ")", morning)}${opt("🔕 Mute until I turn them back on", "forever")}</div>
+    <p class="mut" style="font-size:12px;margin-top:10px">While muted, alerts follow your quiet-hours choice: delivered silently, or held for one summary when the mute ends.</p>
+    <div class="acts"><button class="btn ghost" type="button" id="muteClose">Close</button></div>`);
+  $("#muteClose").addEventListener("click", closeModal);
+  document.querySelectorAll("#colModalBody [data-mute]").forEach(b => b.addEventListener("click", () => { closeModal(); setMuteUntil(b.dataset.mute); }));
+}
+$("#muteBtn").addEventListener("click", openMute);
+setInterval(renderMute, 60000);
+
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
 const BUSY_TEXT = {loadAll: "Loading prices and deals… (the first load can take 10-20 seconds)", loadSecretLair: "Loading Secret Lair…",
@@ -564,6 +610,13 @@ const SETTINGS = [
     ["signed_cards", "Signed / autographed cards", "signed", "any", "Include them, hide them, or only show signed cards (alerts and the every-minute sniper)."],
     ["check_full_listing", "Read the full listing before alerting", "bool", true, "Catches damage mentioned only in the description (e.g. 'small crease on back'). One extra eBay call per possible deal."],
     ["reprint_margin", "Look-alike reprint warning (x reprint price)", "num", 1.5, "Flags a listing priced near its cheap look-alike (e.g. a 'Legends' card priced like Chronicles)."]]},
+  {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
+    ["quiet_hours", "Quiet hours on", "bool", true, "Stops alerts from waking you up. The 🔔 button at the top mutes on demand."],
+    ["quiet_start", "Quiet from (24h, e.g. 22:00)", "list", "22:00", ""],
+    ["quiet_end", "Quiet until (24h, e.g. 07:00)", "list", "07:00", ""],
+    ["quiet_mode", "During quiet hours", "quiet", "silent", "Silent = still delivered, no sound. Hold = nothing overnight, one summary when quiet hours end."],
+    ["urgent_override", "Cards you need + below-buylist deals still ring", "bool", false, ""],
+    ["timezone", "Time zone", "list", "America/Phoenix", "e.g. America/Phoenix, America/Denver, America/New_York"]]},
   {sec: "ai", title: "AI deal checker (Claude looks at photos + description before alerting)", fields: [
     ["enabled", "Use the AI checker", "bool", true, "Needs ANTHROPIC_API_KEY in GitHub secrets and Apps Script properties. Without a key this is skipped."],
     ["model", "Model", "list", "claude-sonnet-5-5", "claude-sonnet-5-5 is the careful default; claude-haiku-5-5 is cheaper."],
@@ -638,13 +691,14 @@ function renderSettings_(){
       else if (type === "cond") input = `<select id="${id}">${["NM","LP","MP","HP","DMG"].map(c => `<option>${c}</option>`).join("")}</select>`;
       else if (type === "mincond") input = `<select id="${id}"><option value="ANY">Any condition</option><option value="HP">Heavily Played or better</option><option value="MP">Moderately Played or better</option><option value="LP">Lightly Played or better</option><option value="NM">Near Mint only</option></select>`;
       else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded only</option><option value="graded">Graded only</option><option value="both">Both</option></select>`;
+      else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver silently (no sound)</option><option value="hold">Hold for a morning summary</option><option value="off">Ring as normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include signed cards</option><option value="hide">Hide signed cards</option><option value="only">Only signed cards</option></select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
       else input = `<input id="${id}" type="number" step="any">`;
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
-      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed") ? val.toLowerCase() : val;
+      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet") ? val.toLowerCase() : val;
       el.addEventListener("change", () => { (S.ini[g.sec] = S.ini[g.sec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
     box.appendChild(panel);
@@ -1895,7 +1949,7 @@ async function loadAll(){
   $("#allGroup").innerHTML = `<option value="">All groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
   renderUpdated(d0.dashboard ? null : "No price data yet - run the update once");
-  if (!READONLY) GH.readFiles(["data/run_status.json"]).then(f => { const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
+  if (!READONLY) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
 }
