@@ -95,6 +95,17 @@ td.r,th.r{text-align:right}
 .flag{font-size:12px;font-weight:600;border-radius:4px;padding:1px 6px;white-space:nowrap}
 .flag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
 .flag.sus{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
+/* why a deal was hidden - one colour per cause */
+.why{font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block;margin:2px 0;border:1px solid}
+.why-rated{color:#b3261e;background:#b3261e1f;border-color:#b3261e66}
+.why-rule{color:#6b3fa0;background:#6b3fa01f;border-color:#6b3fa066}
+.why-seller{color:#9a4d00;background:#c8640024;border-color:#c8640066}
+.why-card{color:#1d5fa8;background:#1d5fa81f;border-color:#1d5fa866}
+.why-damage{color:#8a6a00;background:#d4a50026;border-color:#d4a50070}
+.why-ai{color:#a0136b;background:#a0136b1f;border-color:#a0136b66}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .why-rated{color:#ff8a80}:root:not([data-theme=light]) .why-rule{color:#c7a6f5}:root:not([data-theme=light]) .why-seller{color:#ffb366}
+  :root:not([data-theme=light]) .why-card{color:#8fc1ff}:root:not([data-theme=light]) .why-damage{color:#f2d06b}:root:not([data-theme=light]) .why-ai{color:#ff8fd0}}
+tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .login{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
 .login[hidden]{display:none}
 .login-box{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:26px 24px;display:grid;gap:10px}
@@ -804,6 +815,7 @@ const isGraded = d => /^(PSA|BGS|CGC|SGC|ACE|TAG|Graded)\b/i.test(d.condition ||
 function prefOK(d){
   const P = S.ini.preferences || {}, yes = v => /^(y|yes|true|1|on)$/i.test(v || "");
   const graded = isGraded(d);
+  if (d.hidden) return false;                                       // hidden by your ratings/rules
   if (d.ai_verdict && d.ai_verdict !== "ok") return false;          // AI found a problem
   if (d.reprint && d.ai_verdict !== "ok") return false;             // possible mislabel, photos unchecked
   if (yes(P.prefer_usa) && !["US", ""].includes(d.location || "")) return false;
@@ -843,10 +855,23 @@ const SF_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="tr
 const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return "";
   return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" title="See this card on Scryfall">${SF_ICON}</span>`
               : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" title="See the card it's priced against on Scryfall">${SF_ICON}</a>`; };
+// colour-coded reason a deal was hidden (ratings, rules, blocked seller, wrong card, damage, AI)
+function whyKind(d){
+  const w = d.hidden || "";
+  if (/rated it bad/.test(w)) return ["rated", "👎 You rated it bad"];
+  if (/blocked/.test(w)) return ["seller", "🚫 " + w.replace(/^seller /, "Seller ")];
+  if (/different card/.test(w)) return ["card", "🔀 Wrong card"];
+  if (/damage/.test(w)) return ["damage", "⚠️ Damage in title"];
+  if (w) return ["rule", "📋 Your rule" + (/rule from your comments/.test(w) ? "" : ": " + w.replace(/ \(your rule\)$/, ""))];
+  if (d.ai_verdict === "reject") return ["ai", "🤖 AI rejected"];
+  return null;
+}
+const WHY_COLORS = {rated: "#b3261e", rule: "#6b3fa0", seller: "#c86400", card: "#1d5fa8", damage: "#d4a500", ai: "#a0136b"};
+function whyHTML(d){ const k = whyKind(d); return k ? `<span class="why why-${k[0]}" title="${esc(d.hidden ? "Hidden: " + d.hidden : "Rejected by the AI checker: " + (d.ai_reason || ""))}">${esc(k[1])}</span> ` : ""; }
 function qualityHTML(d){
-  let h = d.hidden ? `<span class="flag sus" title="Hidden when you applied your ratings">hidden: ${esc(d.hidden)}</span> ` : "";
+  let h = whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
-  if (d.ai_verdict) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
+  if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden)) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
   if (d.damage) h += `<span class="flag sus" title="Listing mentions '${esc(d.damage)}' - valued as Damaged">${esc(d.damage)}</span> `;
   if (d.reprint) h += `<span class="flag sus" title="Priced like the ${esc(d.reprint)} reprint - check the photos (border, corners)">possible ${esc(d.reprint)}?</span> `;
   if (d.ai_reason) h += `<div class="mut" style="font-size:12px">AI: ${esc(d.ai_reason)}</div>`;
@@ -909,11 +934,11 @@ function renderDeals_(){
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
-    rows.slice(0, 500).map(d => `<tr><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
+    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${WHY_COLORS[k[0]]}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
-      <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`).join("") + "</tbody>";
+      <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
