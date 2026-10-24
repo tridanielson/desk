@@ -419,12 +419,7 @@ async function apiCall(fn, args){
 }
 const rawServer = (fn, ...args) => new Promise((resolve, reject) => {
   if (!window.google || !google.script){
-    if (API_URL) return apiCall(fn, args).then(resolve, e => {
-      // Code.gs not updated yet: fall back to the Google-hosted page so nothing breaks in the meantime
-      let tried = false; try{ tried = !!sessionStorage.getItem("pd_fallback"); sessionStorage.setItem("pd_fallback", "1"); }catch{ tried = true; }
-      if (/^UPDATE:/.test(e.message) && !tried){ location.replace(API_URL); return; }
-      reject(e);
-    });
+    if (API_URL) return apiCall(fn, args).then(resolve, reject);
     return reject(new Error("Open this page from desk.havothcards.com."));
   }
   const r = google.script.run.withSuccessHandler(resolve).withFailureHandler(e => reject(new Error((e && e.message) || String(e))));
