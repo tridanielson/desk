@@ -481,11 +481,15 @@ async function server(fn, ...args){
 }
 function showLogin(msg){ $("#login").hidden = false; $("#loginMsg").textContent = msg || ""; setTimeout(() => $("#loginPw").focus(), 50); }
 function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBtn").hidden = true; }
+const savedTab = () => { const h = (location.hash || "").slice(1); return (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; };
+const tabOK = t => !["detail", "connect"].concat(READONLY ? ["deals", "settings", "col", "sets"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
   try{
+    const t0 = savedTab();
+    if (tabOK(t0)) switchTab(t0);   // show the page you were on right away, while the data loads
     await loadAll(); $("#signOutBtn").hidden = false;
-    const t0 = store.get("pd_tab") || "mine";
-    switchTab(["detail", "connect"].concat(READONLY ? ["deals", "settings"] : []).includes(t0) ? "mine" : t0);
+    const t1 = savedTab();
+    switchTab(tabOK(t1) ? t1 : "mine");
   }catch(e){
     if (/Please sign in/.test(e.message)) return;
     switchTab("connect"); $("#connStatus").textContent = e.message; $("#updated").textContent = "Not connected";
@@ -1790,6 +1794,7 @@ function switchTab(name){
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + name));
   store.set("pd_tab", name);
+  try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
   if (name === "sl" && typeof loadSL === "function"){ loadSL(); if (!READONLY) loadCOL(); }
   if (name === "col" && typeof loadCOL === "function") loadCOL();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
