@@ -96,7 +96,7 @@ td.r,th.r{text-align:right}
 .flag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
 .flag.sus{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
 /* why a deal was hidden - one colour per cause */
-.why{font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block;margin:2px 0;border:1px solid}
+.why{cursor:help;font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block;margin:2px 0;border:1px solid}
 .why-rated{color:#b3261e;background:#b3261e1f;border-color:#b3261e66}
 .why-rule{color:#6b3fa0;background:#6b3fa01f;border-color:#6b3fa066}
 .why-seller{color:#9a4d00;background:#c8640024;border-color:#c8640066}
@@ -313,6 +313,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <label><input type="checkbox" id="dBuy"> Below buylist only</label>
     <label><input type="checkbox" id="dSus"> Hide "verify" listings</label>
     <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active deals</option><option value="only">Only hidden &amp; AI-rejected (audit)</option><option value="all">Everything</option></select>
+    <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option><option value="rated">👎 You rated it bad</option><option value="rule">📋 Your rules</option><option value="seller">🚫 Blocked sellers</option><option value="card">🔀 Wrong card</option><option value="damage">⚠️ Damage in title</option><option value="ai">🤖 AI rejected</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
     <label><input type="checkbox" id="dPref"> ★ Preferred only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
@@ -893,7 +894,11 @@ function whyKind(d){
   return null;
 }
 const WHY_COLORS = {rated: "#b3261e", rule: "#6b3fa0", seller: "#c86400", card: "#1d5fa8", damage: "#d4a500", ai: "#a0136b"};
-function whyHTML(d){ const k = whyKind(d); return k ? `<span class="why why-${k[0]}" title="${esc(d.hidden ? "Hidden: " + d.hidden : "Rejected by the AI checker: " + (d.ai_reason || ""))}">${esc(k[1])}</span> ` : ""; }
+function whyText(d){ return d.hidden ? (d.hidden_detail || "Hidden: " + d.hidden) : "Rejected by the AI checker: " + (d.ai_reason || ""); }
+function whyHTML(d){ const k = whyKind(d); return k ? `<span class="why why-${k[0]}" role="button" tabindex="0" data-why="${esc(d.url)}" title="${esc(whyText(d))}">${esc(k[1])}</span> ` : ""; }
+// tap/click a reason badge (phones can't hover) to see the full rule and the comment it came from
+document.addEventListener("click", e => { const b = e.target.closest("[data-why]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.why); if (d) toast(whyText(d), 9000); }, true);
 function qualityHTML(d){
   let h = whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
@@ -954,7 +959,9 @@ function renderDeals_(){
   const when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
   const view = $("#dRej") ? $("#dRej").value : "", sg = $("#dSigned") ? $("#dSigned").value : "";
   const removed = d => d.ai_verdict === "reject" || !!d.hidden;
-  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const why = view && $("#dWhy") ? $("#dWhy").value : "";
+  if ($("#dWhy")) $("#dWhy").hidden = !view;
+  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || [])[0] === why) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
@@ -968,7 +975,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded"];
+const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dWhy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
