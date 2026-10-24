@@ -312,7 +312,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">all</option></select> days</label>
     <label>Min % off <input id="dMin" class="num" type="number" value="0"></label>
     <label><input type="checkbox" id="dBuy"> Below buylist only</label>
-    <label><input type="checkbox" id="dSus"> Hide "verify" listings</label>
+    <label title="Listings priced so far under value (below the 'too cheap' % in Settings) that they're usually fakes or the wrong card"><input type="checkbox" id="dSus"> Hide "too cheap?" listings</label>
     <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active deals</option><option value="only">Only hidden &amp; AI-rejected (audit)</option><option value="all">Everything</option></select>
     <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option></select>
     <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by anyone</option><option value="you">👎 You</option><option value="rule">📋 Your rules</option><option value="ai">🤖 AI checker</option><option value="auto">🔎 Automatic checks</option></select>
@@ -608,7 +608,7 @@ const SETTINGS = [
     ["skip_suspicious", "Skip suspiciously cheap listings", "bool", true, "These are almost always proxies, fakes or the wrong card."],
     ["unknown_condition", "If condition isn't stated, assume", "cond", "MP", "Pick a worse condition to be more conservative."],
     ["default_shipping", "Assumed shipping when calculated ($)", "num", 5, ""],
-    ["suspicious_below_pct", "\"Verify\" warning below (% of fair value)", "num", 35, "Very cheap listings are often fakes or the wrong edition."],
+    ["suspicious_below_pct", "\"Too cheap?\" below (% of fair value)", "num", 35, "Listings under this % of fair value are almost always fakes or the wrong card. With 'Skip suspiciously cheap listings' on, they're dropped; with it off, they show tagged \"too cheap?\"."],
     ["min_seller_feedback_pct", "Min seller feedback %", "num", 97, ""],
     ["min_seller_feedback_score", "Min seller feedback count", "num", 10, ""],
     ["max_alerts_per_run", "Max deal notifications per scan", "num", 10, "Extra deals are grouped into one summary notification."],
@@ -1064,7 +1064,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -1213,7 +1213,7 @@ function renderDealsTiles(){
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)} · ${esc(d.condition)} · fair ${money(d.fair)}</div>
       <div class="t-sub">${esc(d.type)}${d.ends_in ? ", ends " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
-      ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? '<span class="flag buy">below buylist</span>' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}</div>` : ""}
+      ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? '<span class="flag buy">below buylist</span>' : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${fbHTML(d) ? `<div class="t-chips">${fbHTML(d).replace(/<button/g, '<span role="button"').replace(/<\/button>/g, "</span>")}</div>` : ""}</div>
       <div class="t-right"><div class="t-big">${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">off</div></div></a>`;
