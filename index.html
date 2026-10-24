@@ -26,12 +26,19 @@
 <body>
 <!-- The Price Desk runs on Google Apps Script; this page shows it under desk.havothcards.com. -->
 <iframe id="app" title="Havoth Price Desk" src="https://script.google.com/macros/s/AKfycbyDmJOFgkKFi5Kw7KXUWNqInT3T_uZBw6FReK8xp1UzuV_-FLhDRn_AuAtm6uMkOqgk/exec" allow="clipboard-write" referrerpolicy="no-referrer"></iframe>
-<div id="fallback"><p>The Price Desk didn't load here.<br><a id="direct" href="https://script.google.com/macros/s/AKfycbyDmJOFgkKFi5Kw7KXUWNqInT3T_uZBw6FReK8xp1UzuV_-FLhDRn_AuAtm6uMkOqgk/exec" target="_top">Open it directly</a></p></div>
+<div id="fallback"><p>Opening the Price Desk…<br><a id="direct" href="https://script.google.com/macros/s/AKfycbyDmJOFgkKFi5Kw7KXUWNqInT3T_uZBw6FReK8xp1UzuV_-FLhDRn_AuAtm6uMkOqgk/exec" target="_top">Open it directly</a></p></div>
 <script>
-  // If the app can't load inside this page within 20s, offer a direct link.
-  var loaded = false;
-  document.getElementById("app").addEventListener("load", function(){ loaded = true; });
-  setTimeout(function(){ if (!loaded) document.getElementById("fallback").style.display = "flex"; }, 20000);
+  // The Price Desk tells this page when it has loaded. If Google refuses to show it here
+  // (happens when a browser is signed in to several Google accounts), open it directly instead.
+  var APP = document.getElementById("app").src, ok = false;
+  window.addEventListener("message", function (e) {
+    if (e.data && e.data.pricedesk === "ready") ok = true;
+  });
+  setTimeout(function () {
+    if (ok) return;
+    document.getElementById("fallback").style.display = "flex";
+    window.location.replace(APP);
+  }, 10000);
 </script>
 </body>
 </html>
