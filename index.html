@@ -96,15 +96,10 @@ td.r,th.r{text-align:right}
 .flag.buy{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}
 .flag.sus{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
 /* why a deal was hidden - one colour per cause */
-.why{cursor:help;font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block;margin:2px 0;border:1px solid}
-.why-rated{color:#b3261e;background:#b3261e1f;border-color:#b3261e66}
-.why-rule{color:#6b3fa0;background:#6b3fa01f;border-color:#6b3fa066}
-.why-seller{color:#9a4d00;background:#c8640024;border-color:#c8640066}
-.why-card{color:#1d5fa8;background:#1d5fa81f;border-color:#1d5fa866}
-.why-damage{color:#8a6a00;background:#d4a50026;border-color:#d4a50070}
-.why-ai{color:#a0136b;background:#a0136b1f;border-color:#a0136b66}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .why-rated{color:#ff8a80}:root:not([data-theme=light]) .why-rule{color:#c7a6f5}:root:not([data-theme=light]) .why-seller{color:#ffb366}
-  :root:not([data-theme=light]) .why-card{color:#8fc1ff}:root:not([data-theme=light]) .why-damage{color:#f2d06b}:root:not([data-theme=light]) .why-ai{color:#ff8fd0}}
+.why{cursor:pointer;font-size:12px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;display:inline-block;margin:2px 0;border:1px solid;
+  color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);border-color:color-mix(in srgb,var(--c) 45%,transparent)}
+.why-by{margin-left:4px;padding-left:5px;border-left:1px solid color-mix(in srgb,var(--c) 40%,transparent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]) .why{color:color-mix(in srgb,var(--c) 55%,white)}}
 tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .login{position:fixed;inset:0;background:var(--bg);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
 .login[hidden]{display:none}
@@ -313,7 +308,8 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <label><input type="checkbox" id="dBuy"> Below buylist only</label>
     <label><input type="checkbox" id="dSus"> Hide "verify" listings</label>
     <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active deals</option><option value="only">Only hidden &amp; AI-rejected (audit)</option><option value="all">Everything</option></select>
-    <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option><option value="rated">👎 You rated it bad</option><option value="rule">📋 Your rules</option><option value="seller">🚫 Blocked sellers</option><option value="card">🔀 Wrong card</option><option value="damage">⚠️ Damage in title</option><option value="ai">🤖 AI rejected</option></select>
+    <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option></select>
+    <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by anyone</option><option value="you">👎 You</option><option value="rule">📋 Your rules</option><option value="ai">🤖 AI checker</option><option value="auto">🔎 Automatic checks</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
     <label><input type="checkbox" id="dPref"> ★ Preferred only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
@@ -360,6 +356,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
   <h2>Settings</h2>
   <p class="sub">Defaults for alerts, how eBay deals are judged (USA only, condition, graded), how much each condition is worth versus Near Mint, and the selling fees used for profit. Changes apply on the next run.</p>
   <div id="settingsForm"></div>
+  <div class="panel owner-only" id="reasonEditor"></div>
 </section>
 </main>
 <div class="sheet-bg" id="sheetBg"></div>
@@ -883,22 +880,61 @@ const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return "";
   return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" title="See this card on Scryfall">${SF_ICON}</span>`
               : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" title="See the card it's priced against on Scryfall">${SF_ICON}</a>`; };
 // colour-coded reason a deal was hidden (ratings, rules, blocked seller, wrong card, damage, AI)
-function whyKind(d){
-  const w = d.hidden || "";
-  if (/rated it bad/.test(w)) return ["rated", "👎 You rated it bad"];
-  if (/blocked/.test(w)) return ["seller", "🚫 " + w.replace(/^seller /, "Seller ")];
-  if (/different card/.test(w)) return ["card", "🔀 Wrong card"];
-  if (/damage/.test(w)) return ["damage", "⚠️ Damage in title"];
-  if (w) return ["rule", "📋 Your rule" + (/rule from your comments/.test(w) ? "" : ": " + w.replace(/ \(your rule\)$/, ""))];
-  if (d.ai_verdict === "reject") return ["ai", "🤖 AI rejected"];
-  return null;
+// ---- reason categories (collection/reasons.csv - edit them under Settings) + who caught it
+const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition / reprint","#6b3fa0"],
+  ["condition","🩹","Condition","#b45309"],["fake","❌","Not authentic","#b3261e"],["lot","📦","Not a single card","#7a5c2e"],["verify","📷","Can't verify","#5f6b7a"],
+  ["price","💲","Price","#1f7a4d"],["seller","🚫","Seller","#c2410c"],["prefs","⚙️","Your preferences","#a0136b"],["other","❔","Other","#6f6a5f"]]
+  .map(([key, icon, label, color]) => ({key, icon, label, color, keywords: ""}));
+const RS = {list: DEFAULT_REASONS, sha: null};
+const REASON_COLS = ["key", "icon", "label", "color", "keywords"];
+const reason = k => RS.list.find(r => r.key === k) || RS.list.find(r => r.key === "other") || {key: "other", icon: "❔", label: "Other", color: "#6f6a5f"};
+const BY = {you: ["👎", "You (thumbs down)"], rule: ["📋", "Your rule"], ai: ["🤖", "AI checker"], auto: ["🔎", "Automatic check"]};
+function guessCat(text){
+  const t = " " + String(text || "").toLowerCase().replace(/'/g, "").replace(/\s+/g, " ") + " ";
+  for (const r of RS.list) for (const w of String(r.keywords || "").split("|").map(x => x.trim().toLowerCase()).filter(Boolean)) if (t.includes(w)) return r.key;
+  return "other";
 }
-const WHY_COLORS = {rated: "#b3261e", rule: "#6b3fa0", seller: "#c86400", card: "#1d5fa8", damage: "#d4a500", ai: "#a0136b"};
-function whyText(d){ return d.hidden ? (d.hidden_detail || "Hidden: " + d.hidden) : "Rejected by the AI checker: " + (d.ai_reason || ""); }
-function whyHTML(d){ const k = whyKind(d); return k ? `<span class="why why-${k[0]}" role="button" tabindex="0" data-why="${esc(d.url)}" title="${esc(whyText(d))}">${esc(k[1])}</span> ` : ""; }
-// tap/click a reason badge (phones can't hover) to see the full rule and the comment it came from
+const lastFB = d => { for (let i = FB.rows.length - 1; i >= 0; i--) if (FB.rows[i].url === d.url && ["unhide", "recat"].includes(FB.rows[i].verdict)) return FB.rows[i]; return null; };
+function whyKind(d){
+  let cat = d.hidden_cat, by = d.hidden_by;
+  if (!by){
+    const w = d.hidden || "";
+    if (w) { by = /rated it bad|seller/.test(w) ? "you" : /different card|mentions damage/.test(w) ? "auto" : "rule";
+             cat = /seller/.test(w) ? "seller" : /different card/.test(w) ? "wrongcard" : /damage/.test(w) ? "condition" : guessCat((d.hidden_detail || "") + " " + w); }
+    else if (d.ai_verdict === "reject"){ by = "ai"; cat = d.ai_category || guessCat(d.ai_reason); }
+  }
+  if (!by) return null;
+  const o = lastFB(d);
+  if (o && o.verdict === "unhide") return null;
+  if (o && o.verdict === "recat") cat = o.reason;
+  const r = reason(cat || "other");
+  return {cat: r.key, by, r};
+}
+function whyText(d){
+  const k = whyKind(d); if (!k) return "";
+  const what = d.hidden ? (d.hidden_detail || d.hidden) : (d.ai_reason || "");
+  return `${k.r.icon} ${k.r.label} · caught by ${BY[k.by][1]}${what ? " - " + what : ""}`;
+}
+function whyHTML(d){
+  const k = whyKind(d); if (!k) return "";
+  return `<span class="why" style="--c:${esc(k.r.color || "#6f6a5f")}" role="button" tabindex="0" data-why="${esc(d.url)}" title="${esc(whyText(d))} (click to change)">${esc(k.r.icon)} ${esc(k.r.label)} <span class="why-by" title="${esc(BY[k.by][1])}">${BY[k.by][0]}</span></span> `;
+}
+// click a reason badge: see the full reason, change its category, or bring the deal back
 document.addEventListener("click", e => { const b = e.target.closest("[data-why]"); if (!b) return; e.preventDefault(); e.stopPropagation();
-  const d = S.deals.find(x => x.url === b.dataset.why); if (d) toast(whyText(d), 9000); }, true);
+  const d = S.deals.find(x => x.url === b.dataset.why); if (d) openWhy(d); }, true);
+function openWhy(d){
+  const k = whyKind(d); if (!k) return;
+  openModal(`<h3>${esc(k.r.icon)} ${esc(k.r.label)}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · ${esc((d.title || "").slice(0, 90))}</div>
+    <p style="margin:12px 0 4px"><b>Caught by:</b> ${BY[k.by][0]} ${esc(BY[k.by][1])}</p>
+    <p style="margin:4px 0 12px">${esc(d.hidden ? (d.hidden_detail || d.hidden) : (d.ai_reason || ""))}</p>
+    <label for="whyCat">Category</label><select id="whyCat">${RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("")}</select>
+    <div class="acts"><button class="btn ghost" id="whyShow" type="button" style="margin-right:auto" title="Not actually a problem - show it with the active deals again">Show it again</button>
+      <button class="btn ghost" id="whyCancel" type="button">Close</button><button class="btn" id="whySave" type="button">Save category</button></div>`);
+  $("#whyCat").value = k.cat;
+  $("#whyCancel").addEventListener("click", closeModal);
+  $("#whySave").addEventListener("click", () => { const c = $("#whyCat").value; closeModal(); if (c !== k.cat) saveFB(d, "recat", c, ""); });
+  $("#whyShow").addEventListener("click", () => { closeModal(); saveFB(d, "unhide", "", ""); });
+}
 function qualityHTML(d){
   let h = whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
@@ -910,28 +946,29 @@ function qualityHTML(d){
 }
 // ---- your feedback on deals (collection/deal_feedback.csv) - teaches the scanner + sniper
 const FB_COLS = ["at", "url", "card", "key", "seller", "verdict", "reason", "note", "title"];
-const FB_REASONS = [["damage", "Damaged / creased"], ["edition", "Wrong edition / reprint"], ["fake", "Fake / proxy"], ["condition", "Worse than listed"],
-  ["lot", "Not a single card"], ["price", "Price / value was wrong"], ["seller", "Sketchy seller - block them"], ["other", "Something else"]];
+const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller" ? "Seller - block them" : r.label}`]);
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true; renderDeals(); }
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+    const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); }
   catch(e){} FB.loading = false;
 }
 const fbFor = d => FB.rows.filter(r => r.url === d.url).slice(-1)[0];
 function fbHTML(d){
   if (READONLY || !FB.loaded) return "";
   const f = fbFor(d);
-  if (f) return `<span class="mut" style="font-size:12px">${f.verdict === "good" ? "👍 rated good" : f.verdict === "note" ? "💬 commented" : "👎 " + esc((FB_REASONS.find(r => r[0] === f.reason) || [, f.reason])[1])}</span>
+  if (f) return `<span class="mut" style="font-size:12px">${f.verdict === "good" ? "👍 rated good" : f.verdict === "note" ? "💬 commented" : "👎 " + esc((fbReasons().find(r => r[0] === (f.reason === "damage" ? "condition" : f.reason)) || [, f.reason])[1])}</span>
     <button class="btn ghost small" data-fb="note" data-u="${esc(d.url)}" title="Add a comment about this card">💬</button>`;
   return `<span class="fb"><button class="btn ghost small" data-fb="good" data-u="${esc(d.url)}" title="Good deal">👍</button><button class="btn ghost small" data-fb="bad" data-u="${esc(d.url)}" title="Bad deal - tell it why">👎</button></span>`;
 }
-async function saveFB(d, verdict, reason, note){
+async function saveFB(d, verdict, reason_, note){ const reason = reason_;
   const sellerName = String(d.seller || "").split(" (")[0];
   FB.rows.push({at: new Date().toISOString().slice(0, 16), url: d.url, card: d.card, key: d.key || "", seller: sellerName, verdict, reason: reason || "", note: note || "", title: (d.title || "").slice(0, 150)});
   renderDeals();
   try{ FB.sha = await GH.putFile("collection/deal_feedback.csv", toCSV(FB_COLS, FB.rows), FB.sha, "Deal feedback (Price Desk)");
-    toast(note && verdict !== "bad" ? "Saved - your comment becomes a rule on the next scan." : verdict === "good" ? "Thanks - noted as a good deal." : reason === "seller" ? (sellerName ? `Blocked ${sellerName} - their listings are skipped from the next scan.` : "Noted. (This listing didn't include the seller name.)")
+    toast(verdict === "recat" ? `Category changed to ${(RS.list.find(r => r.key === reason_) || {label: reason_}).label}.` : verdict === "unhide" ? "Back in your active deals. Apply my ratings keeps it visible." :
+      note && verdict !== "bad" ? "Saved - your comment becomes a rule on the next scan." : verdict === "good" ? "Thanks - noted as a good deal." : reason === "seller" ? (sellerName ? `Blocked ${sellerName} - their listings are skipped from the next scan.` : "Noted. (This listing didn't include the seller name.)")
       : reason === "edition" ? `Noted - ${d.card} now needs a photo check before it can send a loud alert.` : note ? "Noted - your comment becomes a rule on the next scan." : "Thanks - noted. This trains the deal checks.", 5000); }
   catch(e){ toast("Couldn't save feedback: " + e.message, 6000); }
 }
@@ -941,7 +978,7 @@ function openFB(d, kind){
     <div style="margin-top:12px"><label for="fbNote">Tell it what to change (optional)</label>
       <textarea id="fbNote" rows="3" style="width:100%" placeholder="e.g. skip signed or altered cards · creased cards aren't worth it to me · Alpha needs to be LP or better · never over $400 for this one · stop alerting me on this card"></textarea>
       <div class="mut" style="font-size:12px;margin-top:4px">On the next scan (within 3 hours, or tap Scan eBay now) Claude turns this into a rule. It decides from your wording whether it's for every card, a whole edition, or just ${esc(d.card)}.</div></div>
-    ${bad ? `<div style="margin-top:12px"><label>Then pick the main problem:</label><div class="row" style="gap:8px;margin-top:6px">${FB_REASONS.map(([k, l]) => `<button class="btn ghost" data-r="${k}" type="button">${esc(l)}</button>`).join("")}</div></div>` : ""}
+    ${bad ? `<div style="margin-top:12px"><label>Then pick the main problem:</label><div class="row" style="gap:8px;margin-top:6px">${fbReasons().map(([k, l]) => `<button class="btn ghost" data-r="${k}" type="button">${esc(l)}</button>`).join("")}</div></div>` : ""}
     <div class="acts"><button class="btn ghost" id="fbCancel" type="button">Cancel</button>${bad ? "" : `<button class="btn" id="fbSave" type="button">Save</button>`}</div>`);
   $("#fbCancel").addEventListener("click", closeModal);
   if (!bad) $("#fbSave").addEventListener("click", () => { const note = $("#fbNote").value.trim(); if (kind === "note" && !note) return toast("Type a comment first."); closeModal(); saveFB(d, kind, "", note); });
@@ -959,15 +996,15 @@ function renderDeals_(){
   const when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
   const view = $("#dRej") ? $("#dRej").value : "", sg = $("#dSigned") ? $("#dSigned").value : "";
   const removed = d => d.ai_verdict === "reject" || !!d.hidden;
-  const why = view && $("#dWhy") ? $("#dWhy").value : "";
-  if ($("#dWhy")) $("#dWhy").hidden = !view;
-  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || [])[0] === why) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
+  if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
+  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
-    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${WHY_COLORS[k[0]]}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
+    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
@@ -975,7 +1012,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dWhy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded"];
+const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
@@ -1012,6 +1049,34 @@ function renderRules(){ renderRules_(); lockIfReadonly(); }
 function renderSettings(){ renderSettings_(); lockIfReadonly(); }
 // ---------------------------------------------------------------- phone tiles + edit sheet
 function renderAll(){ renderAll_(); renderAllTiles(); }
+// ---- edit reason categories (collection/reasons.csv): label, icon, colour, and keywords used to auto-sort reasons
+function renderReasonEditor(){
+  const box = $("#reasonEditor"); if (!box || READONLY) return;
+  box.innerHTML = `<div class="row" style="justify-content:space-between"><b>Reason categories</b><span class="mut" style="font-size:12px">Used for hidden / AI-rejected deals, the 👎 menu and the AI checker</span></div>
+    <p class="mut" style="font-size:12px;margin:6px 0 8px">Keywords (separated by |) sort a reason into a category when nobody picked one - the first matching row wins, so order matters. Changes apply to new ratings, the next scan and the AI checker.</p>
+    <div class="scroll"><table><thead><tr><th class="nosort">Icon</th><th class="nosort">Name</th><th class="nosort">Colour</th><th class="nosort">Keywords</th><th class="nosort"></th></tr></thead><tbody>` +
+    RS.list.map((r, i) => `<tr><td><input data-ri="${i}" data-f="icon" value="${esc(r.icon || "")}" style="width:48px;text-align:center"></td>
+      <td><input data-ri="${i}" data-f="label" value="${esc(r.label || "")}" style="min-width:150px"><div class="mut" style="font-size:11px">${esc(r.key)}</div></td>
+      <td><input data-ri="${i}" data-f="color" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(r.color || "") ? r.color : "#6f6a5f")}" style="width:44px;height:32px;padding:0"></td>
+      <td><input data-ri="${i}" data-f="keywords" value="${esc(r.keywords || "")}" style="min-width:260px;width:100%"></td>
+      <td style="white-space:nowrap"><button class="btn ghost small" data-rmove="${i}" title="Move up">↑</button>${["other"].includes(r.key) ? "" : `<button class="btn ghost small" data-rdel="${i}" title="Remove">✕</button>`}</td></tr>`).join("") +
+    `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="reasonAdd">+ Add category</button><button class="btn small" id="reasonSave">Save categories</button><span class="status" id="reasonMsg"></span></div>`;
+  box.querySelectorAll("[data-ri]").forEach(el => el.addEventListener("input", () => { RS.list[+el.dataset.ri][el.dataset.f] = el.value.trim(); $("#reasonMsg").textContent = "Unsaved changes"; }));
+  box.querySelectorAll("[data-rdel]").forEach(b => b.addEventListener("click", () => { RS.list.splice(+b.dataset.rdel, 1); renderReasonEditor(); $("#reasonMsg").textContent = "Unsaved changes"; }));
+  box.querySelectorAll("[data-rmove]").forEach(b => b.addEventListener("click", () => { const i = +b.dataset.rmove; if (i > 0){ [RS.list[i - 1], RS.list[i]] = [RS.list[i], RS.list[i - 1]]; renderReasonEditor(); $("#reasonMsg").textContent = "Unsaved changes"; } }));
+  $("#reasonAdd").addEventListener("click", () => { const n = prompt ? prompt("Name of the new category (e.g. Miscut / misprint)") : ""; if (!n) return;
+    const key = n.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 20) || "cat" + RS.list.length; if (RS.list.some(r => r.key === key)) return toast("That category already exists.");
+    RS.list.splice(Math.max(0, RS.list.length - 1), 0, {key, icon: "🔖", label: n, color: "#6f6a5f", keywords: ""}); renderReasonEditor(); $("#reasonMsg").textContent = "Unsaved changes"; });
+  $("#reasonSave").addEventListener("click", async () => {
+    try{ RS.sha = await GH.putFile("collection/reasons.csv", toCSV(REASON_COLS, RS.list), RS.sha, "Update reason categories (Price Desk)"); $("#reasonMsg").textContent = "Saved."; buildWhyFilter(); renderDeals(); }
+    catch(e){ $("#reasonMsg").textContent = "Couldn't save: " + e.message; }
+  });
+}
+function buildWhyFilter(){
+  const el = $("#dWhy"); if (!el) return; const cur = el.value;
+  el.innerHTML = '<option value="">All reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
+  el.value = RS.list.some(r => r.key === cur) ? cur : "";
+}
 function renderDeals(){
   S._dealRows = [];
   // tidy every row first so one odd entry can't blank the whole list
@@ -1805,6 +1870,7 @@ function switchTab(name){
   if (name === "sl" && typeof loadSL === "function"){ loadSL(); if (!READONLY) loadCOL(); }
   if (name === "col" && typeof loadCOL === "function") loadCOL();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
+  if (name === "settings" && !READONLY){ if (!FB.loaded) loadFB(); else renderReasonEditor(); }
 }
 document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => { if (b.dataset.tab === "detail" && S.selected) showDetail(S.selected); else switchTab(b.dataset.tab); }));
 
