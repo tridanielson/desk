@@ -154,6 +154,7 @@ td.r,th.r{text-align:right}
 #updated.link{cursor:pointer}#updated.link:hover{color:var(--ink)}#updated .stale,td.stale{color:var(--gold);font-weight:600}
 .bar{height:8px;background:var(--soft);border-radius:99px;overflow:hidden}.bar span{display:block;height:100%;background:var(--up);border-radius:99px}
 .fb .btn{padding:4px 8px;margin:0 2px}
+.sf-link{color:var(--muted);vertical-align:-2px;cursor:pointer;display:inline-flex}.sf-link:hover{color:var(--accent)}
 #dLearned:empty{display:none!important}
 .tiles{display:none}
 button,a,.tile{-webkit-tap-highlight-color:transparent}
@@ -831,6 +832,17 @@ function dealExtraOK(d){
 const dealWhen = d => { const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z"); return isNaN(t) ? d.found_at : whenAZ(new Date(t).toISOString()); };
 // quality badges: damage words, look-alike reprints, AI reviewer verdict
 const isSigned = d => /\b(signed|autographed|autograph|auto'd)\b/i.test(d.title || "");
+// link to the exact Scryfall printing the deal was priced against
+function sfLinkFor(d){
+  if (!S._sfByLabel){ S._sfByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c.u])); }
+  const u = S._sfByLabel.get(d.card); if (u) return u;
+  const m = /^(.*) \[([A-Z0-9]+)\]/.exec(d.card || "");
+  return m ? `https://scryfall.com/search?q=${encodeURIComponent(`!"${m[1]}" set:${m[2].toLowerCase()}`)}` : "";
+}
+const SF_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 2.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM9.6 12H6.4v-1h.8V7.6h-.8v-1h2.4V11h.8v1Z"/></svg>';
+const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return "";
+  return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" title="See this card on Scryfall">${SF_ICON}</span>`
+              : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" title="See the card it's priced against on Scryfall">${SF_ICON}</a>`; };
 function qualityHTML(d){
   let h = isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
   if (d.ai_verdict) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
@@ -896,7 +908,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => `<tr><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`).join("") + "</tbody>";
@@ -1009,7 +1021,7 @@ function renderDealsTiles(){
   if (!rows.length){ box.innerHTML = `<p class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet."}</p>`; return; }
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
-    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
+    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)} · ${esc(d.condition)} · fair ${money(d.fair)}</div>
       <div class="t-sub">${esc(d.type)}${d.ends_in ? ", ends " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? '<span class="flag buy">below buylist</span>' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}</div>` : ""}
@@ -1018,6 +1030,7 @@ function renderDealsTiles(){
       <div class="t-right"><div class="t-big">${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">off</div></div></a>`;
   }).join("");
   box.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); snipe(rows.find(x => x.url === b.dataset.snipe)); }));
+  box.querySelectorAll("[data-sf]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); window.open(b.dataset.sf, "_blank", "noopener"); }));
   wireFB(box, rows);
 }
 let sheetIdx = -1;
@@ -1734,7 +1747,7 @@ async function loadAll(){
   $("#updated").textContent = "Loading…"; $("#connStatus").textContent = "Loading from GitHub…";
   const d0 = await GH.load(); GH.branch = d0.branch; GH.repo = d0.repo;
   const d = d0.dashboard ? JSON.parse(d0.dashboard) : {cards: [], updated: ""};
-  S.cards = d.cards || []; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
+  S.cards = d.cards || []; S._sfByLabel = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
   S.watch = d0.watch.text ? parseCSV(d0.watch.text) : []; S.watchSha = d0.watch.sha;
   S.rules = d0.rules.text ? parseCSV(d0.rules.text) : []; S.rulesSha = d0.rules.sha;
   S.ini = parseINI(d0.ini.text); S.iniSha = d0.ini.sha;
