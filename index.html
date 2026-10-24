@@ -285,7 +285,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
 <!-- DEALS -->
 <section class="tab" id="tab-deals">
   <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay deals</h2>
-    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn small owner-only" id="dScan">Scan eBay now</button></div></div>
+    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply my ratings</button><button class="btn small owner-only" id="dScan">Scan eBay now</button></div></div>
   <p class="sub">eBay listings for cards in All prices that came in under fair value. The <b>⚡ sniper</b> checks brand-new Buy It Now listings every minute; a full scan (including auctions ending soon) runs every 3 hours. Magic only, no proxies. Prices are as of when found, so auctions may have moved. Snipe sends a listing to EZSniper.</p>
   <div class="panel owner-only" id="dLearned" style="display:block"></div>
   <div class="panel row">
@@ -293,7 +293,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <label>Min % off <input id="dMin" class="num" type="number" value="0"></label>
     <label><input type="checkbox" id="dBuy"> Below buylist only</label>
     <label><input type="checkbox" id="dSus"> Hide "verify" listings</label>
-    <label class="owner-only"><input type="checkbox" id="dRej"> Show AI-rejected</label>
+    <label class="owner-only"><input type="checkbox" id="dRej"> Show hidden &amp; AI-rejected</label>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
     <label><input type="checkbox" id="dPref"> ★ Preferred only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
@@ -844,7 +844,8 @@ const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return "";
   return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" title="See this card on Scryfall">${SF_ICON}</span>`
               : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" title="See the card it's priced against on Scryfall">${SF_ICON}</a>`; };
 function qualityHTML(d){
-  let h = isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
+  let h = d.hidden ? `<span class="flag sus" title="Hidden when you applied your ratings">hidden: ${esc(d.hidden)}</span> ` : "";
+  h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
   if (d.ai_verdict) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
   if (d.damage) h += `<span class="flag sus" title="Listing mentions '${esc(d.damage)}' - valued as Damaged">${esc(d.damage)}</span> `;
   if (d.reprint) h += `<span class="flag sus" title="Priced like the ${esc(d.reprint)} reprint - check the photos (border, corners)">possible ${esc(d.reprint)}?</span> `;
@@ -901,7 +902,7 @@ function renderDeals_(){
   const cutoff = Date.now() - days * 86400000;
   const when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
   const showRej = $("#dRej") && $("#dRej").checked, sg = $("#dSigned") ? $("#dSigned").value : "";
-  const rows = S.deals.filter(d => (showRej || d.ai_verdict !== "reject") && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const rows = S.deals.filter(d => (showRej || (d.ai_verdict !== "reject" && !d.hidden)) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
@@ -1804,7 +1805,7 @@ async function watchRun(part){
   const before = (S.runs[part] || {}).at || "", started = Date.now(), msg = $("#dScanMsg");
   const tick = async () => {
     const mins = Math.round((Date.now() - started) / 6e4);
-    if (msg && part === "deals") msg.textContent = `Scanning… ${mins} min`;
+    if (msg && (part === "deals" || part === "learn")) msg.textContent = `${part === "learn" ? "Applying" : "Scanning"}… ${mins} min`;
     if (Date.now() - started > 20 * 6e4){ clearInterval(WATCH); WATCH = null; if (msg) msg.textContent = ""; toast("Still running on GitHub - check back in a bit, or Setup → Reload data."); return; }
     try{
       const f = await GH.readFiles(["data/run_status.json"]); const r = JSON.parse(f["data/run_status.json"].text || "{}");
@@ -1813,12 +1814,22 @@ async function watchRun(part){
         if (S.dirty.size){ toast("Update finished. Save your changes, then Setup → Reload data to see it."); S.runs = r; renderUpdated(); return; }
         await loadAll();
         const d = r.deals || {};
-        toast(part === "deals" ? `eBay scan done: ${d.cards} cards checked, ${d.found} new deal${d.found === 1 ? "" : "s"}.` : "Update finished - prices refreshed.", 6000);
+        const L = r.learn || {};
+        toast(part === "deals" ? `eBay scan done: ${d.cards} cards checked, ${d.found} new deal${d.found === 1 ? "" : "s"}.`
+          : part === "learn" ? `Ratings applied: ${L.hidden} deal${L.hidden === 1 ? "" : "s"} hidden. New rules are live for the next scan and the sniper.` : "Update finished - prices refreshed.", 7000);
+        if (part === "learn"){ LR.loaded = false; FB.loaded = false; }
       }
     }catch(e){}
   };
   WATCH = setInterval(tick, 30000); tick();
 }
+$("#dApply").addEventListener("click", async () => {
+  if (S.dirty.size){ toast("Save your changes first."); return; }
+  const b = $("#dApply"); b.disabled = true;
+  try{ await GH.runWorkflow("learn"); toast("Applying your ratings - about 1 minute. No eBay searches are used.", 6000); watchRun("learn"); }
+  catch(e){ toast(e.message, 7000); }
+  setTimeout(() => { b.disabled = false; }, 30000);
+});
 $("#dScan").addEventListener("click", async () => {
   if (S.dirty.size){ toast("Save your changes first."); return; }
   const b = $("#dScan"); b.disabled = true;
