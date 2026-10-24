@@ -979,7 +979,12 @@ function renderRules(){ renderRules_(); lockIfReadonly(); }
 function renderSettings(){ renderSettings_(); lockIfReadonly(); }
 // ---------------------------------------------------------------- phone tiles + edit sheet
 function renderAll(){ renderAll_(); renderAllTiles(); }
-function renderDeals(){ S._dealRows = []; renderDeals_(); renderDealsTiles(); if (!READONLY && !FB.loaded) loadFB(); if (!READONLY) loadLearned(); }
+function renderDeals(){
+  S._dealRows = [];
+  // tidy every row first so one odd entry can't blank the whole list
+  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair"]) if (d[k] == null) d[k] = ""; });
+  try{ renderDeals_(); renderDealsTiles(); }
+  catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY) loadLearned(); }
 // ---- what it learned from your comments (data/card_rules.json, written by the 3-hour scan)
 const LR = {data: null, loaded: false, open: false};
 async function loadLearned(force){
