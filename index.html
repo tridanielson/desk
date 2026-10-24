@@ -293,7 +293,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
     <label>Min % off <input id="dMin" class="num" type="number" value="0"></label>
     <label><input type="checkbox" id="dBuy"> Below buylist only</label>
     <label><input type="checkbox" id="dSus"> Hide "verify" listings</label>
-    <label class="owner-only"><input type="checkbox" id="dRej"> Show hidden &amp; AI-rejected</label>
+    <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active deals</option><option value="only">Only hidden &amp; AI-rejected (audit)</option><option value="all">Everything</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
     <label><input type="checkbox" id="dPref"> ★ Preferred only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
@@ -901,12 +901,13 @@ function renderDeals_(){
   const days = +$("#dDays").value, min = +$("#dMin").value || 0, onlyBuy = $("#dBuy").checked, hideSus = $("#dSus").checked, q = $("#dSearch").value.trim().toLowerCase();
   const cutoff = Date.now() - days * 86400000;
   const when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
-  const showRej = $("#dRej") && $("#dRej").checked, sg = $("#dSigned") ? $("#dSigned").value : "";
-  const rows = S.deals.filter(d => (showRej || (d.ai_verdict !== "reject" && !d.hidden)) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const view = $("#dRej") ? $("#dRej").value : "", sg = $("#dSigned") ? $("#dSigned").value : "";
+  const removed = d => d.ai_verdict === "reject" || !!d.hidden;
+  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
-  if (!rows.length){ t.innerHTML = `<tr><td class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
+  if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => `<tr><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Matches your preferences" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus">verify</span>' : ""}${qualityHTML(d)}</td>
@@ -917,7 +918,7 @@ function renderDeals_(){
   wireFB(t, rows);
 }
 const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded"];
-try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; }); }catch{}
+try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
   renderDeals();
