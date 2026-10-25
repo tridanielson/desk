@@ -45,6 +45,7 @@ nav button.on{background:var(--soft);color:var(--ink);font-weight:600}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.small{padding:5px 9px;font-size:12px}
 .pending{background:var(--gold);color:#1a1307;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:600}
+.pending[data-state=saved]{background:color-mix(in srgb,var(--up) 22%,transparent);color:var(--up)}.pending[data-state=error]{background:var(--down);color:#fff;cursor:pointer}
 main{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
 section.tab{display:none}section.tab.on{display:block}
 h2{font:600 20px Georgia,serif;margin:4px 0 4px}
@@ -224,8 +225,8 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
   <div class="grow"></div>
   <span class="chip viewchip">View only</span>
   <span id="pending" class="pending" hidden></span>
-  <button class="btn" id="saveBtn" disabled>Save to GitHub</button>
-  <button class="btn ghost" id="runBtn" disabled title="Run the price + deal update now">Run update</button>
+  <button class="btn" id="saveBtn" hidden disabled>Save now</button>
+  <button class="btn ghost" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Refresh now</button>
   <button class="btn ghost small owner-only" id="muteBtn" title="Phone alerts: mute or quiet hours" hidden>🔔</button>
   <button class="btn ghost small" id="signOutBtn" hidden>Sign out</button>
 </header>
@@ -269,7 +270,7 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
 <!-- MY CARDS -->
 <section class="tab on" id="tab-mine">
   <h2>Watchlist</h2>
-  <p class="sub" id="mineSub">The specific cards you chose to watch closely. Each one can have its own alert levels (target price, drop %, deal %). You get a phone alert when one hits. Edit right in the table, then <b>Save to GitHub</b>. Click a card for its chart.</p>
+  <p class="sub" id="mineSub">The specific cards you chose to watch closely. Each one can have its own alert levels (target price, drop %, deal %). You get a phone alert when one hits. Edit right in the table - changes save automatically. Click a card for its chart.</p>
   <div class="panel">
     <div class="row">
       <div class="ac" id="acBox"><input id="acInput" placeholder="Add a card - start typing a name (e.g. Mox Pearl)" autocomplete="off"><ul id="acList" hidden></ul></div>
@@ -650,7 +651,7 @@ $("#loginForm").addEventListener("submit", async e => {
   btn.disabled = false;
 });
 $("#signOutBtn").addEventListener("click", () => {
-  if (S.dirty.size){ toast("Save your changes first (or reload the page to discard them)."); return; }
+  if (S.dirty.size){ toast("Saving your changes first…"); flushSaves(); return; }
   signOutLocal(); READONLY = false; document.body.classList.remove("readonly");
   S.cards = []; S.byKey = new Map(); S.watch = []; S.rules = []; S.deals = []; S.ini = {};
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
@@ -678,7 +679,45 @@ function lockIfReadonly(){
   document.querySelectorAll("#mineTable input, #mineTable select, #rulesTable input, #rulesTable select, #settingsForm input, #settingsForm select, #settingsForm textarea")
     .forEach(el => { el.disabled = true; });
 }
-function markDirty(file){ if (file) S.dirty.add(file); const n = S.dirty.size; const p = $("#pending"); p.hidden = !n; p.textContent = n + " unsaved"; $("#saveBtn").disabled = !n; }
+// Auto-save: every change is saved to GitHub ~2 seconds after you stop editing ("Saving… / Saved ✓" at the top)
+const AUTOSAVE = {t: null, busy: false, again: false, last: {}};
+function markDirty(file){
+  if (file) S.dirty.add(file);
+  const p = $("#pending");
+  if (!S.dirty.size){ if (!AUTOSAVE.busy && p.dataset.state !== "error") p.hidden = true; return; }
+  p.hidden = false; p.dataset.state = "pending"; p.textContent = "Saving…";
+  clearTimeout(AUTOSAVE.t); AUTOSAVE.t = setTimeout(() => saveAll(), 2000);
+}
+async function putIfChanged(path, text, sha, msg){   // skip files that didn't actually change
+  if (AUTOSAVE.last[path] === text) return sha;
+  const nsha = await GH.putFile(path, text, sha, msg); AUTOSAVE.last[path] = text; return nsha;
+}
+async function saveAll(){
+  if (AUTOSAVE.busy){ AUTOSAVE.again = true; return; }
+  if (!S.dirty.size) return;
+  AUTOSAVE.busy = true; const p = $("#pending"); p.hidden = false; p.dataset.state = "saving"; p.textContent = "Saving…";
+  try{
+    if (S.dirty.has("watchlist")){ S.dirty.delete("watchlist");
+      S.watchSha = await putIfChanged("watchlist.csv", toCSV(S.watchCols, S.watch.filter(w => (w.name || "").trim())), S.watchSha, "Update watchlist (Price Desk)"); }
+    if (S.dirty.has("rules")){ S.dirty.delete("rules"); const cols = ["label","query","finish","drop_pct","deal_pct","alert_low"];
+      S.rulesSha = await putIfChanged("rules.csv", toCSV(cols, S.rules.filter(r => (r.query || "").trim())), S.rulesSha, "Update auto lists (Price Desk)"); }
+    if (S.dirty.has("settings")){ S.dirty.delete("settings"); S.iniSha = await putIfChanged("settings.ini", buildINI(), S.iniSha, "Update settings (Price Desk)"); }
+    if (S.dirty.has("collection")){ S.dirty.delete("collection");
+      COL.invSha = await putIfChanged("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, "Update collection (Price Desk)");
+      COL.salesSha = await putIfChanged("collection/sales.csv", toCSV(SALE_COLS, COL.sales), COL.salesSha, "Update sales (Price Desk)");
+      COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
+      COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
+    if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
+      SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
+    p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
+  }catch(e){
+    ["watchlist", "rules", "settings", "collection", "upcoming"].forEach(f => S.dirty.add(f));   // try again next time
+    p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; toast("Couldn't save: " + e.message, 7000);
+  }
+  AUTOSAVE.busy = false;
+  if (AUTOSAVE.again){ AUTOSAVE.again = false; saveAll(); }
+}
+const flushSaves = async () => { clearTimeout(AUTOSAVE.t); if (S.dirty.size) await saveAll(); while (AUTOSAVE.busy) await new Promise(r => setTimeout(r, 200)); };
 
 // ---------------------------------------------------------------- settings schema
 const SETTINGS = [
@@ -822,7 +861,7 @@ function watchMatch(w){
 function isWatched(c){ return S.watch.some(w => watchMatch(w) === c); }
 function addWatch(row){
   if (S.watch.some(w => w.name.toLowerCase() === row.name.toLowerCase() && (w.set || "").toLowerCase() === (row.set || "").toLowerCase() && (w.collector_number || "") === (row.collector_number || "") && (w.finish || "nonfoil") === (row.finish || "nonfoil"))){ toast("Already on your watchlist."); return; }
-  S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); markDirty("watchlist"); renderMine(); renderAll(); toast(`Added ${row.name}. Save to GitHub to start tracking it.`);
+  S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); markDirty("watchlist"); renderMine(); renderAll(); toast(`Added ${row.name}. It starts being tracked on the next morning run.`);
 }
 
 // ---------------------------------------------------------------- My cards
@@ -1616,7 +1655,7 @@ function slEditorHTML(){
     ${SL.upcoming.map((r, i) => `<tr><td><input data-i="${i}" data-f="name" value="${esc(r.name)}" style="min-width:200px"></td><td><input data-i="${i}" data-f="on_sale_date" type="date" value="${esc(r.on_sale_date)}"></td>
       <td><input data-i="${i}" data-f="on_sale_time" value="${esc(r.on_sale_time)}" placeholder="9:00 AM" style="width:90px"></td><td><input data-i="${i}" data-f="notes" value="${esc(r.notes)}"></td>
       <td><input data-i="${i}" data-f="link" value="${esc(r.link)}" placeholder="https://"></td><td><button class="btn ghost small" data-del-up="${i}">Delete</button></td></tr>`).join("")}
-    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add drop</button><span class="mut" style="font-size:12px">Then Save to GitHub. The list updates after the next run (or Run update).</span></div></div>`;
+    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh now).</span></div></div>`;
 }
 function wireSLEditor(){
   document.querySelectorAll(".sl-edit input[data-i]").forEach(el => el.addEventListener("change", () => { SL.upcoming[+el.dataset.i][el.dataset.f] = el.value.trim(); markDirty("upcoming"); }));
@@ -1670,7 +1709,7 @@ function markReceived(lineId, scope){
     l.in_collection = true; l.open = false;
   }
   markDirty("collection");
-  toast(`${lines.length} line${lines.length > 1 ? "s" : ""} marked received and added to Collection. Tap Save to GitHub when you're done.`, 5000);
+  toast(`${lines.length} line${lines.length > 1 ? "s" : ""} marked received and added to Collection. Saved automatically.`, 5000);
   renderSLOrders();
 }
 // ---- live numbers: quantities from your files right now, values from the last run
@@ -1721,7 +1760,7 @@ function renderCOL(){
   const pend = items.filter(i => i.pending).length;
   const srcs = [...new Set(items.map(i => i.source))].sort();
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
-      <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next run (Save, then Run update).` : ""}</p></div>
+      <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run (or tap Refresh now).` : ""}</p></div>
       <div class="row"><button class="btn small" id="colAdd">+ Add card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label><button class="btn ghost small" id="colReload">Refresh</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       ${stat("Held", `${sum(held, i => i.left)} items`, `${held.length} rows`)}
@@ -1820,7 +1859,7 @@ function openSell(id){
       <div class="tot"><span>Profit</span><span>${gainHTML(Math.round(p * 100) / 100)}</span></div>`; };
   ["#sQty", "#sPrice", "#sPlat", "#sShipC", "#sShipX", "#sFees"].forEach(x => $(x).addEventListener("input", prev)); prev();
   $("#sCancel").addEventListener("click", closeModal);
-  $("#sOk").addEventListener("click", () => { const s = read(); if (numOrNull(s.price_each) == null) return toast("Enter the price."); COL.sales.push(s); markDirty("collection"); closeModal(); renderCOL(); toast("Sale recorded. Tap Save to GitHub."); });
+  $("#sOk").addEventListener("click", () => { const s = read(); if (numOrNull(s.price_each) == null) return toast("Enter the price."); COL.sales.push(s); markDirty("collection"); closeModal(); renderCOL(); toast("Sale recorded."); });
 }
 function openColEdit(id, pre){
   const r = id ? COL.inv.find(x => x.id === id) : Object.assign({id: "", name: "", set: "", number: "", finish: "nonfoil", condition: "NM", language: "EN", qty: "1", cost_each: "", acquired: todayAZ(), source: "", status: "owned", list_price: "", notes: "", scryfall_id: "", kind: "card", ref: ""}, pre || {});
@@ -1856,7 +1895,7 @@ function openColEdit(id, pre){
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); upd.condition = $("#eCond").value;
       if (id && (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name)) upd.scryfall_id = ""; }
     if (id) Object.assign(r, upd); else COL.inv.push(Object.assign(r, upd, {id: newId("c-")}));
-    markDirty("collection"); closeModal(); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); toast("Saved locally. Tap Save to GitHub.");
+    markDirty("collection"); closeModal(); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); toast("Saved.");
   });
 }
 function importCSV(file){
@@ -1877,7 +1916,7 @@ function importCSV(file){
         acquired: todayAZ(), source: src, status: "owned", list_price: "", notes: "", scryfall_id: pick(r, "scryfallid"), kind: "card", ref: ""});
       n++;
     }
-    markDirty("collection"); renderCOL(); toast(`Imported ${n} rows from ${file.name}. Save to GitHub, then Run update to price them.`, 6000);
+    markDirty("collection"); renderCOL(); toast(`Imported ${n} rows from ${file.name}. They get prices on the next morning run (or tap Refresh now).`, 6000);
   };
   rd.readAsText(file);
 }
@@ -1971,7 +2010,7 @@ async function showSetHits(q){
     const code = b.dataset.addset, fin = $("#setFin").value;
     if (COL.goals.some(g => g.set.toLowerCase() === code && (g.finish || "nonfoil") === fin)) return toast("That set is already on your list.");
     COL.goals.push({set: code, finish: fin, skip_basics: $("#setNB").checked ? "yes" : "no", status: "active", deal_pct: "", notes: ""});
-    markDirty("collection"); SETS.adding = false; renderSETS(); toast("Set added. Tap Save to GitHub - needed cards start getting tracked on the next morning run.", 6000);
+    markDirty("collection"); SETS.adding = false; renderSETS(); toast("Set added. Needed cards start getting tracked on the next morning run.", 6000);
   }));
 }
 function renderSetDetail(g){
@@ -2019,7 +2058,7 @@ function renderSetDetail(g){
   $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g); const f = $("#setFind"); f.focus(); f.setSelectionRange(pos, pos); });
-  $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved locally. Tap Save to GitHub."); });
+  $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
   $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
   $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
     COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
@@ -2083,7 +2122,7 @@ function renderRuns(){
       const nxt = k === "prices" ? nextRun("prices") : nextRun("deals");
       return `<tr><td><b>${RUN_NAMES[k]}</b></td><td class="${isStale(k) ? "stale" : ""}">${x ? `${isStale(k) ? "⚠ " : ""}${esc(whenAZ(x.at))} <span class="mut">(${esc(ago(x.at))})</span>` : '<span class="mut">after the next run</span>'}</td>
         <td class="hide-sm mut">${esc(det)}</td><td>${esc(whenAZ(nxt))}</td></tr>`; }).join("") + `</tbody></table>
-    <p class="mut" style="font-size:12px;margin:8px 0 0">The eBay sniper runs inside your Google Apps Script and checks brand-new Buy It Now listings every minute. Prices update once a day (around 7:15 AM). eBay deals and Secret Lair check every 3 hours. Collection values refresh on every run, so they pick up Secret Lair values every 3 hours and card prices daily. GitHub often starts scheduled runs 10-60 minutes late. ⚠ means it's overdue - check the Actions tab on GitHub, or tap <b>Run update</b>.</p>`;
+    <p class="mut" style="font-size:12px;margin:8px 0 0">The eBay sniper runs inside your Google Apps Script and checks brand-new Buy It Now listings every minute. Prices update once a day (around 7:15 AM). eBay deals and Secret Lair check every 3 hours. Collection values refresh on every run, so they pick up Secret Lair values every 3 hours and card prices daily. GitHub often starts scheduled runs 10-60 minutes late. ⚠ means it's overdue - check the Actions tab on GitHub, or tap <b>Refresh now</b>.</p>`;
 }
 $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchTab("connect"); });
 
@@ -2115,7 +2154,7 @@ async function loadAll(){
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
   READONLY = !d0.canEdit; document.body.classList.toggle("readonly", READONLY);
   if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
-  else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart, then Save to GitHub."; }
+  else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
   S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
   const groups = [...new Set(S.cards.map(c => c.g))].sort();
   $("#allGroup").innerHTML = `<option value="">All groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
@@ -2125,34 +2164,28 @@ async function loadAll(){
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
 }
-$("#saveBtn").addEventListener("click", async () => {
-  const btn = $("#saveBtn"); btn.disabled = true; btn.textContent = "Saving…";
-  try{
-    if (S.dirty.has("watchlist")){
-      const rows = S.watch.filter(w => (w.name || "").trim());
-      S.watchSha = await GH.putFile("watchlist.csv", toCSV(S.watchCols, rows), S.watchSha, "Update watchlist (Price Desk)"); S.dirty.delete("watchlist");
-    }
-    if (S.dirty.has("rules")){
-      const cols = ["label","query","finish","drop_pct","deal_pct","alert_low"];
-      S.rulesSha = await GH.putFile("rules.csv", toCSV(cols, S.rules.filter(r => (r.query || "").trim())), S.rulesSha, "Update auto lists (Price Desk)"); S.dirty.delete("rules");
-    }
-    if (S.dirty.has("settings")){ S.iniSha = await GH.putFile("settings.ini", buildINI(), S.iniSha, "Update settings (Price Desk)"); S.dirty.delete("settings"); }
-    if (S.dirty.has("collection")){
-      COL.invSha = await GH.putFile("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, "Update collection (Price Desk)");
-      COL.salesSha = await GH.putFile("collection/sales.csv", toCSV(SALE_COLS, COL.sales), COL.salesSha, "Update sales (Price Desk)");
-      COL.recSha = await GH.putFile("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
-      COL.goalsSha = await GH.putFile("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)");
-      S.dirty.delete("collection");
-    }
-    if (S.dirty.has("upcoming")){ SL.upSha = await GH.putFile("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); S.dirty.delete("upcoming"); }
-    toast("Saved. Changes apply on the next run - or click Run update.");
-  }catch(e){ toast(e.message, 7000); }
-  btn.textContent = "Save to GitHub"; markDirty(); if (!S.dirty.size){ $("#pending").hidden = true; btn.disabled = true; }
-});
+$("#saveBtn").addEventListener("click", () => saveAll());
+$("#pending").addEventListener("click", () => { if ($("#pending").dataset.state === "error") saveAll(); });
+// Buttons that use eBay searches or AI credits ask first, with today's numbers
+function costConfirm(title, lines, okLabel){
+  return new Promise(res => {
+    const q = (S.runs || {}).ebay, left = q && q.limit != null ? (q.remaining != null ? q.remaining : q.limit - (q.used || 0)) : null;
+    openModal(`<h3>${esc(title)}</h3><ul style="margin:10px 0;padding-left:20px">${lines.map(l => `<li style="margin:4px 0">${l}</li>`).join("")}</ul>
+      ${left != null ? `<p class="mut" style="font-size:13px">eBay searches left today: <b>${Number(left).toLocaleString()}</b> of ${Number(q.limit).toLocaleString()} (as of ${esc(whenAZ(q.at))}).</p>` : ""}
+      <div class="acts"><button class="btn ghost" type="button" id="ccNo">Cancel</button><button class="btn" type="button" id="ccYes">${esc(okLabel || "Go ahead")}</button></div>`);
+    $("#ccNo").addEventListener("click", () => { closeModal(); res(false); });
+    $("#ccYes").addEventListener("click", () => { closeModal(); res(true); });
+  });
+}
+const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$/i.test(A.enabled || "yes");
+  return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
 $("#runBtn").addEventListener("click", async () => {
-  if (S.dirty.size){ toast("Save your changes first, then run the update."); return; }
+  const d = (S.runs || {}).deals || {};
+  if (!await costConfirm("Refresh prices and deals now?", ["Optional - this happens on its own every morning (prices) and every 3 hours (deals).",
+    `eBay: about <b>${d.searches || 300} searches</b> for the deal scan, plus a few full-listing checks.`, aiNote(), "Prices from Scryfall are free. Takes about 5 minutes."], "Refresh now")) return;
+  await flushSaves();
   const b = $("#runBtn"); b.disabled = true;
-  try{ await GH.runWorkflow(); toast("Update started on GitHub. This page refreshes itself when it's done (about 5 minutes).", 6000); watchRun("prices"); }
+  try{ await GH.runWorkflow(); toast("Refresh started. This page updates itself when it's done (about 5 minutes).", 6000); watchRun("prices"); }
   catch(e){ toast(e.message, 7000); }
   b.disabled = false;
 });
@@ -2169,7 +2202,7 @@ async function watchRun(part){
       const f = await GH.readFiles(["data/run_status.json"]); const r = JSON.parse(f["data/run_status.json"].text || "{}");
       if (r[part] && r[part].at !== before){
         clearInterval(WATCH); WATCH = null; if (msg) msg.textContent = "";
-        if (S.dirty.size){ toast("Update finished. Save your changes, then Setup → Reload data to see it."); S.runs = r; renderUpdated(); return; }
+        await flushSaves();
         await loadAll();
         const d = r.deals || {};
         const L = r.learn || {};
@@ -2182,21 +2215,27 @@ async function watchRun(part){
   WATCH = setInterval(tick, 30000); tick();
 }
 $("#dApply").addEventListener("click", async () => {
-  if (S.dirty.size){ toast("Save your changes first."); return; }
+  const pend = FB.rows.filter(r => (r.note || "").trim()).length - (((LR.data || {}).done) || []).length;
+  if (!await costConfirm("Apply your ratings now?", ["<b>No eBay searches.</b> Re-checks deals already found against your ratings and rules.",
+    pend > 0 ? `AI: Claude reads your <b>${pend} new comment${pend > 1 ? "s" : ""}</b> to turn them into rules - a fraction of a cent.` : "No new comments, so no AI cost."], "Apply")) return;
+  await flushSaves();
   const b = $("#dApply"); b.disabled = true;
   try{ await GH.runWorkflow("learn"); toast("Applying your ratings - about 1 minute. No eBay searches are used.", 6000); watchRun("learn"); }
   catch(e){ toast(e.message, 7000); }
   setTimeout(() => { b.disabled = false; }, 30000);
 });
 $("#dScan").addEventListener("click", async () => {
-  if (S.dirty.size){ toast("Save your changes first."); return; }
+  const d = (S.runs || {}).deals || {};
+  if (!await costConfirm("Scan eBay now?", ["Optional - the full scan runs every 3 hours and the sniper checks new listings every minute.",
+    `eBay: about <b>${d.searches || 300} searches</b> (${d.cards || "about 1,000"} cards in combined searches), plus a few full-listing checks.`, aiNote()], "Scan now")) return;
+  await flushSaves();
   const b = $("#dScan"); b.disabled = true;
   try{ await GH.runWorkflow("deals"); toast("eBay scan started. New deals show up here in about 3-5 minutes.", 6000); watchRun("deals"); }
   catch(e){ toast(e.message, 7000); }
   setTimeout(() => { b.disabled = false; }, 60000);
 });
 $("#reloadBtn").addEventListener("click", async () => {
-  if (S.dirty.size){ toast("Save or discard your changes first (reload the page to discard)."); return; }
+  if (S.dirty.size) await flushSaves();
   $("#connMsg").textContent = "Loading…";
   try{ await loadAll(); $("#connMsg").textContent = "Up to date."; }
   catch(e){ $("#connMsg").textContent = ""; $("#connStatus").textContent = e.message; }
