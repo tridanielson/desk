@@ -170,6 +170,7 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 #busy .spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#busy .busy-bar,#busy .spin{animation:none}}
+th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:3px}
 .tiles{display:none}
 button,a,.tile{-webkit-tap-highlight-color:transparent}
 .tile{display:flex;gap:12px;align-items:center;width:100%;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;text-decoration:none}
@@ -506,6 +507,54 @@ function openMute(){
 }
 $("#muteBtn").addEventListener("click", openMute);
 setInterval(renderMute, 60000);
+
+// ---- column explanations: hover a header (or tap it on a phone) to see what it means
+const HINTS = {
+  "Card": "The card and the exact printing (set code in brackets). Tap ⓘ next to a deal's card to see that printing on Scryfall.",
+  "Price": "Today's TCGplayer market price for this exact printing in Near Mint (from Scryfall, updated every morning).",
+  "Price (NM)": "Today's TCGplayer market price in Near Mint for this exact printing.",
+  "CK buylist": "What Card Kingdom pays in cash for a Near Mint copy right now. A deal priced below this is close to guaranteed profit.",
+  "7d": "Price change over the last 7 days.", "30d": "Price change over the last 30 days.", "90d": "Price change over the last 90 days.", "1y": "Price change over the last year.",
+  "Volatility": "How much the price usually swings day to day. Swingy cards are where dips (and spikes) happen.",
+  "Group": "Why this card is tracked: your Watchlist, an Auto-track list, or Need: a set you're completing.",
+  "Target $": "Phone alert when the price is at or below this.",
+  "Drop %": "Phone alert when the price is this far below its 30-day average. Blank = the default in Settings.",
+  "Deal %": "How far under fair value an eBay listing must be to count as a deal. Blank = the default in Settings (20%).",
+  "Low": "Phone alert when the price hits a new 1-year low.",
+  "Found": "When the scanner or sniper found the listing (Arizona time).",
+  "% off": "How far the listing (price + shipping) is under fair value: (fair value - price + ship) ÷ fair value.",
+  "Price + ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
+  "Condition": "From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
+  "Fair value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
+  "Type": "Buy It Now, Best Offer, or an auction (current bid, and time left).",
+  "Listing": "The eBay listing title - tap to open it on eBay.",
+  "Rate": "Tell the scanner how it did: 👍 good deal, 👎 bad deal (pick why), 💬 add a comment. Comments become rules on the next scan.",
+  "Have": "Copies you still have (bought minus sold).", "Paid each": "What you paid per copy.",
+  "Worth each": "What one copy is worth now (market price × your condition value).", "Worth": "Value of the copies you still have.",
+  "Gain": "Worth now minus what you paid, for the copies you still have.", "Gain / loss": "What it's worth now minus what you paid.",
+  "Worth now": "Current value: card prices for singles, the drop's card value for Secret Lairs (≈ when priced from the other finish).",
+  "Source": "Where the cards came from (e.g. a collection you bought, Secret Lair).",
+  "Sold for": "Price × quantity + the shipping the buyer paid.",
+  "Fees": "eBay / TCGplayer fees. '~' = estimated from the fee rates in Settings.", "Ship cost": "What you paid to ship it.",
+  "Paid": "What you originally paid for the copies you sold.", "Profit": "Sold for - fees - your shipping - what you paid.",
+  "Ordered": "Order date from your Secret Lair spreadsheet.", "Cost": "What you paid for the line (from your spreadsheet).",
+  "Status": "Order status from your spreadsheet, or Received once you mark it.", "Qty": "How many you ordered.",
+  "Rarity": "The card's rarity in this set.", "Trend": "Price change over the last 30 days.",
+};
+const HINTS_BY_TABLE = {
+  slTable: {"Price": "Retail price on the Secret Lair store.", "Worth": "Card value of everything in the drop (sum of each card's market price)."},
+};
+function decorateHeaders(){
+  document.querySelectorAll("th:not([data-hinted])").forEach(th => {
+    th.dataset.hinted = "1";
+    const txt = th.textContent.replace(/[▲▼]/g, "").trim(), tbl = (th.closest("table") || {}).id || "";
+    const h = (HINTS_BY_TABLE[tbl] || {})[txt] || HINTS[txt];
+    if (!h) return;
+    th.title = h; th.dataset.hint = h; th.classList.add("has-hint");
+  });
+}
+new MutationObserver(() => { clearTimeout(decorateHeaders._t); decorateHeaders._t = setTimeout(decorateHeaders, 50); }).observe(document.body, {childList: true, subtree: true});
+document.addEventListener("click", e => { const th = e.target.closest("th.has-hint"); if (th && (matchMedia("(hover: none)").matches || e.target.classList.contains("hint-i"))) toast(th.textContent.replace(/[▲▼ⓘ]/g, "").trim() + ": " + th.dataset.hint, 8000); });
 
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
@@ -994,6 +1043,13 @@ function openWhy(d){
   $("#whySave").addEventListener("click", () => { const c = $("#whyCat").value; closeModal(); if (c !== k.cat) saveFB(d, "recat", c, ""); });
   $("#whyShow").addEventListener("click", () => { closeModal(); saveFB(d, "unhide", "", ""); });
 }
+function buylistText(d){
+  const ck = +d.ck_buylist, adj = ck && +d.market ? ck * (+d.fair / +d.market) : 0;
+  return `Below Card Kingdom's cash buylist: Card Kingdom pays about ${adj ? money(adj) : "more"} for a copy in this condition${ck ? ` (${money(ck)} Near Mint)` : ""}, and this costs ${money(d.total)} with shipping - you could resell it to them right away for a profit.`;
+}
+// tap any tag (phones can't hover) to read what it means
+document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]")) return;
+  if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
   let h = whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
@@ -1062,10 +1118,10 @@ function renderDeals_(){
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
-  t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Total</th><th class="nosort">Cond</th><th class="r nosort">Fair</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? '<span class="flag buy">below buylist</span> ' : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
-      <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
+      <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
@@ -1211,9 +1267,9 @@ function renderDealsTiles(){
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
-      <div class="t-sub">${money(d.total)} · ${esc(d.condition)} · fair ${money(d.fair)}</div>
+      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · ${esc(d.condition)} · fair ${money(d.fair)}</div>
       <div class="t-sub">${esc(d.type)}${d.ends_in ? ", ends " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
-      ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? '<span class="flag buy">below buylist</span>' : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
+      ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${fbHTML(d) ? `<div class="t-chips">${fbHTML(d).replace(/<button/g, '<span role="button"').replace(/<\/button>/g, "</span>")}</div>` : ""}</div>
       <div class="t-right"><div class="t-big">${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">off</div></div></a>`;
