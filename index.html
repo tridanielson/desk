@@ -1123,12 +1123,52 @@ async function loadFB(){
   catch(e){} FB.loading = false;
 }
 const fbFor = d => FB.rows.filter(r => r.url === d.url).slice(-1)[0];
+function boughtFor(d){ return FB.rows.some(r => r.url === d.url && r.verdict === "bought"); }
 function fbHTML(d){
   if (READONLY || !FB.loaded) return "";
+  if (boughtFor(d)) return `<span class="badge b-on" title="You bought this - it's in Collection as Ordered">🛒 BOUGHT</span>`;
+  const buy = `<button class="btn ghost small" data-buy="${esc(d.url)}" title="I bought this - add it to Collection as on the way">🛒</button>`;
   const f = fbFor(d);
   if (f) return `<span class="mut" style="font-size:12px">${f.verdict === "good" ? "👍 rated good" : f.verdict === "note" ? "💬 commented" : "👎 " + esc((fbReasons().find(r => r[0] === (f.reason === "damage" ? "condition" : f.reason)) || [, f.reason])[1])}</span>
-    <button class="btn ghost small" data-fb="note" data-u="${esc(d.url)}" title="Add a comment about this card">💬</button>`;
-  return `<span class="fb"><button class="btn ghost small" data-fb="good" data-u="${esc(d.url)}" title="Good deal">👍</button><button class="btn ghost small" data-fb="bad" data-u="${esc(d.url)}" title="Bad deal - tell it why">👎</button></span>`;
+    <button class="btn ghost small" data-fb="note" data-u="${esc(d.url)}" title="Add a comment about this card">💬</button>${buy}`;
+  return `<span class="fb"><button class="btn ghost small" data-fb="good" data-u="${esc(d.url)}" title="Good deal">👍</button><button class="btn ghost small" data-fb="bad" data-u="${esc(d.url)}" title="Bad deal - tell it why">👎</button>${buy}</span>`;
+}
+// ---- "I bought it": add the deal to Collection as Ordered (on the way); mark received there when it arrives
+async function saveCollectionNow(msg){
+  COL.invSha = await GH.putFile("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, msg);
+  S.dirty.delete("collection");
+}
+function openBought(d){
+  if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c]));
+  const c = S._cardByLabel.get(d.card) || {};
+  const cond = (d.condition || "").replace("?", "").toUpperCase();
+  openModal(`<h3>🛒 I bought this</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
+    <div class="grid">
+      <div><label for="bPaid">Total paid each ($, incl. shipping & tax)</label><input id="bPaid" inputmode="decimal" value="${esc((+d.total || 0).toFixed(2))}"></div>
+      <div><label for="bQty">Quantity</label><input id="bQty" type="number" min="1" value="1"></div>
+      <div><label for="bCond">Condition</label><select id="bCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
+      <div><label for="bDate">Bought on</label><input id="bDate" type="date" value="${todayAZ()}"></div>
+      <div class="full"><label for="bNote">Notes (optional)</label><input id="bNote" placeholder="order #, seller, tracking…"></div>
+    </div>
+    <p class="mut" style="font-size:12px;margin-top:10px">It goes into Collection as <b>Ordered</b> (on the way). Tap <b>Mark received</b> there when it arrives. It also counts as a 👍 for the deal checker${d.need ? " and stops NEED alerts for this card" : ""}.</p>
+    <div class="acts"><button class="btn ghost" id="bCancel" type="button">Cancel</button><button class="btn" id="bOk" type="button">Add to Collection</button></div>`);
+  $("#bCond").value = ["NM", "LP", "MP", "HP", "DMG"].includes(cond) ? cond : "LP";
+  $("#bCancel").addEventListener("click", closeModal);
+  $("#bOk").addEventListener("click", async () => {
+    const btn = $("#bOk"); btn.disabled = true;
+    try{
+      if (!COL.loaded) await loadCOL();
+      if (!COL.loaded) throw new Error(COL.error || "Couldn't open your Collection");
+      COL.inv.push({id: newId("c-"), name: c.n || d.card.split(" [")[0], set: (c.s || (/\[([A-Z0-9]+)\]/.exec(d.card) || [])[1] || "").toLowerCase(), number: c.num || "",
+        finish: c.f || "nonfoil", condition: $("#bCond").value, language: "EN", qty: String(Math.max(1, parseInt($("#bQty").value) || 1)),
+        cost_each: $("#bPaid").value.trim(), acquired: $("#bDate").value, source: "eBay", status: "ordered", list_price: "",
+        notes: [$("#bNote").value.trim(), d.url].filter(Boolean).join(" · "), scryfall_id: "", kind: "card", ref: d.url});
+      await saveCollectionNow("Bought from an eBay deal (Price Desk)");
+      closeModal();
+      await saveFB(d, "bought", "", $("#bNote") ? "" : "");
+      renderCOL(); toast(`Added to Collection as Ordered. Mark it received when it arrives.`, 6000);
+    }catch(e){ btn.disabled = false; toast("Couldn't add it: " + e.message, 7000); }
+  });
 }
 async function saveFB(d, verdict, reason_, note){ const reason = reason_;
   const sellerName = String(d.seller || "").split(" (")[0];
@@ -1154,6 +1194,8 @@ function openFB(d, kind){
   setTimeout(() => $("#fbNote") && $("#fbNote").focus(), 50);
 }
 function wireFB(box, rows){
+  box.querySelectorAll("[data-buy]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation();
+    const d = rows.find(x => x.url === b.dataset.buy); if (d) openBought(d); }));
   box.querySelectorAll("[data-fb]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation();
     const d = rows.find(x => x.url === b.dataset.u); if (!d) return;
     openFB(d, b.dataset.fb); }));
@@ -1691,7 +1733,7 @@ function renderCOL(){
     </div>
     <div class="panel row"><input id="colQ" placeholder="Search your collection…" value="${esc(COL.q)}" style="flex:1;min-width:180px">
       <select id="colSrc"><option value="">All sources</option>${srcs.map(x => `<option>${esc(x)}</option>`).join("")}</select>
-      <select id="colStatus"><option value="held">Still have</option><option value="listed">Listed</option><option value="sold">Sold out</option><option value="">Everything</option></select>
+      <select id="colStatus"><option value="held">Still have</option><option value="ordered">Ordered (on the way)</option><option value="listed">Listed</option><option value="sold">Sold out</option><option value="">Everything</option></select>
       <select id="colKind"><option value="">Cards + Secret Lair</option><option value="card">Cards</option><option value="secret_lair">Secret Lair</option></select>
       <span class="status" id="colCount"></span></div>
     <div class="panel scroll"><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table>
@@ -1731,9 +1773,9 @@ function renderCOLList(){
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
   const meta = i => `${i.kind === "secret_lair" ? "Secret Lair" : esc(i.set_name || i.set) + (i.number ? " #" + esc(i.number) : "")} · ${esc(i.finish)}${i.kind === "card" ? " · " + esc(i.condition) : ""}`;
-  const acts = i => (i.left > 0 ? `<button class="btn small" data-sell="${esc(i.id)}">Sell</button> ` : "") + `<button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
+  const acts = i => (i.status === "ordered" ? `<button class="btn small" data-recv="${esc(i.id)}">Mark received</button> ` : i.left > 0 ? `<button class="btn small" data-sell="${esc(i.id)}">Sell</button> ` : "") + `<button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="nosort hide-sm">Source</th><th class="r nosort">Have</th><th class="r nosort">Paid each</th><th class="r nosort">Worth each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
-    (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}${i.status === "listed" ? ' <span class="badge b-up">LISTED</span>' : ""}</div><div class="cset">${meta(i)}</div></td>
+    (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}${i.status === "listed" ? ' <span class="badge b-up">LISTED</span>' : ""}${i.status === "ordered" ? ' <span class="badge b-up" title="Bought, not received yet">ORDERED</span>' : ""}</div><div class="cset">${meta(i)}</div></td>
       <td class="hide-sm mut" style="font-size:12px">${esc(i.source)}</td><td class="r">${i.left}${i.left !== i.qty ? `<span class="mut">/${i.qty}</span>` : ""}</td><td class="r">${money(i.cost_each)}</td>
       <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${i.value == null ? "–" : gainHTML(i.value - i.cost_left)}</td><td class="mk">${acts(i)}</td></tr>`).join("") ||
      '<tr><td colspan="8" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
@@ -1742,6 +1784,12 @@ function renderCOLList(){
       <div class="t-right"><div class="t-price">${worth(i)}</div>${i.value == null ? "" : `<div style="font-size:12px">${gainHTML(i.value - i.cost_left)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
   $("#colMore").hidden = rows.length <= COL.limit;
   document.querySelectorAll("#colBody [data-sell]").forEach(b => b.addEventListener("click", () => openSell(b.dataset.sell)));
+  document.querySelectorAll("#colBody [data-recv]").forEach(b => b.addEventListener("click", async () => {
+    const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return;
+    r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
+    try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
+    catch(e){ r.status = "ordered"; toast("Couldn't save: " + e.message, 6000); }
+  }));
   document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
 }
 function openModal(html){ $("#colModalBody").innerHTML = html; $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
@@ -1789,12 +1837,12 @@ function openColEdit(id, pre){
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where from</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div><label for="eAcq">Acquired</label><input id="eAcq" type="date" value="${esc(r.acquired)}"></div>
-      <div><label for="eStat">Status</label><select id="eStat"><option value="owned">Owned</option><option value="listed">Listed for sale</option></select></div>
+      <div><label for="eStat">Status</label><select id="eStat"><option value="owned">Owned</option><option value="ordered">Ordered (on the way)</option><option value="listed">Listed for sale</option></select></div>
       <div><label for="eList">Listed at ($)</label><input id="eList" inputmode="decimal" value="${esc(r.list_price)}"></div>
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
     </div>
     <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button><button class="btn" id="eOk" type="button">${id ? "Save" : "Add"}</button></div>`);
-  $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = r.status === "listed" ? "listed" : "owned";
+  $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
   let t; $("#eName").addEventListener("input", e => { clearTimeout(t); const q = e.target.value.trim(); if (q.length < 2 || isSL) return;
     t = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); $("#eNames").innerHTML = (j.data || []).slice(0, 12).map(n => `<option value="${esc(n)}">`).join(""); }catch{} }, 200); });
   $("#eCancel").addEventListener("click", closeModal);
