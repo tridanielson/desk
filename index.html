@@ -56,7 +56,8 @@ input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid v
 input.num{width:78px;text-align:right;font-variant-numeric:tabular-nums}
 table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
 th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none}
-th.nosort{cursor:default}
+thead th{cursor:pointer;user-select:none}thead th:empty{cursor:default}
+thead th[data-dir="asc"]::after{content:" ▲";font-size:10px}thead th[data-dir="desc"]::after{content:" ▼";font-size:10px}
 td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 tr.click{cursor:pointer}tr.click:hover td{background:var(--soft)}
 td.r,th.r{text-align:right}
@@ -555,6 +556,52 @@ function decorateHeaders(){
 }
 new MutationObserver(() => { clearTimeout(decorateHeaders._t); decorateHeaders._t = setTimeout(decorateHeaders, 50); }).observe(document.body, {childList: true, subtree: true});
 document.addEventListener("click", e => { const th = e.target.closest("th.has-hint"); if (th && (matchMedia("(hover: none)").matches || e.target.classList.contains("hint-i"))) toast(th.textContent.replace(/[▲▼ⓘ]/g, "").trim() + ": " + th.dataset.hint, 8000); });
+
+// ---- click any column title to sort (click again to flip). Works on every table on the desk.
+const TSORT = {};   // table -> {h: header text, dir}
+const thText = th => th.textContent.replace(/[▲▼]/g, "").trim();
+const tableKey = t => t.id || [...t.querySelectorAll("thead th")].map(thText).join("|");
+function cellKey(td){
+  if (!td) return "";
+  if (td.dataset.sort != null){ const n = Number(td.dataset.sort); return td.dataset.sort !== "" && !isNaN(n) ? n : td.dataset.sort.toLowerCase(); }
+  const inp = td.querySelector("input:not([type=checkbox]),select");
+  const t = (inp ? inp.value : td.textContent).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t;                     // dates sort as text (YYYY-MM-DD)
+  const c = t.replace(/,/g, "").replace(/−/g, "-");
+  const m = c.match(/^[\s$≈~+]*(-?\$?-?\d+(?:\.\d+)?)/);
+  if (m) return parseFloat(m[1].replace("$", ""));
+  return t === "–" || t === "-" ? "" : t.toLowerCase();
+}
+function sortTable(tbl, col, dir){
+  const tb = tbl.tBodies[0]; if (!tb) return;
+  const rows = [...tb.rows]; if (rows.length < 2 || rows.some(r => r.cells.length === 1 && r.cells[0].colSpan > 1)) return;
+  const sorted = rows.slice().sort((a, b) => {
+    const x = cellKey(a.cells[col]), y = cellKey(b.cells[col]);
+    if (x === "" && y !== "") return 1; if (y === "" && x !== "") return -1;
+    return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), undefined, {numeric: true})) * dir;
+  });
+  if (sorted.every((r, i) => r === rows[i])) return;   // already in order
+  sorted.forEach(r => tb.appendChild(r));
+}
+function markSorted(tbl, h, dir){ tbl.querySelectorAll("thead th").forEach(th => { if (thText(th) === h) th.dataset.dir = dir > 0 ? "asc" : "desc"; else delete th.dataset.dir; }); }
+document.addEventListener("click", e => {
+  const th = e.target.closest("thead th"); if (!th || e.target.closest("input,select,button,a")) return;
+  const tbl = th.closest("table"), h = thText(th);
+  if (!tbl || !h || tbl.id === "allTable") return;               // All prices has its own sorting
+  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type" ? 1 : -1); DSORT.k = h; renderDeals(); return; }
+  const k = tableKey(tbl), cur = TSORT[k];
+  const dir = cur && cur.h === h ? -cur.dir : 1;
+  TSORT[k] = {h, dir}; sortTable(tbl, th.cellIndex, dir); markSorted(tbl, h, dir);
+});
+function reapplySorts(){
+  document.querySelectorAll("table").forEach(tbl => {
+    if (tbl.id === "dealsTable"){ if (DSORT.k) markSorted(tbl, DSORT.k, DSORT.dir); return; }
+    const st = TSORT[tableKey(tbl)]; if (!st) return;
+    const th = [...tbl.querySelectorAll("thead th")].find(x => thText(x) === st.h); if (!th) return;
+    sortTable(tbl, th.cellIndex, st.dir); markSorted(tbl, st.h, st.dir);
+  });
+}
+new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = setTimeout(reapplySorts, 60); }).observe(document.body, {childList: true, subtree: true});
 
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
@@ -1111,6 +1158,16 @@ function wireFB(box, rows){
     const d = rows.find(x => x.url === b.dataset.u); if (!d) return;
     openFB(d, b.dataset.fb); }));
 }
+// click a column title to sort the deals (again to flip); the phone view follows the same order
+const DSORT = {k: "", dir: -1};
+const COND_ORDER = {NM: 5, LP: 4, MP: 3, HP: 2, DMG: 1};
+const DEAL_KEYS = {"Found": d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0, "Card": d => (d.card || "").toLowerCase(),
+  "% off": d => +d.discount_pct || 0, "Price + ship": d => +d.total || 0, "Condition": d => COND_ORDER[(d.condition || "").replace("?", "").toUpperCase()] ?? (/psa|bgs|cgc|sgc|grade/i.test(d.condition) ? 6 : 0),
+  "Fair value": d => +d.fair || 0, "Type": d => (d.type || "").toLowerCase(), "Listing": d => (d.title || "").toLowerCase()};
+function dealCompare(a, b){
+  const f = DEAL_KEYS[DSORT.k]; if (!f) return 0;
+  const x = f(a), y = f(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * DSORT.dir;
+}
 function renderDeals_(){
   const days = +$("#dDays").value, min = +$("#dMin").value || 0, onlyBuy = $("#dBuy").checked, hideSus = $("#dSus").checked, q = $("#dSearch").value.trim().toLowerCase();
   const cutoff = Date.now() - days * 86400000;
@@ -1120,12 +1177,12 @@ function renderDeals_(){
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
-    .sort((a, b) => (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
+    .sort((a, b) => dealCompare(a, b) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
-    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap">${esc(dealWhen(d))}</td>
+    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
       <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
