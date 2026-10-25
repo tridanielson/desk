@@ -675,7 +675,12 @@ const SETTINGS = [
     ["enabled", "Use the AI checker", "bool", true, "Needs ANTHROPIC_API_KEY in GitHub secrets and Apps Script properties. Without a key this is skipped."],
     ["model", "Model", "list", "claude-sonnet-5-5", "claude-sonnet-5-5 is the careful default; claude-haiku-5-5 is cheaper."],
     ["max_reviews_per_day", "Max reviews per day (each scanner)", "num", 40, "Cost control. Only listings that already look like deals are reviewed."],
-    ["min_fair_value", "Only review deals worth at least ($)", "num", 20, ""]]},
+    ["min_fair_value", "Only review deals worth at least ($)", "num", 20, ""],
+    ["review_mode", "Which deals get checked", "aimode", "risky", "Risky = only where a mistake is likely or costly: priced like a look-alike reprint, Unlimited/Alpha/Beta and other sets with look-alikes, cards you commented on, big discounts, or high value. All = every deal."],
+    ["risky_discount_pct", "Always check deals at least this % off", "num", 40, "Too-good-to-be-true discounts."],
+    ["always_review_over", "Always check deals worth over ($)", "num", 100, ""],
+    ["cheap_below", "Use the cheaper model below ($)", "num", 75, "Deals worth less than this use the cheaper model and 2 photos instead of 4."],
+    ["cheap_model", "Cheaper model", "list", "claude-haiku-5-5", ""]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
     ["enabled", "Sniper on", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
     ["min_listing_price", "Ignore new listings under ($)", "num", 10, ""],
@@ -745,6 +750,7 @@ function renderSettings_(){
       else if (type === "cond") input = `<select id="${id}">${["NM","LP","MP","HP","DMG"].map(c => `<option>${c}</option>`).join("")}</select>`;
       else if (type === "mincond") input = `<select id="${id}"><option value="ANY">Any condition</option><option value="HP">Heavily Played or better</option><option value="MP">Moderately Played or better</option><option value="LP">Lightly Played or better</option><option value="NM">Near Mint only</option></select>`;
       else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded only</option><option value="graded">Graded only</option><option value="both">Both</option></select>`;
+      else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky deals only (saves money)</option><option value="all">Every deal</option></select>`;
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver silently (no sound)</option><option value="hold">Hold for a morning summary</option><option value="off">Ring as normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include signed cards</option><option value="hide">Hide signed cards</option><option value="only">Only signed cards</option></select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
@@ -752,7 +758,7 @@ function renderSettings_(){
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
-      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet") ? val.toLowerCase() : val;
+      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode") ? val.toLowerCase() : val;
       el.addEventListener("change", () => { (S.ini[g.sec] = S.ini[g.sec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
     box.appendChild(panel);
