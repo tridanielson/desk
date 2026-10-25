@@ -205,6 +205,9 @@ body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.reado
 body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readonly #nav [data-tab=deals],body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect]{display:none!important}
 .viewchip{display:none}body.readonly .viewchip{display:inline-block}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
+.condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line, #ccc);background:transparent;color:inherit}
+.condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
+.condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -526,7 +529,7 @@ const HINTS = {
   "Found": "When the scanner or sniper found the listing (Arizona time).",
   "% off": "How far the listing (price + shipping) is under fair value: (fair value - price + ship) ÷ fair value.",
   "Price + ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
-  "Condition": "From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
+  "Condition": "Pick a different condition if the photos disagree - Fair value and % off recalculate and it's saved. From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
   "Fair value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
   "Type": "Buy It Now, Best Offer, or an auction (current bid, and time left).",
   "Listing": "The eBay listing title - tap to open it on eBay.",
@@ -707,11 +710,13 @@ async function saveAll(){
       COL.salesSha = await putIfChanged("collection/sales.csv", toCSV(SALE_COLS, COL.sales), COL.salesSha, "Update sales (Price Desk)");
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
+    if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
+      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
   }catch(e){
-    ["watchlist", "rules", "settings", "collection", "upcoming"].forEach(f => S.dirty.add(f));   // try again next time
+    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond"].filter(f => f !== "dealcond" || DC.loaded).forEach(f => S.dirty.add(f));   // try again next time
     p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; toast("Couldn't save: " + e.message, 7000);
   }
   AUTOSAVE.busy = false;
@@ -1157,7 +1162,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv"]); loadDC(f["collection/deal_condition.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); }
   catch(e){} FB.loading = false;
 }
@@ -1257,7 +1262,7 @@ function renderDeals_(){
   const removed = d => d.ai_verdict === "reject" || !!d.hidden;
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
-  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && +d.discount_pct >= min && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => dealCompare(a, b) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
   const t = $("#dealsTable");
@@ -1265,7 +1270,7 @@ function renderDeals_(){
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
-      <td class="r up" style="font-weight:600">${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${esc(d.condition)}</td><td class="r">${money(d.fair)}</td>
+      <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condCell(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
@@ -1336,10 +1341,60 @@ function buildWhyFilter(){
   el.innerHTML = '<option value="">All reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
   el.value = RS.list.some(r => r.key === cur) ? cur : "";
 }
+// ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at"];
+const DC = {map: {}, sha: null, loaded: false};
+function loadDC(x){
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at}; }); }catch(e){}
+  DC.sha = x ? x.sha : null; DC.loaded = true;
+}
+const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
+const condMult = c => { const v = parseFloat((S.ini.conditions || {})[c]); return v > 0 ? v : DEF_MULT[c]; };
+function condCode(c){
+  const t = String(c || "").toUpperCase(), m = /\b(NM|LP|MP|HP|DMG)\b/.exec(t);
+  if (m) return m[1];
+  if (/NEAR MINT|MINT/.test(t)) return "NM"; if (/LIGHT/.test(t)) return "LP"; if (/MODERATE/.test(t)) return "MP"; if (/HEAV/.test(t)) return "HP"; if (/DAMAG|POOR/.test(t)) return "DMG";
+  const u = String((S.ini.deals || {}).unknown_condition || "MP").toUpperCase(); return COND_LIST.includes(u) ? u : "MP";
+}
+function applyCond(d){
+  if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
+  if (!("_f0" in d)){ d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; }
+  const o = (DC.map[d.url] || {}).c;
+  if (!o || !d._f0){ d.fair = d._f0 || d.fair; d.discount_pct = d._p0; d.condition = d._c0; d.below_buylist = d._b0; d._adj = false; return; }
+  const fair = d._f0 / condMult(condCode(d._c0)) * condMult(o), tot = +d.total || 0;
+  d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o; d._adj = true;
+  const ck = +d.ck_buylist; d.below_buylist = ck ? (tot > 0 && tot <= ck * condMult(o) ? "True" : "") : d._b0;
+}
+function setDealCond(url, c){
+  const d = S.deals.find(x => x.url === url); if (!d) return;
+  if (!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "")) delete DC.map[url]; else DC.map[url] = {c, card: d.card, at: new Date().toISOString().slice(0, 16)};
+  if (READONLY) store.set("dealCond", JSON.stringify(DC.map)); else if (DC.loaded) markDirty("dealcond");
+  renderDeals();
+  const n = S.deals.find(x => x.url === url);
+  toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off` : `${n.card}: back to the listing's condition (${n.condition})`, 4000);
+}
+function condCell(d){
+  const cur = condCode(d.condition), tip = d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition.` : `Listing says “${d._c0}”. Change it if the photos show a different condition - fair value and % off recalculate.`;
+  return `<select class="condSel${d._adj ? " adj" : ""}" data-cond="${esc(d.url)}" title="${esc(tip)}" aria-label="Condition">${COND_LIST.map(c => `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("")}</select>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)} <a href="#" data-condreset="${esc(d.url)}" title="Go back to the listing's condition">undo</a></div>` : !/^(NM|LP|MP|HP|DMG)$/i.test(d._c0 || "") ? `<div class="mut" style="font-size:11px">${esc(d._c0)}</div>` : ""}`;
+}
+function openCondPick(d){
+  openModal(`<h3>Condition</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · listing says “${esc(d._c0)}”</div>
+    <p class="mut" style="font-size:13px">Pick what the photos really show. Fair value and % off recalculate.</p>
+    <div class="acts" style="flex-wrap:wrap;justify-content:flex-start">${COND_LIST.map(c => `<button class="btn${c === condCode(d.condition) ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
+    <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Close</button></div>`);
+  document.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => { closeModal(); setDealCond(d.url, b.dataset.pick); }));
+  $("#cpClose").addEventListener("click", closeModal);
+  if ($("#cpReset")) $("#cpReset").addEventListener("click", () => { closeModal(); setDealCond(d.url, ""); });
+}
+document.addEventListener("change", e => { const s = e.target.closest("select[data-cond]"); if (s) setDealCond(s.dataset.cond, s.value); });
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-condreset]"); if (r){ e.preventDefault(); setDealCond(r.dataset.condreset, ""); return; }
+  const p = e.target.closest("[data-condpick]"); if (p){ e.preventDefault(); e.stopPropagation(); const d = S.deals.find(x => x.url === p.dataset.condpick); if (d) openCondPick(d); }
+}, true);
 function renderDeals(){
   S._dealRows = [];
   // tidy every row first so one odd entry can't blank the whole list
-  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair"]) if (d[k] == null) d[k] = ""; });
+  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair"]) if (d[k] == null) d[k] = ""; applyCond(d); });
   try{ renderDeals_(); renderDealsTiles(); }
   catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY) loadLearned(); }
 // ---- what it learned from your comments (data/card_rules.json, written by the 3-hour scan)
@@ -1411,12 +1466,12 @@ function renderDealsTiles(){
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
-      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · ${esc(d.condition)} · fair ${money(d.fair)}</div>
+      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-condpick="${esc(d.url)}" title="Tap to change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${d.ends_in ? ", ends " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${fbHTML(d) ? `<div class="t-chips">${fbHTML(d).replace(/<button/g, '<span role="button"').replace(/<\/button>/g, "</span>")}</div>` : ""}</div>
-      <div class="t-right"><div class="t-big">${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">off</div></div></a>`;
+      <div class="t-right"><div class="t-big"${+d.discount_pct < 0 ? ' style="color:var(--down, #b03a2e)"' : ""}>${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">${+d.discount_pct < 0 ? "over" : "off"}</div></div></a>`;
   }).join("");
   box.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); snipe(rows.find(x => x.url === b.dataset.snipe)); }));
   box.querySelectorAll("[data-sf]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); window.open(b.dataset.sf, "_blank", "noopener"); }));
