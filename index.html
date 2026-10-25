@@ -90,6 +90,7 @@ td.r,th.r{text-align:right}
 .print:hover{border-color:var(--accent)}
 .print img{width:100%;border-radius:4px;display:block;margin-bottom:6px}
 .empty{color:var(--muted);text-align:center;padding:28px}
+.toast a{color:inherit;text-decoration:underline;font-weight:600}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;z-index:20;display:none;max-width:90vw}
 .connect{max-width:620px;margin:40px auto}
 .connect ol{padding-left:20px;color:var(--muted)}.connect li{margin-bottom:6px}
@@ -207,6 +208,8 @@ body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readon
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line, #ccc);background:transparent;color:inherit}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
+.aiG{font:inherit;font-size:12px;border:1px solid var(--line, #ccc);border-radius:6px;padding:0 5px;background:transparent;color:inherit;cursor:pointer;white-space:nowrap}
+.aiG.ok{border:0;cursor:default;opacity:.8}
 .condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
@@ -407,6 +410,7 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt
 const money = v => v == null || v === "" || isNaN(v) ? "–" : "$" + Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
 const pct = v => v == null ? '<span class="mut">–</span>' : `<span class="${v > 0.05 ? "up" : v < -0.05 ? "down" : "mut"}">${v > 0 ? "+" : ""}${v.toFixed(1)}%</span>`;
 const store = {get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}}};
+function toastHTML(html, ms = 5000){const t = $("#toast"); t.innerHTML = html; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = "none", ms);}
 function toast(msg, ms = 3500){const t = $("#toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = "none", ms);}
 const b64enc = str => { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach(b => bin += String.fromCharCode(b)); return btoa(bin); };
 const b64dec = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
@@ -711,7 +715,7 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
@@ -771,7 +775,9 @@ const SETTINGS = [
     ["risky_discount_pct", "Always check deals at least this % off", "num", 40, "Too-good-to-be-true discounts."],
     ["always_review_over", "Always check deals worth over ($)", "num", 100, ""],
     ["cheap_below", "Use the cheaper model below ($)", "num", 75, "Deals worth less than this use the cheaper model and 2 photos instead of 4."],
-    ["cheap_model", "Cheaper model", "list", "claude-haiku-5-5", ""]]},
+    ["cheap_model", "Cheaper model", "list", "claude-haiku-5-5", ""],
+    ["teach_examples", "Your corrections shown to the AI each check", "num", 8, "Recent condition changes and thumbs-down comments, so it learns your standard. 0 = off. Each one adds a tiny bit of cost."],
+    ["overstate_after", "Flag a seller as overstating after (corrections)", "num", 2, "Their listings are valued one grade lower than they claim."]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
     ["enabled", "Sniper on", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
     ["min_listing_price", "Ignore new listings under ($)", "num", 10, ""],
@@ -1269,7 +1275,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}. You've marked this seller's condition down before.">⬇ seller overstates</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condCell(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${d.ends_in ? ", " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${fbHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -1342,10 +1348,10 @@ function buildWhyFilter(){
   el.value = RS.list.some(r => r.key === cur) ? cur : "";
 }
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
-const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at"];
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note"];
 const DC = {map: {}, sha: null, loaded: false};
 function loadDC(x){
-  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at}; }); }catch(e){}
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note}; }); }catch(e){}
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
@@ -1358,63 +1364,90 @@ function condCode(c){
 }
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
-  if (!("_f0" in d)){ d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; }
+  if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; }
   const o = (DC.map[d.url] || {}).c;
   if (!o || !d._f0){ d.fair = d._f0 || d.fair; d.discount_pct = d._p0; d.condition = d._c0; d.below_buylist = d._b0; d._adj = false; return; }
   const fair = d._f0 / condMult(condCode(d._c0)) * condMult(o), tot = +d.total || 0;
   d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o; d._adj = true;
   const ck = +d.ck_buylist; d.below_buylist = ck ? (tot > 0 && tot <= ck * condMult(o) ? "True" : "") : d._b0;
 }
-function setDealCond(url, c){
+function setDealCond(url, c, note){
   const d = S.deals.find(x => x.url === url); if (!d) return;
-  if (!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "")) delete DC.map[url]; else DC.map[url] = {c, card: d.card, at: new Date().toISOString().slice(0, 16)};
+  if (note == null) note = (DC.map[url] || {}).note || "";
+  if (!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "") && !note) delete DC.map[url];
+  else DC.map[url] = {c, card: d.card, at: new Date().toISOString().slice(0, 16), listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "",
+    seller: String(d.seller || "").split(" (")[0], title: (d.title || "").slice(0, 150), note: String(note || "").replace(/\s+/g, " ").trim().slice(0, 200)};
   if (READONLY) store.set("dealCond", JSON.stringify(DC.map)); else if (DC.loaded) markDirty("dealcond");
   renderDeals();
   const n = S.deals.find(x => x.url === url);
-  toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off` : `${n.card}: back to the listing's condition (${n.condition})`, 4000);
+  if (READONLY || !DC.map[url] || note) toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off` : `${n.card}: back to the listing's condition (${n.condition})`, 4000);
+  else toastHTML(`${esc(n.card)}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off. <a href="#" data-condpick="${esc(url)}">Add why?</a> It teaches the AI checker.`, 6000);
 }
 function condCell(d){
   const cur = condCode(d.condition), tip = d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition.` : `Listing says “${d._c0}”. Change it if the photos show a different condition - fair value and % off recalculate.`;
-  return `<select class="condSel${d._adj ? " adj" : ""}" data-cond="${esc(d.url)}" title="${esc(tip)}" aria-label="Condition">${COND_LIST.map(c => `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("")}</select>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)} <a href="#" data-condreset="${esc(d.url)}" title="Go back to the listing's condition">undo</a></div>` : !/^(NM|LP|MP|HP|DMG)$/i.test(d._c0 || "") ? `<div class="mut" style="font-size:11px">${esc(d._c0)}</div>` : ""}`;
+  return aiGuess(d) + `<select class="condSel${d._adj ? " adj" : ""}" data-cond="${esc(d.url)}" title="${esc(tip)}" aria-label="Condition">${COND_LIST.map(c => `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("")}</select>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)} <a href="#" data-condreset="${esc(d.url)}" title="Go back to the listing's condition">undo</a> · <a href="#" data-condpick="${esc(d.url)}" title="Say what you saw - it teaches the AI checker">${(DC.map[d.url] || {}).note ? "edit why" : "why?"}</a></div>` : !/^(NM|LP|MP|HP|DMG)$/i.test(d._c0 || "") ? `<div class="mut" style="font-size:11px">${esc(d._c0)}</div>` : ""}`;
+}
+function aiGuess(d, tile){
+  const g = String(d.ai_condition || "").toUpperCase(); if (!COND_LIST.includes(g) || d._graded) return "";
+  if (g === condCode(d.condition)) return `<span class="aiG ok" title="The AI photo check agrees: ${g}">🤖✓</span> `;
+  return `<${tile ? "span role=\"button\"" : "button type=\"button\""} class="aiG" data-aicond="${esc(d.url)}" data-c="${g}" title="The AI photo check thinks this is ${g}. Tap to use it - agreeing also teaches it.">🤖 ${g}</${tile ? "span" : "button"}> `;
 }
 function openCondPick(d){
   openModal(`<h3>Condition</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · listing says “${esc(d._c0)}”</div>
-    <p class="mut" style="font-size:13px">Pick what the photos really show. Fair value and % off recalculate.</p>
+    <p class="mut" style="font-size:13px">Pick what the photos really show. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
+    <label for="cpNote" style="font-size:13px">Why? (optional - e.g. "whitening on back corners", "crease top left". Teaches the AI checker.)</label>
+    <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?">
     <div class="acts" style="flex-wrap:wrap;justify-content:flex-start">${COND_LIST.map(c => `<button class="btn${c === condCode(d.condition) ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
     <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Close</button></div>`);
-  document.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => { closeModal(); setDealCond(d.url, b.dataset.pick); }));
+  document.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => { const note = $("#cpNote").value; closeModal(); setDealCond(d.url, b.dataset.pick, note); }));
   $("#cpClose").addEventListener("click", closeModal);
-  if ($("#cpReset")) $("#cpReset").addEventListener("click", () => { closeModal(); setDealCond(d.url, ""); });
+  if ($("#cpReset")) $("#cpReset").addEventListener("click", () => { closeModal(); setDealCond(d.url, "", ""); });
 }
 document.addEventListener("change", e => { const s = e.target.closest("select[data-cond]"); if (s) setDealCond(s.dataset.cond, s.value); });
 document.addEventListener("click", e => {
-  const r = e.target.closest("[data-condreset]"); if (r){ e.preventDefault(); setDealCond(r.dataset.condreset, ""); return; }
+  const r = e.target.closest("[data-condreset]"); if (r){ e.preventDefault(); setDealCond(r.dataset.condreset, "", ""); return; }
+  const a = e.target.closest("[data-aicond]"); if (a){ e.preventDefault(); e.stopPropagation(); setDealCond(a.dataset.aicond, a.dataset.c); return; }
   const p = e.target.closest("[data-condpick]"); if (p){ e.preventDefault(); e.stopPropagation(); const d = S.deals.find(x => x.url === p.dataset.condpick); if (d) openCondPick(d); }
 }, true);
 function renderDeals(){
   S._dealRows = [];
   // tidy every row first so one odd entry can't blank the whole list
-  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair"]) if (d[k] == null) d[k] = ""; applyCond(d); });
+  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair", "ai_condition", "cond_note"]) if (d[k] == null) d[k] = ""; applyCond(d); });
   try{ renderDeals_(); renderDealsTiles(); }
   catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY) loadLearned(); }
 // ---- what it learned from your comments (data/card_rules.json, written by the 3-hour scan)
 const LR = {data: null, loaded: false, open: false};
 async function loadLearned(force){
   if (LR.loaded && !force) return renderLearned(); LR.loaded = true;
-  try{ const f = await GH.readFiles(["data/card_rules.json"]); LR.data = f["data/card_rules.json"].text ? JSON.parse(f["data/card_rules.json"].text) : null; }catch(e){}
+  try{ const f = await GH.readFiles(["data/card_rules.json", "data/ai_teach.json"]); LR.data = f["data/card_rules.json"].text ? JSON.parse(f["data/card_rules.json"].text) : null;
+    LR.teach = f["data/ai_teach.json"] && f["data/ai_teach.json"].text ? JSON.parse(f["data/ai_teach.json"].text) : null; }catch(e){}
   renderLearned();
 }
 const ruleText = r => Object.entries(r || {}).map(([k, v]) => ({min_condition: `${v} or better`, deal_pct: `only ${v}%+ off`, max_total: `max ${money(v)}`,
   exclude_words: `skip "${[].concat(v).join('", "')}"`, require_words: `must say "${[].concat(v).join('" or "')}"`, usa_only: "US sellers only",
   graded: v === "raw" ? "ungraded only" : "graded only", require_ai: "needs AI photo check", ai_note: `AI note: ${v}`, mute: "muted"}[k] || `${k}: ${v}`)).join(" · ");
+function teachHTML(){
+  const T = LR.teach, mine = Object.keys(DC.map).length; if (!T && !mine) return "";
+  const st = (T && T.stats) || {}, os = Object.entries((T && T.overstate) || {}), tr = (S.runs || {}).training;
+  const acc = st.compared ? `AI condition guesses matched yours <b>${st.agree} of ${st.compared}</b> times${st.avg_diff <= -0.5 ? " - you grade harsher, so it's now told to pick the lower grade when unsure" : st.avg_diff >= 0.5 ? " - it grades harsher than you, so it's told to go easier" : ""}.` :
+    "The AI's condition guesses will be compared with yours once you've corrected a few deals it checked.";
+  return `<div style="margin-bottom:10px"><b>Teaching the AI checker</b>
+    <ul class="mut" style="font-size:12px;margin:4px 0 0;padding-left:18px">
+      <li>${Math.max(mine, st.corrections || 0)} condition correction${Math.max(mine, st.corrections || 0) === 1 ? "" : "s"} saved. Your most recent ones (with your “why” notes) are shown to the AI on every photo check${mine > (st.corrections || 0) ? " - new ones from the next scan" : ""}.</li>
+      <li>${acc}</li>
+      <li>${os.length ? `Sellers who overstate condition (valued one grade lower): ${os.slice(0, 8).map(([s, n]) => `<b>${esc(s)}</b> (${n}×)`).join(", ")}` : `Sellers you mark down ${(T && T.overstate_after) || 2}+ times get their listings valued one grade lower.`}</li>
+      ${tr ? `<li>Training data for a future custom model: <b>${tr.examples}</b> labelled listing${tr.examples === 1 ? "" : "s"}, ${tr.with_photos} with photos (goal: about 1,000).</li>` : ""}
+    </ul></div>`;
+}
 function renderLearned(){
   const box = $("#dLearned"); if (!box) return;
   const D = LR.data, all = (D && D.all) || {};
   const cards = Object.entries((D && D.sets) || {}).filter(([, r]) => Object.keys(r).length).map(([k, r]) => [`All [${k}] cards`, r])
     .concat(Object.entries((D && D.cards) || {}).filter(([, r]) => Object.keys(r).length));
   const pending = FB.rows.filter(r => (r.note || "").trim()).length - ((D && D.done) || []).length;
-  if (!cards.length && !Object.keys(all).length && pending <= 0){ box.innerHTML = ""; return; }
-  box.innerHTML = `<div class="row" style="justify-content:space-between"><b>Rules learned from your comments</b><button class="btn ghost small" id="lrToggle">${LR.open ? "Hide" : "Show"} (${cards.length + (Object.keys(all).length ? 1 : 0)})</button></div>
+  const th = teachHTML();
+  if (!cards.length && !Object.keys(all).length && pending <= 0){ box.innerHTML = th; return; }
+  box.innerHTML = th + `<div class="row" style="justify-content:space-between"><b>Rules learned from your comments</b><button class="btn ghost small" id="lrToggle">${LR.open ? "Hide" : "Show"} (${cards.length + (Object.keys(all).length ? 1 : 0)})</button></div>
     ${pending > 0 ? `<p class="mut" style="font-size:12px;margin:6px 0 0">${pending} new comment${pending > 1 ? "s" : ""} will be turned into rules on the next scan.</p>` : ""}
     ${LR.open ? `<table style="margin-top:8px"><tbody>${Object.keys(all).length ? `<tr><td><b>All cards</b></td><td>${esc(ruleText(all))}</td><td><button class="btn ghost small" data-reset="All cards">Reset</button></td></tr>` : ""}
       ${cards.map(([c, r]) => `<tr><td><b>${esc(c)}</b></td><td>${esc(ruleText(r))}</td><td><button class="btn ghost small" data-reset="${esc(c)}">Reset</button></td></tr>`).join("")}</tbody></table>
@@ -1466,8 +1499,9 @@ function renderDealsTiles(){
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
-      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-condpick="${esc(d.url)}" title="Tap to change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
+      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · ${aiGuess(d, true)}<span class="condChip${d._adj ? " adj" : ""}" role="button" data-condpick="${esc(d.url)}" title="Tap to change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${d.ends_in ? ", ends " + esc(d.ends_in) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
+      ${d.cond_note ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">⬇ seller overstates</span></div>` : ""}
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${fbHTML(d) ? `<div class="t-chips">${fbHTML(d).replace(/<button/g, '<span role="button"').replace(/<\/button>/g, "</span>")}</div>` : ""}</div>
@@ -2171,6 +2205,7 @@ function renderRuns(){
   box.innerHTML = `<table><thead><tr><th class="nosort">Part</th><th class="nosort">Last updated (AZ)</th><th class="nosort hide-sm">Details</th><th class="nosort">Next scheduled</th></tr></thead><tbody>` +
     ((S.runs || {}).ebay ? `<tr><td><b>eBay allowance</b><div class="mut" style="font-size:12px">searches per day</div></td><td>${esc(quotaText())}</td><td class="hide-sm mut">checked ${esc(whenAZ(S.runs.ebay.at))} (${esc(ago(S.runs.ebay.at))}) · ${Number(S.runs.ebay.used || 0).toLocaleString()} used so far</td><td>after each scan</td></tr>` : "") +
     ((S.runs || {}).ai ? `<tr><td><b>AI checker</b><div class="mut" style="font-size:12px">3-hour scan</div></td><td class="${S.runs.ai.ok ? "" : "stale"}">${S.runs.ai.ok ? "✓ connected" : "⚠ not working"} <span class="mut">(${esc(ago(S.runs.ai.at))})</span></td><td class="hide-sm mut">${esc(S.runs.ai.ok ? "Model " + S.runs.ai.model : S.runs.ai.error)}</td><td>–</td></tr>` : "") +
+    ((S.runs || {}).training ? `<tr><td><b>Training data</b><div class="mut" style="font-size:12px">for a custom model</div></td><td>${esc(whenAZ(S.runs.training.at))} <span class="mut">(${esc(ago(S.runs.training.at))})</span></td><td class="hide-sm mut">${S.runs.training.examples} labelled listings · ${S.runs.training.with_photos} with photos · ${S.runs.training.edition_wrong} wrong-edition examples</td><td>after each scan</td></tr>` : "") +
     sniperRow() + ["prices", "deals", "secret_lair", "collection"].map(k => { const x = r[k];
       const det = !x ? "" : k === "prices" ? `${x.cards} cards priced` : k === "deals" ? (x.limit_hit ? "⚠ eBay's daily search limit was reached - scan stopped early (resets overnight). " : "") + `${x.cards} cards checked${x.searches ? " in " + x.searches + " eBay searches" : ""} · ${x.listings} listings under ceiling · ${x.found} new deal${x.found === 1 ? "" : "s"}` :
         k === "secret_lair" ? `${x.drops} drops · ${x.upcoming} upcoming` : `${x.rows} rows valued`;
