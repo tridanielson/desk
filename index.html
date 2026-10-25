@@ -206,9 +206,10 @@ body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.reado
 body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readonly #nav [data-tab=deals],body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect]{display:none!important}
 .viewchip{display:none}body.readonly .viewchip{display:inline-block}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
-.condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line, #ccc);background:transparent;color:inherit}
+.condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+select option{background:var(--panel);color:var(--ink)}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
-.aiG{font:inherit;font-size:12px;border:1px solid var(--line, #ccc);border-radius:6px;padding:0 5px;background:transparent;color:inherit;cursor:pointer;white-space:nowrap}
+.aiG{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
 .aiG.ok{border:0;cursor:default;opacity:.8}
 .condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
 </style>
