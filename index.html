@@ -354,6 +354,7 @@ select option{background:var(--panel);color:var(--ink)}
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
     <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top picks only</label>
     <label><input type="checkbox" id="dUSA"> USA sellers only</label>
+    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include ended</label>
     <select id="dCond" aria-label="Condition"><option value="">Any condition</option><option value="MP">MP or better</option><option value="LP">LP or better</option><option value="NM">Near Mint only</option></select>
     <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - ending soonest</option><option value="bin">Buy It Now only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + ungraded</option><option value="raw">Ungraded only</option><option value="graded">Graded only</option></select>
@@ -1126,7 +1127,9 @@ const endsHTML = d => { const e = endAt(d), t = endsText(d); if (!t) return "";
   return `<span data-end="${esc(d.url)}" class="${t === "ended" ? "mut" : soon ? "down" : ""}" style="${soon ? "font-weight:600" : ""}"${e ? ` title="Ends ${esc(whenAZ(new Date(e).toISOString()))}"` : ""}>${esc(t)}</span>`; };
 setInterval(() => { if (!document.querySelector("#tab-deals.on")) return;
   document.querySelectorAll("[data-end]").forEach(el => { const d = S.deals.find(x => x.url === el.dataset.end); if (d) el.textContent = endsText(d); }); }, 60000);
+const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
+  if (isEnded(d) && !($("#dEnded") && $("#dEnded").checked)) return false;
   const ty = $("#dType") ? $("#dType").value : "";
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
   if (ty === "bin" && isAuction(d)) return false;
@@ -1235,7 +1238,10 @@ function buylistText(d){
 document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]")) return;
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
-  let h = d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
+  let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
+  const pn = +d.price_now, p0 = +d.price || +d.total;
+  if (!isEnded(d) && pn && p0 && Math.abs(pn - p0) >= 0.5 && !isAuction(d)) h += `<span class="flag ${pn > p0 ? "sus" : "buy"}" title="The seller changed the price since we found it">price now ${money(pn)}</span> `;
+  h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
   h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
   if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden)) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
@@ -1364,7 +1370,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType"];
+const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 // which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
 const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
