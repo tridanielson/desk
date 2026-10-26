@@ -220,6 +220,10 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-ai{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px;font-size:14px}
 .aud-q{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}.aud-q>span{min-width:120px;font-size:13px;color:var(--muted)}
 .seg{display:flex;flex-wrap:wrap;gap:4px}
+.flag.warnf{background:color-mix(in srgb, var(--gold) 18%, transparent);color:var(--gold)}
+.ew-form textarea{width:100%;margin-top:8px;font:inherit}.ew-form .row{margin-top:6px;gap:8px;flex-wrap:wrap}
+.ew-res{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px}
+#dElse summary{cursor:pointer}
 .honest{padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
 @media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
@@ -331,6 +335,7 @@ select option{background:var(--panel);color:var(--ink)}
     <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply my ratings</button><button class="btn small owner-only" id="dScan">Scan eBay now</button></div></div>
   <p class="sub">eBay listings for cards in All prices that came in under fair value. The <b>⚡ sniper</b> checks brand-new Buy It Now listings every minute; a full scan (including auctions ending soon) runs every 3 hours. Magic only, no proxies. Prices are as of when found, so auctions may have moved. Snipe sends a listing to EZSniper.</p>
   <div class="panel owner-only" id="dLearned" style="display:block"></div>
+  <div class="panel owner-only" id="dElse" style="display:block"></div>
   <div class="panel row">
     <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">all</option></select> days</label>
     <label>Min % off <input id="dMin" class="num" type="number" value="0"></label>
@@ -737,13 +742,15 @@ async function saveAll(){
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
       DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
+    if (S.dirty.has("elsewhere")){ S.dirty.delete("elsewhere");
+      EW.sha = await putIfChanged("collection/elsewhere.csv", toCSV(EW_COLS, EW.rows.slice().sort((a, b) => (a.seen_at || "").localeCompare(b.seen_at || ""))), EW.sha, "Deals found elsewhere (Price Desk)"); }
     if (S.dirty.has("audit")){ S.dirty.delete("audit");
       AUD.sha = await putIfChanged("collection/ai_audit.csv", toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))), AUD.sha, "AI audit (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
   }catch(e){
-    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond", "audit"].filter(f => (f !== "dealcond" || DC.loaded) && (f !== "audit" || AUD.loaded)).forEach(f => S.dirty.add(f));   // try again next time
+    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond", "audit", "elsewhere"].filter(f => (f !== "dealcond" || DC.loaded) && (f !== "audit" || AUD.loaded) && (f !== "elsewhere" || EW.loaded)).forEach(f => S.dirty.add(f));   // try again next time
     p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; toast("Couldn't save: " + e.message, 7000);
   }
   AUTOSAVE.busy = false;
@@ -1212,8 +1219,8 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
-    const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+    const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
 const fbFor = d => FB.rows.filter(r => r.url === d.url).slice(-1)[0];
@@ -1390,6 +1397,93 @@ function buildWhyFilter(){
   const el = $("#dWhy"); if (!el) return; const cur = el.value;
   el.innerHTML = '<option value="">All reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
   el.value = RS.list.some(r => r.key === cur) ? cur : "";
+}
+// ---------------------------------------------------------------- Found elsewhere (collection/elsewhere.csv)
+// Paste eBay links from another deal service (MTG Scavenger / TCG Drop). Each is checked against what we found:
+// caught first, caught later, or missed - and why. Builds the "vs the competition" scorecard. Private: nothing is reposted.
+const EW_COLS = ["item_id", "url", "source", "seen_at", "their_price", "card", "title", "status", "our_found_at", "our_source", "lag_min", "reason", "note", "type", "price", "checked_at"];
+const EW = {rows: [], sha: null, loaded: false, busy: false, open: false};
+function loadEW(x){ try{ EW.rows = x && x.text ? parseCSV(x.text) : []; }catch(e){ EW.rows = []; } EW.sha = x ? x.sha : null; EW.loaded = true; }
+const ewTime = s => { const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(s || "") ? s : (s || "") + "Z"); return isNaN(t) ? null : t; };
+function ewTag(r){
+  if (r.status !== "caught") return {icon: "❌", label: "Missed", cls: "sus"};
+  const lag = r.lag_min === "" ? null : +r.lag_min;
+  if (lag == null) return {icon: "✅", label: "Caught", cls: "buy"};
+  return lag <= 0 ? {icon: "✅", label: lag < 0 ? `Caught first (${-lag} min ahead)` : "Caught at the same time", cls: "buy"} : {icon: "⏱", label: `Caught ${lag} min later`, cls: "warnf"};
+}
+function ewReasonKey(r){
+  const t = (r.reason || r.note || "").toLowerCase();
+  if (r.status === "caught") return r.note ? (/ai checker/.test(t) ? "Caught, but the AI rejected it" : "Caught, but hidden by a rule/rating") : "";
+  if (/not a card we track|different card/.test(t)) return "Card not tracked / name mismatch";
+  if (/edition|filtered word/.test(t)) return "Title filter (edition / word)";
+  if (/not enough of a deal/.test(t)) return "Our fair value says not a deal";
+  if (/auction/.test(t)) return "Auction";
+  if (/never saw|saw it/.test(t)) return "Sniper didn't catch it in time";
+  if (/rule|muted|blocked/.test(t)) return "Your rule / blocked seller";
+  if (/condition|grade|graded/.test(t)) return "Condition / grading filter";
+  if (/seller|us seller/.test(t)) return "Seller filter";
+  if (/ended|sold/.test(t)) return "Ended before we checked";
+  if (/cheap/.test(t)) return "Looked too cheap (fake?)";
+  return "Other";
+}
+function ewBoard(){
+  const cutoff = Date.now() - 30 * 86400000, rows = EW.rows.filter(r => (ewTime(r.seen_at) || 0) >= cutoff);
+  if (!rows.length) return `<p class="mut" style="margin:6px 0 0">Nothing logged in the last 30 days yet.</p>`;
+  const caught = rows.filter(r => r.status === "caught" && !/rejected|hidden/i.test(r.note || "")), lags = caught.map(r => r.lag_min === "" ? null : +r.lag_min).filter(v => v != null);
+  const first = lags.filter(v => v <= 0).length, later = lags.filter(v => v > 0);
+  const reasons = {}; rows.forEach(r => { const k = ewReasonKey(r); if (k) reasons[k] = (reasons[k] || 0) + 1; });
+  const tile = (v, k, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  return `<div class="stats aud-stats" style="margin-top:8px">${tile(`${pctOf(caught.length, rows.length)} <span class="mut" style="font-size:13px">${caught.length}/${rows.length}</span>`, "We caught", "Deals you logged that we also alerted on (last 30 days)")}
+    ${tile(pctOf(first, lags.length), "Caught first or same time", "Of the ones we caught, how often we were as fast or faster")}
+    ${tile(later.length ? Math.round(later.reduce((a, b) => a + b, 0) / later.length) + " min" : "–", "Average lag when later", "When they beat us, by how much")}</div>
+    ${Object.keys(reasons).length ? `<div style="margin-top:8px;font-size:13px"><b>Why we missed or hid them:</b> ${Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} <b>${n}</b>`).join(" · ")}</div>` : ""}`;
+}
+function renderEW(){
+  const box = $("#dElse"); if (!box || READONLY) return;
+  const recent = EW.rows.slice().sort((a, b) => (b.seen_at || "").localeCompare(a.seen_at || "")).slice(0, 25);
+  box.innerHTML = `<details id="ewDetails"${EW.open ? " open" : ""}><summary><b>vs MTG Scavenger</b> <span class="mut" style="font-size:13px">- paste deals you saw elsewhere to see if we caught them${EW.rows.length ? ` (${EW.rows.length} logged)` : ""}</span></summary>
+    <div class="ew-form">
+      <textarea id="ewLinks" rows="2" placeholder="Paste eBay link(s) from a Scavenger / TCG Drop alert - one per line"></textarea>
+      <div class="row">
+        <label class="mut" style="font-size:13px">Posted <input id="ewMins" class="num" type="number" min="0" value="0" style="width:64px"> min ago</label>
+        <label class="mut" style="font-size:13px">Their price $<input id="ewPrice" class="num" inputmode="decimal" style="width:84px" placeholder="optional"></label>
+        <select id="ewSource"><option>MTG Scavenger</option><option>Other</option></select>
+        <input id="ewNote" placeholder="Note (optional)" style="flex:1;min-width:140px">
+        <button class="btn" id="ewCheck" type="button">Check</button>
+      </div>
+      <p class="mut" style="font-size:12px;margin:4px 0 0">Uses 1 eBay call per link. Paste soon after you see the alert: ended listings can't be checked. Their price and timing are only for your private comparison.</p>
+      <div id="ewResult"></div>
+    </div>
+    <div>${ewBoard()}</div>
+    ${recent.length ? `<table style="margin-top:10px"><thead><tr><th class="nosort">Seen</th><th class="nosort">Card</th><th class="nosort">Result</th><th class="nosort hide-sm">Why / details</th><th class="nosort"></th></tr></thead><tbody>${recent.map(r => { const t = ewTag(r);
+      return `<tr><td class="mut" style="white-space:nowrap">${esc(whenAZ(new Date(ewTime(r.seen_at) || Date.now()).toISOString()))}</td><td><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.card || (r.title || "").slice(0, 50) || r.item_id)}</a>${r.their_price ? `<div class="mut" style="font-size:12px">${esc(r.source)}: ${money(r.their_price)}</div>` : ""}</td>
+        <td><span class="flag ${t.cls}">${t.icon} ${esc(t.label)}</span></td><td class="hide-sm mut" style="font-size:12px">${esc(r.reason || r.note || (r.our_source ? "found by the " + r.our_source : ""))}</td>
+        <td><button class="btn ghost small" data-ewdel="${esc(r.item_id)}" title="Remove">✕</button></td></tr>`; }).join("")}</tbody></table>` : ""}
+  </details>`;
+  $("#ewDetails").addEventListener("toggle", e => { EW.open = e.target.open; });
+  $("#ewCheck").addEventListener("click", ewCheck);
+  box.querySelectorAll("[data-ewdel]").forEach(b => b.addEventListener("click", () => { EW.rows = EW.rows.filter(r => r.item_id !== b.dataset.ewdel); markDirty("elsewhere"); renderEW(); }));
+}
+async function ewCheck(){
+  const links = ($("#ewLinks").value || "").split(/\s+/).map(s => s.trim()).filter(s => /ebay|^\d{9,15}$/i.test(s));
+  if (!links.length) return toast("Paste an eBay link first.");
+  if (EW.busy) return; EW.busy = true; const btn = $("#ewCheck"); btn.disabled = true; btn.textContent = "Checking…";
+  const seen = new Date(Date.now() - (Math.max(0, +$("#ewMins").value || 0)) * 60000).toISOString().slice(0, 16);
+  const price = $("#ewPrice").value.replace(/[^0-9.]/g, ""), source = $("#ewSource").value, note = $("#ewNote").value.trim().slice(0, 200);
+  const out = [];
+  for (const l of links){
+    try{
+      const r = await server("checkListing", l);
+      const ours = ewTime(r.our_found_at), theirs = ewTime(seen);
+      const row = {item_id: r.item_id, url: r.url, source, seen_at: seen, their_price: links.length === 1 ? price : "", card: r.card || "", title: (r.title || "").slice(0, 150),
+        status: r.status, our_found_at: r.our_found_at || "", our_source: r.our_source || "", lag_min: ours && theirs ? String(Math.round((ours - theirs) / 60000)) : "",
+        reason: r.reason || "", note: [r.note, note].filter(Boolean).join(" - "), type: r.type || "", price: r.price ? String(r.price) : "", checked_at: (r.checked_at || "").slice(0, 16)};
+      EW.rows = EW.rows.filter(x => x.item_id !== row.item_id).concat([row]); out.push(row);
+    }catch(e){ out.push({error: /Unknown request|UPDATE/i.test(e.message) ? "Paste the latest Code.gs into Apps Script (and redeploy) to turn this on." : e.message, url: l}); }
+  }
+  if (out.some(r => !r.error)) markDirty("elsewhere");
+  EW.busy = false; renderEW();
+  $("#ewResult").innerHTML = out.map(r => r.error ? `<div class="flag sus" style="display:block;margin-top:6px">⚠ ${esc(r.error)}</div>` : (t => `<div class="ew-res"><b>${t.icon} ${esc(t.label)}</b> - ${esc(r.card || r.title || r.item_id)}${r.price ? ` · now ${money(r.price)}` : ""}<div class="mut" style="font-size:13px">${esc(r.reason || r.note || (r.our_found_at ? `Found by the ${r.our_source} ${whenAZ(new Date(ewTime(r.our_found_at)).toISOString())}` : ""))}</div></div>`)(ewTag(r))).join("");
 }
 // ---------------------------------------------------------------- AI audit (collection/ai_audit.csv)
 // Go through what the AI photo checker decided, mark what it got right or wrong. Every audit:
