@@ -812,7 +812,9 @@ const SETTINGS = [
     ["cheap_below", "Use the cheaper model below ($)", "num", 75, "Deals worth less than this use the cheaper model and 2 photos instead of 4."],
     ["cheap_model", "Cheaper model", "list", "claude-haiku-5-5", ""],
     ["teach_examples", "Your corrections shown to the AI each check", "num", 8, "Recent condition changes and thumbs-down comments, so it learns your standard. 0 = off. Each one adds a tiny bit of cost."],
-    ["overstate_after", "Flag a seller as overstating after (corrections)", "num", 2, "Their listings are valued one grade lower than they claim."]]},
+    ["overstate_after", "Flag a seller as overstating after (corrections)", "num", 2, "Their listings are valued one grade lower than they claim."],
+    ["upside_checks_per_day", "Mislabeled-bargain photo checks per day", "num", 10, "New listings sold as Chronicles / Unlimited / Revised that would be a deal as the original printing get an AI photo check. 0 = off."],
+    ["upside_min_value", "Only for originals worth at least ($)", "num", 50, ""]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
     ["enabled", "Sniper on", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
     ["min_listing_price", "Ignore new listings under ($)", "num", 10, ""],
@@ -1231,7 +1233,8 @@ function buylistText(d){
 document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]")) return;
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
-  let h = whyHTML(d);
+  let h = d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
+  h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
   if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden)) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
   if (d.damage) h += `<span class="flag sus" title="Listing mentions '${esc(d.damage)}' - valued as Damaged">${esc(d.damage)}</span> `;
@@ -1466,13 +1469,13 @@ function ewBoard(){
 }
 function sniperCardHTML(){
   const st = (S.sniper || {}).stats; if (!st) return `<p class="mut" style="margin:6px 0 0">Fills in automatically once the latest Code.gs is running in Apps Script.</p>`;
-  const days = [{day: st.day, seen: st.seen, why: st.why || {}, spec_tried: st.spec_tried, spec_found: st.spec_found}].concat((st.hist || []).slice(0, 6));
+  const days = [{day: st.day, seen: st.seen, why: st.why || {}, spec_tried: st.spec_tried, spec_found: st.spec_found, up_tried: st.up_tried, up_found: st.up_found}].concat((st.hist || []).slice(0, 6));
   const sum = k => days.reduce((a, d) => a + (+d[k] || 0), 0), why = {};
   days.forEach(d => Object.entries(d.why || {}).forEach(([k, n]) => why[k] = (why[k] || 0) + n));
   const lags = (st.lags || []).slice().sort((a, b) => a - b), med = lags.length ? lags[Math.floor(lags.length / 2)] : null;
   const fast = lags.length ? lags.filter(v => v <= 5).length : 0;
   const tile = (v, k, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
-  const totalWhy = Object.values(why).reduce((a, b) => a + b, 0);
+  const totalWhy = Object.values(why).reduce((a, b) => a + b, 0), upT = sum("up_tried"), upF = sum("up_found");
   return `<div class="stats aud-stats four" style="margin-top:8px">
     ${tile(med == null ? "–" : med + " min", "Listed → alert (median)", "How long after the seller listed it the sniper found it - last " + lags.length + " finds")}
     ${tile(lags.length ? pctOf(fast, lags.length) : "–", "Found within 5 min", "Share of sniper finds caught within 5 minutes of listing")}
@@ -1480,6 +1483,7 @@ function sniperCardHTML(){
     ${tile(`${sum("spec_found")} <span class="mut" style="font-size:13px">of ${sum("spec_tried")}</span>`, "Deals found via item details", "Titles that didn't name the edition - eBay's item details (Set) showed it was a card you track at a deal price")}</div>
     ${totalWhy ? `<div style="margin-top:8px;font-size:13px"><b>Why listings of cards you track were passed over (7 days):</b><div class="ew-bars">${Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) =>
       `<div><span>${esc(k)}</span><span class="bar"><i style="width:${Math.max(2, Math.round(n / totalWhy * 100))}%"></i></span><b>${n.toLocaleString()}</b></div>`).join("")}</div>
+      <div style="margin-top:8px">💎 <b>Mislabeled bargains (7 days):</b> ${upF} found of ${upT} photo-checked <span class="mut" style="font-size:12px">- listings sold as Chronicles / Unlimited / Revised that would be a deal as the original; the AI checks the photos and you're alerted only if they show the original.</span></div>
       <div class="mut" style="font-size:12px;margin-top:4px">Nothing to review - this shows which filters do the most work. If "Title doesn't say the edition" is big, item-details checks are catching what keyword-only alerts miss.</div></div>` : ""}`;
 }
 function renderEW(){
