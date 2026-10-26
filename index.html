@@ -227,6 +227,8 @@ select option{background:var(--panel);color:var(--ink)}
 .ew-bars{display:grid;gap:3px;margin-top:4px}.ew-bars>div{display:grid;grid-template-columns:minmax(150px,240px) 1fr 60px;gap:8px;align-items:center}
 .ew-bars .bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}.ew-bars .bar i{display:block;height:100%;background:var(--accent)}.ew-bars b{text-align:right;font-weight:600}
 @media (max-width:700px){.ew-bars>div{grid-template-columns:1fr 50px}.ew-bars .bar{display:none}}
+#sfPop{position:fixed;z-index:30;display:none;width:250px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+#sfPop img{width:100%;border-radius:10px;display:block}#sfPop div{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
 .honest{padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
 @media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats,.aud-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
@@ -1142,9 +1144,29 @@ function sfLinkFor(d){
   return m ? `https://scryfall.com/search?q=${encodeURIComponent(`!"${m[1]}" set:${m[2].toLowerCase()}`)}` : "";
 }
 const SF_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 2.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM9.6 12H6.4v-1h.8V7.6h-.8v-1h2.4V11h.8v1Z"/></svg>';
-const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return "";
-  return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" title="See this card on Scryfall">${SF_ICON}</span>`
-              : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" title="See the card it's priced against on Scryfall">${SF_ICON}</a>`; };
+// picture of the exact printing a deal is priced against (bigger Scryfall image; falls back to Scryfall's name + set lookup)
+function sfImgFor(d){
+  const c = audCard(d.card); if (c && c.img) return c.img.replace("/small/", "/normal/");
+  const m = /^(.*) \[([A-Z0-9]+)\]/.exec(d.card || "");
+  return m ? `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(m[1])}&set=${m[2].toLowerCase()}&format=image&version=normal` : "";
+}
+const sfBtn = (d, tile) => { const u = sfLinkFor(d); if (!u) return ""; const im = sfImgFor(d);
+  return tile ? `<span class="sf-link" role="link" tabindex="0" data-sf="${esc(u)}" data-sfimg="${esc(im)}" data-sfname="${esc(d.card)}">${SF_ICON}</span>`
+              : `<a class="sf-link" href="${esc(u)}" target="_blank" rel="noopener" data-sfimg="${esc(im)}" data-sfname="${esc(d.card)}">${SF_ICON}</a>`; };
+// hover (computer): show the card; click opens Scryfall. Tap (phone): show the card with an "Open on Scryfall" button.
+const SF_HOVER = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+function sfPop(){ let p = document.getElementById("sfPop"); if (!p){ p = document.createElement("div"); p.id = "sfPop"; document.body.appendChild(p); } return p; }
+document.addEventListener("mouseover", e => { if (!SF_HOVER) return; const a = e.target.closest(".sf-link[data-sfimg]"); if (!a || !a.dataset.sfimg) return;
+  const p = sfPop(), r = a.getBoundingClientRect(), w = 250, h = 349;
+  p.innerHTML = `<img src="${esc(a.dataset.sfimg)}" alt="" onerror="this.parentNode.style.display='none'"><div>Click ⓘ to open on Scryfall</div>`;
+  let x = r.right + 12, y = r.top - 40; if (x + w > innerWidth - 8) x = r.left - w - 12; if (y + h + 30 > innerHeight) y = innerHeight - h - 38; if (y < 8) y = 8;
+  p.style.left = x + "px"; p.style.top = y + "px"; p.style.display = "block"; });
+document.addEventListener("mouseout", e => { if (!SF_HOVER) return; const a = e.target.closest(".sf-link[data-sfimg]"); if (a && !a.contains(e.relatedTarget)){ const p = document.getElementById("sfPop"); if (p) p.style.display = "none"; } });
+document.addEventListener("click", e => { if (SF_HOVER) return; const a = e.target.closest(".sf-link[data-sfimg]"); if (!a || !a.dataset.sfimg) return;
+  e.preventDefault(); e.stopPropagation(); const url = a.dataset.sf || a.getAttribute("href");
+  openModal(`<div style="text-align:center"><div class="mut" style="font-size:13px;margin-bottom:8px">${esc(a.dataset.sfname || "")}</div><img src="${esc(a.dataset.sfimg)}" alt="" style="width:100%;max-width:300px;border-radius:12px">
+    <div class="acts" style="justify-content:center"><button class="btn ghost" type="button" id="sfClose">Close</button><a class="btn" href="${esc(url)}" target="_blank" rel="noopener">Open on Scryfall</a></div></div>`);
+  $("#sfClose").addEventListener("click", closeModal); }, true);
 // colour-coded reason a deal was hidden (ratings, rules, blocked seller, wrong card, damage, AI)
 // ---- reason categories (collection/reasons.csv - edit them under Settings) + who caught it
 const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition / reprint","#6b3fa0"],
