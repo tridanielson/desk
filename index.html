@@ -211,6 +211,16 @@ select option{background:var(--panel);color:var(--ink)}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
 .aiG{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
 .aiG.ok{border:0;cursor:default;opacity:.8}
+.aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.stat .k{font-size:12px;color:var(--muted)}.stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.aud-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
+.aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
+.aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
+.aud-ref{width:100%;max-width:260px;border-radius:10px;display:block}
+.aud-ai{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px;font-size:14px}
+.aud-q{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}.aud-q>span{min-width:120px;font-size:13px;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:4px}
+@media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
 .condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
@@ -222,6 +232,7 @@ select option{background:var(--panel);color:var(--ink)}
     <button data-tab="all" title="Every card priced daily: your watchlist plus your auto-track lists">All prices</button>
     <button data-tab="detail" title="Price chart and history for one card">Card chart</button>
     <button data-tab="deals" title="eBay listings priced below fair value">eBay deals</button>
+    <button data-tab="audit" class="owner-only" title="Check the AI photo checker's calls - every audit makes it more accurate">AI audit</button>
     <button data-tab="sl" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
     <button data-tab="col" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" title="Sets you are completing and the cards you still need">Sets</button>
@@ -339,6 +350,12 @@ select option{background:var(--panel);color:var(--ink)}
 </section>
 
 <!-- SECRET LAIR -->
+<section class="tab" id="tab-audit">
+  <h2 style="margin:0">AI audit</h2>
+  <p class="sub">Go through what the AI photo checker decided and mark what it got right or wrong. Every audit is shown to the AI on future checks so it learns your standard, saved as training data for a custom model, and counted in the accuracy scores below.</p>
+  <div id="audBody"><p class="empty">Loading…</p></div>
+</section>
+
 <section class="tab" id="tab-sl">
   <div id="slBody"><p class="empty">Loading Secret Lair drops…</p></div>
 </section>
@@ -718,11 +735,13 @@ async function saveAll(){
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
       DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
+    if (S.dirty.has("audit")){ S.dirty.delete("audit");
+      AUD.sha = await putIfChanged("collection/ai_audit.csv", toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))), AUD.sha, "AI audit (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
   }catch(e){
-    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond"].filter(f => f !== "dealcond" || DC.loaded).forEach(f => S.dirty.add(f));   // try again next time
+    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond", "audit"].filter(f => (f !== "dealcond" || DC.loaded) && (f !== "audit" || AUD.loaded)).forEach(f => S.dirty.add(f));   // try again next time
     p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; toast("Couldn't save: " + e.message, 7000);
   }
   AUTOSAVE.busy = false;
@@ -1191,8 +1210,8 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv"]); loadDC(f["collection/deal_condition.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
-    const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); }
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+    const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
 const fbFor = d => FB.rows.filter(r => r.url === d.url).slice(-1)[0];
@@ -1370,6 +1389,147 @@ function buildWhyFilter(){
   el.innerHTML = '<option value="">All reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
   el.value = RS.list.some(r => r.key === cur) ? cur : "";
 }
+// ---------------------------------------------------------------- AI audit (collection/ai_audit.csv)
+// Go through what the AI photo checker decided, mark what it got right or wrong. Every audit:
+//  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
+//  - becomes a labelled example for a future custom model (training.py)
+//  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
+const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title"];
+const AUD = {rows: {}, sha: null, loaded: false, i: 0, filter: "todo", model: "", sel: null, range: "all"};
+function loadAUD(x){
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url) AUD.rows[r.url] = r; }); }catch(e){}
+  AUD.sha = x ? x.sha : null; AUD.loaded = true;
+}
+const audCard = label => { if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c])); return S._cardByLabel.get(label); };
+const aiChecked = d => !!d.ai_verdict;
+function audQueue(){
+  const f = AUD.filter, m = AUD.model;
+  return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (
+    f === "todo" ? aiChecked(d) && !AUD.rows[d.url] :
+    f === "reject" ? d.ai_verdict === "reject" && !AUD.rows[d.url] :
+    f === "warn" ? d.ai_verdict === "warn" && !AUD.rows[d.url] :
+    f === "done" ? !!AUD.rows[d.url] :
+    f === "nocheck" ? !aiChecked(d) && !AUD.rows[d.url] : aiChecked(d)))
+    .sort((a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
+}
+// ---- scoreboard
+function audStats(){
+  const cutoff = AUD.range === "30" ? Date.now() - 30 * 86400000 : 0;
+  const rows = Object.values(AUD.rows).filter(r => r.ai_verdict && (!cutoff || Date.parse(r.at + "Z") >= cutoff));
+  const R = {NM: 4, LP: 3, MP: 2, HP: 1, DMG: 0};
+  const st = (list) => {
+    const v = list.filter(r => r.verdict), e = list.filter(r => r.edition && r.edition !== "unclear" && r.ai_edition && r.ai_edition !== "unclear"),
+      c = list.filter(r => R[r.condition] != null && R[(r.ai_condition || "").toUpperCase()] != null);
+    return {n: list.length,
+      all: list.filter(r => r.verdict === r.ai_verdict && (!e.includes(r) || r.edition === r.ai_edition) && (!c.includes(r) || r.condition === r.ai_condition.toUpperCase())).length,
+      v: v.length, vOk: v.filter(r => r.verdict === r.ai_verdict).length,
+      falseReject: v.filter(r => r.ai_verdict === "reject" && r.verdict === "ok").length,
+      e: e.length, eOk: e.filter(r => r.edition === r.ai_edition).length,
+      badPassed: list.filter(r => r.ai_verdict === "ok" && (r.verdict === "reject" || (r.ai_edition === "matches" && r.edition === "wrong"))).length,
+      c: c.length, cOk: c.filter(r => r.condition === r.ai_condition.toUpperCase()).length,
+      c1: c.filter(r => Math.abs(R[r.condition] - R[r.ai_condition.toUpperCase()]) <= 1).length,
+      harsh: c.length ? c.reduce((s, r) => s + R[r.condition] - R[r.ai_condition.toUpperCase()], 0) / c.length : 0};
+  };
+  const by = {}; rows.forEach(r => (by[r.ai_model || "unknown"] = by[r.ai_model || "unknown"] || []).push(r));
+  return {all: st(rows), models: Object.entries(by).map(([k, l]) => [k, st(l)])};
+}
+const pctOf = (a, b) => b ? Math.round(a / b * 100) + "%" : "–";
+function audBoard(){
+  const {all: a, models} = audStats();
+  const tile = (big, label, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${label}</div><div class="v">${big}</div></div>`;
+  if (!a.n) return `<p class="mut" style="margin:0">No audits yet. Each one you do below shows here as the AI's accuracy, and it's what the AI learns from.</p>`;
+  return `<div class="stats aud-stats">${tile(pctOf(a.all, a.n), `Fully right <span class="mut">(${a.all}/${a.n})</span>`, "Verdict, edition and condition all matched your call")}
+    ${tile(pctOf(a.vOk, a.v), "Verdict right", "OK / check it / reject matched what you'd have said")}
+    ${tile(pctOf(a.eOk, a.e), "Edition right", "Right vs wrong edition/card, where both of you could tell")}
+    ${tile(pctOf(a.cOk, a.c) + ` <span class="mut" style="font-size:13px">${pctOf(a.c1, a.c)} within 1</span>`, "Condition exact", "Same grade as yours; 'within 1' = off by at most one grade")}
+    ${tile(String(a.falseReject), "Good deals it rejected", "AI said reject, you said it was fine - deals you'd have missed")}
+    ${tile(String(a.badPassed), "Bad listings it passed", "AI said OK / right edition but it was wrong - the dangerous mistakes")}</div>
+    ${a.c >= 3 && Math.abs(a.harsh) >= .3 ? `<p class="mut" style="font-size:12px;margin:6px 0 0">On condition you grade ${a.harsh < 0 ? "harsher" : "easier"} than the AI by about ${Math.abs(a.harsh).toFixed(1)} grade on average - it's told this on every check.</p>` : ""}
+    ${models.length > 1 ? `<table style="margin-top:8px"><thead><tr><th class="nosort">Model</th><th class="nosort r">Audited</th><th class="nosort r">Fully right</th><th class="nosort r">Edition</th><th class="nosort r">Condition</th></tr></thead><tbody>${models.map(([k, s]) => `<tr><td>${esc(k)}</td><td class="r">${s.n}</td><td class="r">${pctOf(s.all, s.n)}</td><td class="r">${pctOf(s.eOk, s.e)}</td><td class="r">${pctOf(s.cOk, s.c)}</td></tr>`).join("")}</tbody></table>` : ""}`;
+}
+// ---- one listing at a time
+function renderAudit(){
+  const box = $("#audBody"); if (!box) return;
+  if (!FB.loaded){ box.innerHTML = `<p class="empty">Loading…</p>`; loadFB(); return; }
+  const q = audQueue(); AUD.i = Math.max(0, Math.min(AUD.i, q.length - 1));
+  const models = [...new Set(S.deals.map(d => d.ai_model).filter(Boolean))];
+  const d = q[AUD.i];
+  box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How accurate is the AI checker?</b>
+      <select id="audRange"><option value="all">All time</option><option value="30">Last 30 days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
+    <div class="panel"><div class="row">
+      <select id="audFilter"><option value="todo">AI-checked, not audited yet</option><option value="reject">AI rejected (not audited)</option><option value="warn">AI said "check it" (not audited)</option>
+        <option value="nocheck">Not checked by AI (label for training)</option><option value="done">Already audited</option><option value="all">All AI-checked</option></select>
+      ${models.length ? `<select id="audModel"><option value="">All models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
+      <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
+      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">Keys: Y = AI was right · ← → = previous/next</span></div></div>
+    <div id="audItem">${d ? audItemHTML(d) : `<p class="empty">${AUD.filter === "todo" ? "All caught up - every AI-checked deal is audited. New ones appear after each scan." : "Nothing here."}</p>`}</div>`;
+  $("#audRange").value = AUD.range; $("#audFilter").value = AUD.filter; if ($("#audModel")) $("#audModel").value = AUD.model;
+  $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderAudit(); });
+  $("#audFilter").addEventListener("change", e => { AUD.filter = e.target.value; AUD.i = 0; renderAudit(); });
+  if ($("#audModel")) $("#audModel").addEventListener("change", e => { AUD.model = e.target.value; AUD.i = 0; renderAudit(); });
+  if (d) wireAudItem(d, q);
+}
+function audItemHTML(d){
+  const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : "";
+  const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, 6);
+  const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
+  const a = AUD.rows[d.url] || {}, aiC = String(d.ai_condition || "").toUpperCase();
+  const cur = {verdict: a.verdict || d.ai_verdict || "", edition: a.edition || d.ai_edition || "", condition: a.condition || (COND_LIST.includes(aiC) ? aiC : condCode(d.condition))};
+  AUD.sel = Object.assign({}, cur);
+  const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${cur[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
+  const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
+  return `<div class="panel aud">
+    <div class="aud-grid">
+      <div><div class="mut" style="font-size:12px;margin-bottom:4px">Listing photos ${imgs.length ? "(tap to open the listing)" : ""}</div>
+        ${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
+          : `<p class="mut">No photos saved for this one (sniper finds keep the link only). <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
+      <div><div class="mut" style="font-size:12px;margin-bottom:4px">What it should be</div>
+        ${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt=""></a>` : ""}
+        <div style="font-size:12px" class="mut">${esc(c.sn || "")}</div></div>
+    </div>
+    <div style="margin-top:10px"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · listed <b>${esc(String(d._c0 || d.condition).replace("?", " (not stated)"))}</b> · ${esc(dealWhen(d))}</div>
+    <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div>
+    <div class="aud-ai">${d.ai_verdict ? `<b>AI said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>` : `<span class="mut">The AI didn't check this one - your answers still make training data.</span>`}</div>
+    ${d.ai_verdict ? `<button class="btn" id="audYes" type="button" style="margin-top:10px">✓ AI got it right <span class="mut hide-sm">(Y)</span></button><div class="mut" style="font-size:12px;margin:8px 0 2px">…or fix what it got wrong:</div>` : ""}
+    <div class="aud-q"><span>Edition / card</span>${seg("edition", [["matches", "Right edition"], ["wrong", "Wrong edition or card"], ["unclear", "Can't tell"]])}</div>
+    <div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, x]).concat([["unclear", "Can't tell"]]))}</div>
+    <div class="aud-q"><span>Verdict should be</span>${seg("verdict", [["ok", "✓ OK"], ["warn", "⚠ Check it"], ["reject", "✕ Reject"]])}</div>
+    <input id="audNote" placeholder="Why? (optional - e.g. 'white border = Chronicles', 'crease top left'). Short notes teach it the most." value="${esc(a.note || "")}" maxlength="200" style="width:100%;margin-top:8px">
+    <div class="acts" style="justify-content:space-between"><div><button class="btn ghost" id="audPrev" type="button">← Prev</button> <button class="btn ghost" id="audSkip" type="button">Skip →</button></div>
+      <button class="btn" id="audSave" type="button">Save &amp; next</button></div>
+    ${a.at ? `<p class="mut" style="font-size:12px;margin:6px 0 0">You audited this ${esc(whenAZ(a.at + "+00:00"))}. Saving again replaces it.</p>` : ""}
+  </div>`;
+}
+function wireAudItem(d, q){
+  document.querySelectorAll("#audItem .seg").forEach(s => s.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
+    AUD.sel[s.dataset.k] = b.dataset.v; s.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b)); }));
+  const go = n => { AUD.i = Math.max(0, Math.min(q.length - 1, AUD.i + n)); renderAudit(); window.scrollTo({top: $("#audItem").offsetTop - 80, behavior: "smooth"}); };
+  $("#audPrev").addEventListener("click", () => go(-1));
+  $("#audSkip").addEventListener("click", () => go(1));
+  $("#audSave").addEventListener("click", () => saveAudit(d, AUD.sel, q));
+  if ($("#audYes")) $("#audYes").addEventListener("click", () => saveAudit(d, {verdict: d.ai_verdict, edition: d.ai_edition || "unclear", condition: COND_LIST.includes(String(d.ai_condition).toUpperCase()) ? String(d.ai_condition).toUpperCase() : "unclear"}, q));
+}
+function saveAudit(d, sel, q){
+  const r = {url: d.url, card: d.card, at: new Date().toISOString().slice(0, 16), ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(),
+    ai_model: d.ai_model || "", ai_reason: (d.ai_reason || "").slice(0, 200), verdict: sel.verdict || "", edition: sel.edition || "", condition: sel.condition || "",
+    note: ($("#audNote").value || "").replace(/\s+/g, " ").trim().slice(0, 200), listed: String(d._c0 || d.condition || "").replace("?", ""), title: (d.title || "").slice(0, 150)};
+  AUD.rows[d.url] = r; markDirty("audit");
+  // your condition also re-prices the deal on the eBay deals tab
+  if (COND_LIST.includes(r.condition) && r.condition !== condCode(d._c0) && !d._graded && (DC.map[d.url] || {}).c !== r.condition){
+    DC.map[d.url] = {c: r.condition, card: d.card, at: r.at, listed: r.listed, ai: r.ai_condition, seller: String(d.seller || "").split(" (")[0], title: r.title, note: r.note};
+    if (DC.loaded) markDirty("dealcond");
+  }
+  const wrong = r.ai_verdict && (r.verdict !== r.ai_verdict || (r.edition !== "unclear" && r.ai_edition && r.edition !== r.ai_edition) || (r.condition !== "unclear" && r.ai_condition && r.condition !== r.ai_condition));
+  toast(!r.ai_verdict ? "Saved as training data." : wrong ? "Saved - the AI sees this correction from the next scan." : "Saved - marked as right.", 2500);
+  if (AUD.filter === "done" || AUD.filter === "all") AUD.i++;   // in the other views the saved one drops out of the list
+  renderAudit(); renderDeals();
+}
+document.addEventListener("keydown", e => {
+  if (!document.querySelector("#tab-audit.on") || /input|textarea|select/i.test((e.target.tagName || "")) || document.querySelector("#colModal.on")) return;
+  if (e.key === "y" || e.key === "Y"){ const b = $("#audYes"); if (b){ e.preventDefault(); b.click(); } }
+  if (e.key === "ArrowRight"){ const b = $("#audSkip"); if (b){ e.preventDefault(); b.click(); } }
+  if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
+});
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
 const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note"];
 const DC = {map: {}, sha: null, loaded: false};
@@ -2248,6 +2408,7 @@ function switchTab(name){
   if (name === "sl" && typeof loadSL === "function"){ loadSL(); if (!READONLY) loadCOL(); }
   if (name === "col" && typeof loadCOL === "function") loadCOL();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
+  if (name === "audit" && !READONLY) renderAudit();
   if (name === "settings" && !READONLY){ if (!FB.loaded) loadFB(); else renderReasonEditor(); }
 }
 document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => { if (b.dataset.tab === "detail" && S.selected) showDetail(S.selected); else switchTab(b.dataset.tab); }));
