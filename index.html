@@ -241,16 +241,16 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="brand">Havoth Price Desk<small id="updated">Not connected</small></div>
   <nav id="nav">
     <button data-tab="mine" class="on" title="Cards you picked to watch, with your alert levels">Watchlist</button>
-    <button data-tab="all" title="Every card priced daily: your watchlist plus your auto-track lists">All prices</button>
-    <button data-tab="detail" title="Price chart and history for one card">Card chart</button>
-    <button data-tab="deals" title="eBay listings priced below fair value">eBay deals</button>
-    <button data-tab="audit" class="owner-only" title="Check the AI photo checker's calls - every audit makes it more accurate">AI audit</button>
+    <button data-tab="all" title="Every card priced daily: your watchlist plus your auto-track lists">All Prices</button>
+    <button data-tab="detail" title="Price chart and history for one card">Card Chart</button>
+    <button data-tab="deals" title="eBay listings priced below fair value">eBay Deals</button>
+    <button data-tab="audit" class="owner-only" title="Check the AI photo checker's calls - every audit makes it more accurate">AI Audit</button>
     <button data-tab="sl" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
     <button data-tab="col" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" title="Sets you are completing and the cards you still need">Sets</button>
-    <button data-tab="rules" title="Scryfall searches that add groups of cards to All prices">Auto-track lists</button>
+    <button data-tab="rules" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
     <button data-tab="settings" title="Deal rules, alert defaults, condition values, selling fees">Settings</button>
-    <button data-tab="connect" title="Connection status and a guide to every tab">Setup &amp; help</button>
+    <button data-tab="connect" title="Connection status and a guide to every tab">Setup &amp; Help</button>
   </nav>
   <div class="grow"></div>
   <span class="chip viewchip">View only</span>
@@ -265,7 +265,7 @@ select option{background:var(--panel);color:var(--ink)}
 <!-- CONNECT -->
 <section class="tab" id="tab-connect">
   <div class="panel connect">
-    <h2>Setup &amp; status</h2>
+    <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
     <div class="row"><button class="btn" id="reloadBtn">Reload data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings live in the script</h3>
@@ -280,13 +280,13 @@ select option{background:var(--panel);color:var(--ink)}
     <div class="panel" style="margin-top:14px"><b>What each tab does</b>
       <dl class="guide">
         <dt>Watchlist</dt><dd>Cards you picked one by one, each with its own alerts (target price, % drop, deal %, new 1-year low).</dd>
-        <dt>All prices</dt><dd>Everything priced every morning: Watchlist cards + all cards from your Auto-track lists. Filter for drops, lows, buylist strength, volatility.</dd>
-        <dt>Card chart</dt><dd>Price history and stats for one card. Opens when you click any card.</dd>
-        <dt>eBay deals</dt><dd>Listings under fair value for anything in All prices. Scanned every 3 hours. One-tap Snipe to EZSniper.</dd>
+        <dt>All Prices</dt><dd>Everything priced every morning: Watchlist cards + all cards from your Auto-track lists. Filter for drops, lows, buylist strength, volatility.</dd>
+        <dt>Card Chart</dt><dd>Price history and stats for one card. Opens when you click any card.</dd>
+        <dt>eBay Deals</dt><dd>Listings under fair value for anything in All prices. Scanned every 3 hours. One-tap Snipe to EZSniper.</dd>
         <dt>Secret Lair</dt><dd>Every drop with release dates, sale windows, sell-out times and value. <b>My orders</b> shows what you bought, what it's worth, and lets you mark items received.</dd>
         <dt>Sets</dt><dd>Sets you're completing: progress, cost to finish, and every card you still need. Needed cards get priority in the eBay scan and NEED alerts.</dd>
         <dt>Collection</dt><dd>What you own (including received Secret Lair items), what you paid, what it's worth now, and profit after fees when you sell.</dd>
-        <dt>Auto-track lists</dt><dd>Scryfall searches (e.g. "Reserved List $25+") that automatically add whole groups of cards to All prices.</dd>
+        <dt>Auto-Track Lists</dt><dd>Scryfall searches (e.g. "Reserved List $25+") that automatically add whole groups of cards to All prices.</dd>
         <dt>Settings</dt><dd>Alert defaults, deal filters, condition values and selling fees.</dd>
       </dl><b style="display:block;margin-top:12px">Words used on the desk</b><dl class="guide">
         <dt>Watchlist</dt><dd>The specific cards you track one by one, each with its own alert levels.</dd>
@@ -314,7 +314,7 @@ select option{background:var(--panel);color:var(--ink)}
 
 <!-- ALL -->
 <section class="tab" id="tab-all">
-  <h2>All prices</h2>
+  <h2>All Prices</h2>
   <p class="sub">Every card the tracker prices each morning: your <b>Watchlist</b> cards plus every card matched by your <b>Auto-track lists</b> (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
   <div class="panel row">
     <input id="allSearch" placeholder="Search name or set..." style="flex:1;min-width:200px">
@@ -338,7 +338,7 @@ select option{background:var(--panel);color:var(--ink)}
 
 <!-- DEALS -->
 <section class="tab" id="tab-deals">
-  <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay deals</h2>
+  <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay Deals</h2>
     <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply my ratings</button><button class="btn small owner-only" id="dScan">Scan eBay now</button></div></div>
   <p class="sub">eBay listings for cards in All prices that came in under fair value. The <b>⚡ sniper</b> checks brand-new Buy It Now listings every minute; a full scan (including auctions ending soon) runs every 3 hours. Magic only, no proxies. Prices are as of when found, so auctions may have moved. Snipe sends a listing to EZSniper.</p>
   <div class="panel owner-only" id="dLearned" style="display:block"></div>
@@ -365,7 +365,7 @@ select option{background:var(--panel);color:var(--ink)}
 
 <!-- SECRET LAIR -->
 <section class="tab" id="tab-audit">
-  <h2 style="margin:0">AI audit</h2>
+  <h2 style="margin:0">AI Audit</h2>
   <p class="sub">Go through what the AI photo checker decided and mark what it got right or wrong. Every audit is shown to the AI on future checks so it learns your standard, saved as training data for a custom model, and counted in the accuracy scores below.</p>
   <div id="audBody"><p class="empty">Loading…</p></div>
 </section>
@@ -386,7 +386,7 @@ select option{background:var(--panel);color:var(--ink)}
 
 <!-- RULES -->
 <section class="tab" id="tab-rules">
-  <h2>Auto-track lists</h2>
+  <h2>Auto-Track Lists</h2>
   <p class="sub">Instead of adding cards one at a time, each list is a <a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener">Scryfall search</a>. Every card it matches gets priced daily (shown in All prices) and scanned for eBay deals, using the list's drop % and deal % alerts. Use "Preview" to see what a search matches before saving.</p>
   <div class="panel scroll"><table id="rulesTable"></table>
     <div class="row" style="margin-top:12px"><button class="btn ghost small" id="addRule">+ Add list</button></div></div>
@@ -771,7 +771,7 @@ const SETTINGS = [
     ["default_drop_pct", "Default drop %", "num", 15, "Alert when a card is this % below its 30-day average (for cards without their own drop %)."],
     ["max_alert_lines", "Max lines per notification", "num", 20, "The rest are listed in report.md."]]},
   {sec: "preferences", title: "★ Top picks - which deals get their own phone alert", fields: [
-    ["prefer_usa", "Only USA sellers", "bool", false, "Deals that don't match still show on the eBay deals tab and in the summary alert - they just don't get a ★ or their own alert."],
+    ["prefer_usa", "Only USA sellers", "bool", false, "Deals that don't match still show on the eBay Deals tab and in the summary alert - they just don't get a ★ or their own alert."],
     ["prefer_min_condition", "Lowest condition", "mincond", "ANY", ""],
     ["prefer_graded", "Graded or ungraded", "graded", "both", ""],
     ["prefer_min_grade", "Minimum grade (graded cards)", "num", 0, "1-10. 0 = any."]]},
@@ -1563,7 +1563,8 @@ async function checkServerCode(){
   const behind = SRV.st && SRV.st.latest && SRV.st.latest !== SRV.st.running;
   if ((behind || SRV.err === "old") && !SRV.toldBehind){ SRV.toldBehind = true;
     toastHTML(`Server code update available. <a href="#" id="srvGo">Update it</a>`, 8000);
-    const a = $("#srvGo"); if (a) a.addEventListener("click", e => { e.preventDefault(); switchTab("connect"); setTimeout(() => $("#srvBody").scrollIntoView({behavior: "smooth"}), 100); }); }
+    const a = $("#srvGo"); if (a) a.addEventListener("click", e => { e.preventDefault(); switchTab("connect"); setTimeout(() => { const el = $("#srvBody").closest(".panel"), head = document.querySelector("header");
+      window.scrollTo({top: el.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 12, behavior: "smooth"}); }, 120); }); }
 }
 function renderServerCode(){
   const box = $("#srvBody"); if (!box || READONLY) return;
@@ -1762,7 +1763,7 @@ function saveAudit(d, sel, q){
     note: ($("#audNote").value || "").replace(/\s+/g, " ").trim().slice(0, 200), listed: String(d._c0 || d.condition || "").replace("?", ""), title: (d.title || "").slice(0, 150),
     how: AUD.filter === "random" ? "random" : "targeted"};
   AUD.rows[d.url] = r; markDirty("audit");
-  // your condition also re-prices the deal on the eBay deals tab
+  // your condition also re-prices the deal on the eBay Deals tab
   if (COND_LIST.includes(r.condition) && r.condition !== condCode(d._c0) && !d._graded && (DC.map[d.url] || {}).c !== r.condition){
     DC.map[d.url] = {c: r.condition, card: d.card, at: r.at, listed: r.listed, ai: r.ai_condition, seller: String(d.seller || "").split(" (")[0], title: r.title, note: r.note};
     if (DC.loaded) markDirty("dealcond");
