@@ -211,7 +211,7 @@ select option{background:var(--panel);color:var(--ink)}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
 .aiG{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
 .aiG.ok{border:0;cursor:default;opacity:.8}
-.aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .stat .k{font-size:12px;color:var(--muted)}.stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .aud-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
@@ -224,9 +224,12 @@ select option{background:var(--panel);color:var(--ink)}
 .ew-form textarea{width:100%;margin-top:8px;font:inherit}.ew-form .row{margin-top:6px;gap:8px;flex-wrap:wrap}
 .ew-res{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px}
 #dElse summary{cursor:pointer}
+.ew-bars{display:grid;gap:3px;margin-top:4px}.ew-bars>div{display:grid;grid-template-columns:minmax(150px,240px) 1fr 60px;gap:8px;align-items:center}
+.ew-bars .bar{height:8px;background:var(--soft);border-radius:4px;overflow:hidden}.ew-bars .bar i{display:block;height:100%;background:var(--accent)}.ew-bars b{text-align:right;font-weight:600}
+@media (max-width:700px){.ew-bars>div{grid-template-columns:1fr 50px}.ew-bars .bar{display:none}}
 .honest{padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
-@media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
+@media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats,.aud-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
 .condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
@@ -813,6 +816,7 @@ const SETTINGS = [
     ["min_listing_price", "Ignore new listings under ($)", "num", 10, ""],
     ["min_market_value", "Only judge cards worth at least ($)", "num", 20, "Cards you need for a set use the Set completion value instead."],
     ["max_pages", "Pages of 200 per sweep", "num", 2, "More = fewer misses at busy times, more eBay calls."],
+    ["item_details_per_day", "Item-details checks per day", "num", 300, "When a title names a tracked card but not its edition, read eBay's item details (Set, Condition). 1 eBay call each."],
     ["max_alerts_per_sweep", "Max alerts per sweep", "num", 5, ""]]},
   {sec: "sets", title: "Set completion", fields: [
     ["need_min_value", "Scan needed cards worth at least ($)", "num", 5, "Cards you still need for a set are checked for eBay deals on every scan, ahead of everything else."]]},
@@ -1438,16 +1442,35 @@ function ewBoard(){
     ${tile(later.length ? Math.round(later.reduce((a, b) => a + b, 0) / later.length) + " min" : "–", "Average lag when later", "When they beat us, by how much")}</div>
     ${Object.keys(reasons).length ? `<div style="margin-top:8px;font-size:13px"><b>Why we missed or hid them:</b> ${Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} <b>${n}</b>`).join(" · ")}</div>` : ""}`;
 }
+function sniperCardHTML(){
+  const st = (S.sniper || {}).stats; if (!st) return `<p class="mut" style="margin:6px 0 0">Fills in automatically once the latest Code.gs is running in Apps Script.</p>`;
+  const days = [{day: st.day, seen: st.seen, why: st.why || {}, spec_tried: st.spec_tried, spec_found: st.spec_found}].concat((st.hist || []).slice(0, 6));
+  const sum = k => days.reduce((a, d) => a + (+d[k] || 0), 0), why = {};
+  days.forEach(d => Object.entries(d.why || {}).forEach(([k, n]) => why[k] = (why[k] || 0) + n));
+  const lags = (st.lags || []).slice().sort((a, b) => a - b), med = lags.length ? lags[Math.floor(lags.length / 2)] : null;
+  const fast = lags.length ? lags.filter(v => v <= 5).length : 0;
+  const tile = (v, k, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const totalWhy = Object.values(why).reduce((a, b) => a + b, 0);
+  return `<div class="stats aud-stats four" style="margin-top:8px">
+    ${tile(med == null ? "–" : med + " min", "Listed → alert (median)", "How long after the seller listed it the sniper found it - last " + lags.length + " finds")}
+    ${tile(lags.length ? pctOf(fast, lags.length) : "–", "Found within 5 min", "Share of sniper finds caught within 5 minutes of listing")}
+    ${tile(Number(sum("seen")).toLocaleString(), "New listings checked (7 days)", "Brand-new Magic listings the sniper looked at")}
+    ${tile(`${sum("spec_found")} <span class="mut" style="font-size:13px">of ${sum("spec_tried")}</span>`, "Deals found via item details", "Titles that didn't name the edition - eBay's item details (Set) showed it was a card you track at a deal price")}</div>
+    ${totalWhy ? `<div style="margin-top:8px;font-size:13px"><b>Why listings of cards you track were passed over (7 days):</b><div class="ew-bars">${Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) =>
+      `<div><span>${esc(k)}</span><span class="bar"><i style="width:${Math.max(2, Math.round(n / totalWhy * 100))}%"></i></span><b>${n.toLocaleString()}</b></div>`).join("")}</div>
+      <div class="mut" style="font-size:12px;margin-top:4px">Nothing to review - this shows which filters do the most work. If "Title doesn't say the edition" is big, item-details checks are catching what keyword-only alerts miss.</div></div>` : ""}`;
+}
 function renderEW(){
   const box = $("#dElse"); if (!box || READONLY) return;
   const recent = EW.rows.slice().sort((a, b) => (b.seen_at || "").localeCompare(a.seen_at || "")).slice(0, 25);
-  box.innerHTML = `<details id="ewDetails"${EW.open ? " open" : ""}><summary><b>vs MTG Scavenger</b> <span class="mut" style="font-size:13px">- paste deals you saw elsewhere to see if we caught them${EW.rows.length ? ` (${EW.rows.length} logged)` : ""}</span></summary>
+  box.innerHTML = `<b>Sniper scorecard</b> <span class="mut" style="font-size:13px">- automatic</span>${sniperCardHTML()}
+    <details id="ewDetails" style="margin-top:10px"${EW.open ? " open" : ""}><summary class="mut" style="font-size:13px">Check a specific listing (optional)${EW.rows.length ? ` · ${EW.rows.length} checked` : ""}</summary>
     <div class="ew-form">
-      <textarea id="ewLinks" rows="2" placeholder="Paste eBay link(s) from a Scavenger / TCG Drop alert - one per line"></textarea>
+      <textarea id="ewLinks" rows="2" placeholder="Paste an eBay link to see if we caught it - and if not, why"></textarea>
       <div class="row">
         <label class="mut" style="font-size:13px">Posted <input id="ewMins" class="num" type="number" min="0" value="0" style="width:64px"> min ago</label>
         <label class="mut" style="font-size:13px">Their price $<input id="ewPrice" class="num" inputmode="decimal" style="width:84px" placeholder="optional"></label>
-        <select id="ewSource"><option>MTG Scavenger</option><option>Other</option></select>
+        <select id="ewSource"><option>Other</option><option>MTG Scavenger</option></select>
         <input id="ewNote" placeholder="Note (optional)" style="flex:1;min-width:140px">
         <button class="btn" id="ewCheck" type="button">Check</button>
       </div>
