@@ -229,6 +229,7 @@ select option{background:var(--panel);color:var(--ink)}
 @media (max-width:700px){.ew-bars>div{grid-template-columns:1fr 50px}.ew-bars .bar{display:none}}
 #sfPop{position:fixed;z-index:30;display:none;width:250px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
 #sfPop img{width:100%;border-radius:10px;display:block}#sfPop div{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
+.srv-pre{font-size:12px;background:var(--soft);padding:8px;border-radius:6px;overflow:auto;white-space:pre}
 .honest{padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
 @media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats,.aud-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
@@ -275,6 +276,7 @@ select option{background:var(--panel);color:var(--ink)}
       <li>Changing a password signs out everyone who used the old one.</li>
     </ol>
     <div class="panel scroll" style="margin-top:14px"><b>Last updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
+    <div class="panel owner-only" style="margin-top:14px"><b>Server code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <div class="panel" style="margin-top:14px"><b>What each tab does</b>
       <dl class="guide">
         <dt>Watchlist</dt><dd>Cards you picked one by one, each with its own alerts (target price, % drop, deal %, new 1-year low).</dd>
@@ -1545,6 +1547,79 @@ async function ewCheck(){
   EW.busy = false; renderEW();
   $("#ewResult").innerHTML = out.map(r => r.error ? `<div class="flag sus" style="display:block;margin-top:6px">⚠ ${esc(r.error)}</div>` : (t => `<div class="ew-res"><b>${t.icon} ${esc(t.label)}</b> - ${esc(r.card || r.title || r.item_id)}${r.price ? ` · now ${money(r.price)}` : ""}<div class="mut" style="font-size:13px">${esc(r.reason || r.note || (r.our_found_at ? `Found by the ${r.our_source} ${whenAZ(new Date(ewTime(r.our_found_at)).toISOString())}` : ""))}</div></div>`)(ewTag(r))).join("");
 }
+// ---------------------------------------------------------------- Server code (Apps Script) updates
+const SRV = {st: null, err: "", busy: false, toldBehind: false};
+const SCOPES_JSON = `"oauthScopes": [
+  "https://www.googleapis.com/auth/script.external_request",
+  "https://www.googleapis.com/auth/script.scriptapp",
+  "https://www.googleapis.com/auth/script.projects",
+  "https://www.googleapis.com/auth/script.deployments"
+]`;
+async function checkServerCode(){
+  if (READONLY) return;
+  try{ SRV.st = await server("codeStatus"); SRV.err = ""; }
+  catch(e){ SRV.st = null; SRV.err = /Unknown request|UPDATE/i.test(e.message) ? "old" : e.message; }
+  renderServerCode();
+  const behind = SRV.st && SRV.st.latest && SRV.st.latest !== SRV.st.running;
+  if ((behind || SRV.err === "old") && !SRV.toldBehind){ SRV.toldBehind = true;
+    toastHTML(`Server code update available. <a href="#" id="srvGo">Update it</a>`, 8000);
+    const a = $("#srvGo"); if (a) a.addEventListener("click", e => { e.preventDefault(); switchTab("connect"); setTimeout(() => $("#srvBody").scrollIntoView({behavior: "smooth"}), 100); }); }
+}
+function renderServerCode(){
+  const box = $("#srvBody"); if (!box || READONLY) return;
+  const st = SRV.st, behind = st && st.latest && st.latest !== st.running;
+  const status = SRV.err === "old" ? `<b class="stale">⚠ Your Apps Script code is older than this update checker.</b> Paste the latest Code.gs once more by hand (use the button below, or the file Claude sent). After that, updates are one tap.`
+    : SRV.err ? `<span class="stale">Couldn't check: ${esc(SRV.err)}</span>`
+    : !st ? "Checking…"
+    : behind ? `<b class="stale">⚠ Update available</b> - running <b>${esc(st.running)}</b>, latest is <b>${esc(st.latest)}</b>.`
+    : `✓ Up to date (version ${esc(st.running)}).`;
+  box.innerHTML = `<p style="margin:6px 0">${status}</p>
+    <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st ? "" : "disabled"}>Update now</button>
+      <button class="btn ghost" id="srvCopy">Copy latest Code.gs</button></div>
+    <p class="mut" style="font-size:12px;margin:6px 0 0"><b>Update now</b> replaces the code in Apps Script and redeploys it at the same address - it needs the one-time setup below.
+      <b>Copy</b> works without setup: in Apps Script select all, paste, save, then Deploy → Manage deployments → ✏️ → New version → Deploy.</p>
+    <details style="margin-top:8px"><summary><b>One-time setup for one-tap updates</b> (about 10 minutes)</summary>
+      <ol style="font-size:13px">
+        <li>Open <a href="https://script.google.com/home/usersettings" target="_blank" rel="noopener">script.google.com/home/usersettings</a> and turn <b>Google Apps Script API</b> on.</li>
+        <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud → New project</a>. Use the <b>same Google account</b> that owns your Apps Script. Name it "Havoth Desk" and create it.</li>
+        <li>In that project: <b>APIs &amp; Services → OAuth consent screen</b>.
+          <ul><li>Google Workspace account (e.g. @havothcards.com): choose <b>Internal</b>.</li>
+          <li>Regular Gmail: choose <b>External</b>, fill in the app name and your email, then <b>Publish app</b> ("In production"). Otherwise Google expires the permission every 7 days and the sniper stops.</li></ul></li>
+        <li><b>APIs &amp; Services → Library</b> → search <b>Apps Script API</b> → <b>Enable</b>.</li>
+        <li>Copy the <b>project number</b> (Cloud home page → Project info).</li>
+        <li>In Apps Script: <b>Project Settings</b> (gear) → tick <b>Show "appsscript.json" manifest file in editor</b>. Under <b>Google Cloud Platform (GCP) Project</b> → <b>Change project</b> → paste the number → <b>Set project</b>.</li>
+        <li>Open <b>appsscript.json</b> in the editor and add this line after the first <code>{</code> (keep everything else):
+          <pre class="srv-pre">${esc(SCOPES_JSON)},</pre><button class="btn ghost small" id="srvCopyScopes" type="button">Copy this</button></li>
+        <li>Save. Pick <b>authorizeUpdates</b> in the function menu → <b>Run</b> → approve the permissions. (Gmail: "Google hasn't verified this app" → Advanced → Go to… - it's your own script.) The log should say <i>Ready</i>.</li>
+        <li>Come back here and tap <b>Update now</b>.</li>
+      </ol></details>`;
+  $("#srvUpdate").addEventListener("click", updateServerNow);
+  $("#srvCopy").addEventListener("click", copyLatestCode);
+  $("#srvCopyScopes").addEventListener("click", () => copyText(SCOPES_JSON + ",", "Copied - paste it after the first { in appsscript.json."));
+}
+async function copyText(text, msg){
+  try{ await navigator.clipboard.writeText(text); toast(msg, 6000); }
+  catch(e){   // some browsers block the clipboard after a server call - show it to copy by hand
+    openModal(`<h3>Copy this</h3><p class="mut" style="font-size:13px">Tap in the box, select all, and copy.</p><textarea id="cpyBox" style="width:100%;height:240px;font:12px monospace">${esc(text)}</textarea>
+      <div class="acts"><button class="btn" id="cpyClose" type="button">Done</button></div>`);
+    $("#cpyBox").select(); $("#cpyClose").addEventListener("click", closeModal);
+  }
+}
+async function copyLatestCode(){
+  const b = $("#srvCopy"); b.disabled = true; b.textContent = "Getting it…";
+  try{ const src = await server("latestCode"); if (!src) throw new Error("No apps-script/Code.gs in the repo yet");
+    await copyText(src, "Latest Code.gs copied. In Apps Script: select all, paste, save, then Deploy → Manage deployments → ✏️ → New version → Deploy."); }
+  catch(e){ toast(/Unknown request|UPDATE/i.test(e.message) ? "Your Apps Script is too old for this button - paste the Code.gs file Claude sent one more time." : "Couldn't get it: " + e.message, 8000); }
+  b.disabled = false; b.textContent = "Copy latest Code.gs";
+}
+async function updateServerNow(){
+  const st = SRV.st || {};
+  if (!(await costConfirm("Update the server code?", [`Replaces the Apps Script code with the latest version${st.latest ? " (" + st.latest + ")" : ""} and redeploys it at the same address.`, "No eBay searches or AI credits. Takes about 10 seconds."], "Update"))) return;
+  const b = $("#srvUpdate"); b.disabled = true; b.textContent = "Updating…";
+  try{ const r = await server("updateServer"); toast(r.already ? "Already up to date." : `Server updated to ${r.version}. Reloading…`, 5000);
+    if (!r.already) setTimeout(() => location.reload(), 2500); else checkServerCode(); }
+  catch(e){ b.disabled = false; b.textContent = "Update now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
+}
 // ---------------------------------------------------------------- AI audit (collection/ai_audit.csv)
 // Go through what the AI photo checker decided, mark what it got right or wrong. Every audit:
 //  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
@@ -2645,6 +2720,7 @@ async function loadAll(){
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
   READONLY = !d0.canEdit; document.body.classList.toggle("readonly", READONLY);
+  if (!READONLY) setTimeout(checkServerCode, 1500);
   if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
   else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
   S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
