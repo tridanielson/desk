@@ -1664,6 +1664,9 @@ function wireAudItem(d, q){
   if ($("#audYes")) $("#audYes").addEventListener("click", () => saveAudit(d, {verdict: d.ai_verdict, edition: d.ai_edition || "unclear", condition: COND_LIST.includes(String(d.ai_condition).toUpperCase()) ? String(d.ai_condition).toUpperCase() : "unclear"}, q));
 }
 function saveAudit(d, sel, q){
+  const base = COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? String(d.ai_condition).toUpperCase() : condCode(d._c0 || d.condition);
+  if (COND_LIST.includes(sel.condition) && sel.condition !== base && !($("#audNote").value || "").trim()){
+    $("#audNote").focus(); $("#audNote").placeholder = "Why is the condition " + sel.condition + "? (required when you change it)"; return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
   const r = {url: d.url, card: d.card, at: new Date().toISOString().slice(0, 16), ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(),
     ai_model: d.ai_model || "", ai_reason: (d.ai_reason || "").slice(0, 200), verdict: sel.verdict || "", edition: sel.edition || "", condition: sel.condition || "",
     note: ($("#audNote").value || "").replace(/\s+/g, " ").trim().slice(0, 200), listed: String(d._c0 || d.condition || "").replace("?", ""), title: (d.title || "").slice(0, 150),
@@ -1719,37 +1722,43 @@ function setDealCond(url, c, note){
   renderDeals();
   const n = S.deals.find(x => x.url === url);
   if (READONLY || !DC.map[url] || note) toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off` : `${n.card}: back to the listing's condition (${n.condition})`, 4000);
-  else toastHTML(`${esc(n.card)}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off. <a href="#" data-condpick="${esc(url)}">Add why?</a> It teaches the AI checker.`, 6000);
+  else toast(`${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off`, 4000);
 }
 function condCell(d){
   const cur = condCode(d.condition), tip = d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition.` : `Listing says “${d._c0}”. Change it if the photos show a different condition - fair value and % off recalculate.`;
-  return aiGuess(d) + `<select class="condSel${d._adj ? " adj" : ""}" data-cond="${esc(d.url)}" title="${esc(tip)}" aria-label="Condition">${COND_LIST.map(c => `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("")}</select>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)} <a href="#" data-condreset="${esc(d.url)}" title="Go back to the listing's condition">undo</a> · <a href="#" data-condpick="${esc(d.url)}" title="Say what you saw - it teaches the AI checker">${(DC.map[d.url] || {}).note ? "edit why" : "why?"}</a></div>` : !/^(NM|LP|MP|HP|DMG)$/i.test(d._c0 || "") ? `<div class="mut" style="font-size:11px">${esc(d._c0)}</div>` : ""}`;
+  return aiGuess(d) + `<select class="condSel${d._adj ? " adj" : ""}" data-cond="${esc(d.url)}" title="${esc(tip)}" aria-label="Condition">${COND_LIST.map(c => `<option value="${c}"${c === cur ? " selected" : ""}>${c}</option>`).join("")}</select>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)} <a href="#" data-condreset="${esc(d.url)}" title="Go back to the listing's condition">undo</a> · <a href="#" data-condpick="${esc(d.url)}" title="Say what you saw - it teaches the AI checker">edit</a></div>` : !/^(NM|LP|MP|HP|DMG)$/i.test(d._c0 || "") ? `<div class="mut" style="font-size:11px">${esc(d._c0)}</div>` : ""}`;
 }
 function aiGuess(d, tile){
   const g = String(d.ai_condition || "").toUpperCase(); if (!COND_LIST.includes(g) || d._graded) return "";
   if (g === condCode(d.condition)) return `<span class="aiG ok" title="The AI photo check agrees: ${g}">🤖✓</span> `;
   return `<${tile ? "span role=\"button\"" : "button type=\"button\""} class="aiG" data-aicond="${esc(d.url)}" data-c="${g}" title="The AI photo check thinks this is ${g}. Tap to use it - agreeing also teaches it.">🤖 ${g}</${tile ? "span" : "button"}> `;
 }
-function openCondPick(d){
-  let sel = condCode(d.condition);
+function openCondPick(d, preset){
+  let sel = preset || condCode(d.condition);
+  const listed = condCode(d._c0), unstated = /\?/.test(d._c0 || "");
   openModal(`<h3>Condition</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · listing says “${esc(d._c0)}”</div>
-    <p class="mut" style="font-size:13px">Pick what the photos really show, add why if you like, then tap <b>Save</b>. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
+    <p class="mut" style="font-size:13px">Pick what the photos really show, say why, then tap <b>Save</b>. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
     <div class="seg" id="cpSeg" style="margin:8px 0">${COND_LIST.map(c => `<button class="btn${c === sel ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
-    <label for="cpNote" style="font-size:13px">Why? (optional - e.g. "whitening on back corners", "crease top left". Teaches the AI checker.)</label>
+    <label for="cpNote" style="font-size:13px"><b>Why?</b> (required - e.g. "whitening on back corners", "crease top left". This is what teaches the AI checker.)</label>
     <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?" style="width:100%">
     ${condGuideHTML()}
     <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Cancel</button><button class="btn" id="cpSave" type="button">Save</button></div>`);
-  $("#cpSeg").addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (!b) return; sel = b.dataset.pick; $("#cpSeg").querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("ghost", x !== b)); });
-  const save = () => { const note = $("#cpNote").value; closeModal(); setDealCond(d.url, sel, note); };
+  // back to the listing's own condition = undo (no why needed); any other grade needs a why
+  const needWhy = () => !(sel === listed && !unstated);
+  const check = () => { const ok = !needWhy() || $("#cpNote").value.trim().length >= 3; $("#cpSave").disabled = !ok; $("#cpSave").title = ok ? "" : "Say why first"; };
+  $("#cpSeg").addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (!b) return; sel = b.dataset.pick; $("#cpSeg").querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("ghost", x !== b)); check(); });
+  $("#cpNote").addEventListener("input", check); check();
+  const save = () => { if ($("#cpSave").disabled){ $("#cpNote").focus(); return toast("Say why first - that's what teaches the AI."); } const note = $("#cpNote").value; closeModal(); setDealCond(d.url, sel, needWhy() ? note : ""); };
   $("#cpSave").addEventListener("click", save);
   $("#cpNote").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); save(); } });
-  $("#cpClose").addEventListener("click", closeModal);
+  $("#cpClose").addEventListener("click", () => { closeModal(); renderDeals(); });   // put the dropdown back if it was changed
   if ($("#cpReset")) $("#cpReset").addEventListener("click", () => { closeModal(); setDealCond(d.url, "", ""); });
 }
-document.addEventListener("change", e => { const s = e.target.closest("select[data-cond]"); if (s) setDealCond(s.dataset.cond, s.value); });
+document.addEventListener("change", e => { const s = e.target.closest("select[data-cond]"); if (!s) return;   // a condition change always asks why
+  const d = S.deals.find(x => x.url === s.dataset.cond); if (d) openCondPick(d, s.value); });
 document.addEventListener("click", e => {
   const r = e.target.closest("[data-condreset]"); if (r){ e.preventDefault(); setDealCond(r.dataset.condreset, "", ""); return; }
-  const a = e.target.closest("[data-aicond]"); if (a){ e.preventDefault(); e.stopPropagation(); setDealCond(a.dataset.aicond, a.dataset.c); return; }
+  const a = e.target.closest("[data-aicond]"); if (a){ e.preventDefault(); e.stopPropagation(); const d = S.deals.find(x => x.url === a.dataset.aicond); if (d) openCondPick(d, a.dataset.c); return; }
   const p = e.target.closest("[data-condpick]"); if (p){ e.preventDefault(); e.stopPropagation(); const d = S.deals.find(x => x.url === p.dataset.condpick); if (d) openCondPick(d); }
 }, true);
 function renderDeals(){
@@ -2278,6 +2287,8 @@ async function openReceiveCheck(r){
   const sel = {ed: "matches", cond};
   [["#rcEd", "ed"], ["#rcCond", "cond"]].forEach(([id, k]) => $(id).addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return; sel[k] = b.dataset.v; $(id).querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b)); }));
   const finish = async withCheck => {
+    if (withCheck && sel.cond !== condCode(d._c0 || d.condition || r.condition) && !($("#rcNote").value || "").trim()){
+      $("#rcNote").focus(); $("#rcNote").placeholder = "Why is it " + sel.cond + "? (required when it differs from the listing)"; return toast("Say why the condition differs - that's what teaches the AI.", 4500); }
     r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
     if (withCheck){
       r.condition = sel.cond;
