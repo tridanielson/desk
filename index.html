@@ -1709,13 +1709,18 @@ function aiGuess(d, tile){
   return `<${tile ? "span role=\"button\"" : "button type=\"button\""} class="aiG" data-aicond="${esc(d.url)}" data-c="${g}" title="The AI photo check thinks this is ${g}. Tap to use it - agreeing also teaches it.">🤖 ${g}</${tile ? "span" : "button"}> `;
 }
 function openCondPick(d){
+  let sel = condCode(d.condition);
   openModal(`<h3>Condition</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · listing says “${esc(d._c0)}”</div>
-    <p class="mut" style="font-size:13px">Pick what the photos really show. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
+    <p class="mut" style="font-size:13px">Pick what the photos really show, add why if you like, then tap <b>Save</b>. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
+    <div class="seg" id="cpSeg" style="margin:8px 0">${COND_LIST.map(c => `<button class="btn${c === sel ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
     <label for="cpNote" style="font-size:13px">Why? (optional - e.g. "whitening on back corners", "crease top left". Teaches the AI checker.)</label>
-    <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?">
-    <div class="acts" style="flex-wrap:wrap;justify-content:flex-start">${COND_LIST.map(c => `<button class="btn${c === condCode(d.condition) ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
-    <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Close</button></div>`);
-  document.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => { const note = $("#cpNote").value; closeModal(); setDealCond(d.url, b.dataset.pick, note); }));
+    <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?" style="width:100%">
+    ${condGuideHTML()}
+    <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Cancel</button><button class="btn" id="cpSave" type="button">Save</button></div>`);
+  $("#cpSeg").addEventListener("click", e => { const b = e.target.closest("[data-pick]"); if (!b) return; sel = b.dataset.pick; $("#cpSeg").querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("ghost", x !== b)); });
+  const save = () => { const note = $("#cpNote").value; closeModal(); setDealCond(d.url, sel, note); };
+  $("#cpSave").addEventListener("click", save);
+  $("#cpNote").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); save(); } });
   $("#cpClose").addEventListener("click", closeModal);
   if ($("#cpReset")) $("#cpReset").addEventListener("click", () => { closeModal(); setDealCond(d.url, "", ""); });
 }
