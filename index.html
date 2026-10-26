@@ -255,10 +255,10 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="grow"></div>
   <span class="chip viewchip">View only</span>
   <span id="pending" class="pending" hidden></span>
-  <button class="btn" id="saveBtn" hidden disabled>Save now</button>
-  <button class="btn ghost" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Refresh now</button>
+  <button class="btn" id="saveBtn" hidden disabled>Save Now</button>
+  <button class="btn ghost" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Refresh Now</button>
   <button class="btn ghost small owner-only" id="muteBtn" title="Phone alerts: mute or quiet hours" hidden>🔔</button>
-  <button class="btn ghost small" id="signOutBtn" hidden>Sign out</button>
+  <button class="btn ghost small" id="signOutBtn" hidden>Sign Out</button>
 </header>
 
 <main>
@@ -267,16 +267,16 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <div class="row"><button class="btn" id="reloadBtn">Reload data</button><span class="status" id="connMsg"></span></div>
-    <h3 style="margin-top:22px;font-size:15px">Settings live in the script</h3>
+    <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
+    <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
       <li>Open this project in <b>script.google.com</b> → <b>Project Settings</b> (gear icon) → <b>Script Properties</b>.</li>
       <li><b>GITHUB_TOKEN</b>, <b>GITHUB_OWNER</b>, <b>GITHUB_REPO</b> connect to your repo.</li>
       <li><b>OWNER_PASSWORD</b> is your password (full access). <b>VIEWER_PASSWORD</b> is the friends password (view only).</li>
       <li>Changing a password signs out everyone who used the old one.</li>
     </ol>
-    <div class="panel scroll" style="margin-top:14px"><b>Last updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
-    <div class="panel owner-only" style="margin-top:14px"><b>Server code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
+    <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
+    <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <div class="panel" style="margin-top:14px"><b>What each tab does</b>
       <dl class="guide">
         <dt>Watchlist</dt><dd>Cards you picked one by one, each with its own alerts (target price, % drop, deal %, new 1-year low).</dd>
@@ -290,7 +290,7 @@ select option{background:var(--panel);color:var(--ink)}
         <dt>Settings</dt><dd>Alert defaults, deal filters, condition values and selling fees.</dd>
       </dl><b style="display:block;margin-top:12px">Words used on the desk</b><dl class="guide">
         <dt>Watchlist</dt><dd>The specific cards you track one by one, each with its own alert levels.</dd>
-        <dt>★ Top pick</dt><dd>A deal that passed every check and matches your Top-pick settings (USA, condition, graded). Top picks get their own phone alert; other deals are grouped into one summary alert.</dd>
+        <dt>★ Top Pick</dt><dd>A deal that passed every check and matches your Top-pick settings (USA, condition, graded). Top picks get their own phone alert; other deals are grouped into one summary alert.</dd>
         <dt>Need</dt><dd>A card you're missing for a set on the Sets tab. These are checked first and can ring during quiet hours.</dd>
         <dt>Hidden</dt><dd>A deal removed by your ratings, your rules or an automatic check. See them with the "Only hidden &amp; AI-rejected" view.</dd>
       </dl></div>
@@ -318,17 +318,17 @@ select option{background:var(--panel);color:var(--ink)}
   <p class="sub">Every card the tracker prices each morning: your <b>Watchlist</b> cards plus every card matched by your <b>Auto-track lists</b> (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
   <div class="panel row">
     <input id="allSearch" placeholder="Search name or set..." style="flex:1;min-width:200px">
-    <select id="allGroup"><option value="">All groups</option></select>
+    <select id="allGroup"><option value="">All Groups</option></select>
     <select id="allPreset">
-      <option value="">No filter</option>
-      <option value="drop">Down 10%+ in 30 days</option>
-      <option value="low">Within 5% of 1-year low</option>
-      <option value="buy">Strong buylist (CK 65%+ of market)</option>
-      <option value="vol">Most volatile</option>
+      <option value="">No Filter</option>
+      <option value="drop">Down 10%+ in 30 Days</option>
+      <option value="low">Within 5% of 1-year Low</option>
+      <option value="buy">Strong Buylist (CK 65%+ of Market)</option>
+      <option value="vol">Most Volatile</option>
     </select>
     <span class="status" id="allCount"></span>
   </div>
-  <div class="panel scroll"><div class="tiles" id="allTiles"></div><table id="allTable" class="desk-table"></table><div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="allMore" hidden>Show more</button></div></div>
+  <div class="panel scroll"><div class="tiles" id="allTiles"></div><table id="allTable" class="desk-table"></table><div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="allMore" hidden>Show More</button></div></div>
 </section>
 
 <!-- DETAIL -->
@@ -339,25 +339,26 @@ select option{background:var(--panel);color:var(--ink)}
 <!-- DEALS -->
 <section class="tab" id="tab-deals">
   <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay Deals</h2>
-    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply my ratings</button><button class="btn small owner-only" id="dScan">Scan eBay now</button></div></div>
+    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply My Ratings</button><button class="btn small owner-only" id="dScan">Scan eBay Now</button></div></div>
   <p class="sub">eBay listings for cards in All prices that came in under fair value. The <b>⚡ sniper</b> checks brand-new Buy It Now listings every minute; a full scan (including auctions ending soon) runs every 3 hours. Magic only, no proxies. Prices are as of when found, so auctions may have moved. Snipe sends a listing to EZSniper.</p>
   <div class="panel owner-only" id="dLearned" style="display:block"></div>
   <div class="panel owner-only" id="dElse" style="display:block"></div>
   <div class="panel row">
-    <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">all</option></select> days</label>
+    <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">All</option></select> days</label>
     <label>Min % off <input id="dMin" class="num" type="number" value="0"></label>
-    <label><input type="checkbox" id="dBuy"> Below buylist only</label>
-    <label title="Listings priced so far under value (below the 'too cheap' % in Settings) that they're usually fakes or the wrong card"><input type="checkbox" id="dSus"> Hide "too cheap?" listings</label>
-    <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active deals</option><option value="only">Only hidden &amp; AI-rejected (audit)</option><option value="all">Everything</option></select>
-    <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All reasons</option></select>
-    <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by anyone</option><option value="you">👎 You</option><option value="rule">📋 Your rules</option><option value="ai">🤖 AI checker</option><option value="auto">🔎 Automatic checks</option></select>
-    <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + unsigned</option><option value="hide">Hide signed</option><option value="only">Signed only</option></select>
-    <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top picks only</label>
-    <label><input type="checkbox" id="dUSA"> USA sellers only</label>
-    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include ended</label>
-    <select id="dCond" aria-label="Condition"><option value="">Any condition</option><option value="MP">MP or better</option><option value="LP">LP or better</option><option value="NM">Near Mint only</option></select>
-    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - ending soonest</option><option value="bin">Buy It Now only</option></select>
-    <select id="dGraded" aria-label="Graded"><option value="">Graded + ungraded</option><option value="raw">Ungraded only</option><option value="graded">Graded only</option></select>
+    <label><input type="checkbox" id="dBuy"> Below Buylist Only</label>
+    <label title="Listings priced so far under value (below the 'too cheap' % in Settings) that they're usually fakes or the wrong card"><input type="checkbox" id="dSus"> Hide "Too Cheap?" Listings</label>
+    <select id="dRej" class="owner-only" title="Audit what your rules, ratings and the AI checker removed"><option value="">Active Deals</option><option value="only">Only Hidden &amp; AI-Rejected (Audit)</option><option value="all">Everything</option></select>
+    <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All Reasons</option></select>
+    <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by Anyone</option><option value="you">👎 You</option><option value="rule">📋 Your Rules</option><option value="ai">🤖 AI Checker</option><option value="auto">🔎 Automatic Checks</option></select>
+    <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + Unsigned</option><option value="hide">Hide Signed</option><option value="only">Signed Only</option></select>
+    <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top Picks Only</label>
+    <label><input type="checkbox" id="dUSA"> USA Sellers Only</label>
+    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended</label>
+    <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
+    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - ending soonest</option><option value="bin">Buy It Now Only</option></select>
+    <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
+    <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
   </div>
@@ -390,7 +391,7 @@ select option{background:var(--panel);color:var(--ink)}
   <h2>Auto-Track Lists</h2>
   <p class="sub">Instead of adding cards one at a time, each list is a <a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener">Scryfall search</a>. Every card it matches gets priced daily (shown in All prices) and scanned for eBay deals, using the list's drop % and deal % alerts. Use "Preview" to see what a search matches before saving.</p>
   <div class="panel scroll"><table id="rulesTable"></table>
-    <div class="row" style="margin-top:12px"><button class="btn ghost small" id="addRule">+ Add list</button></div></div>
+    <div class="row" style="margin-top:12px"><button class="btn ghost small" id="addRule">+ Add List</button></div></div>
   <div class="panel"><b>Example searches</b>
     <ul class="mut" style="margin:6px 0 0">
       <li><code>is:reserved usd>=50</code>: Reserved List cards worth $50+</li>
@@ -414,19 +415,19 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="sh-head" id="shHead"></div>
   <div class="sh-grid">
     <div class="field"><label for="shTarget">Target price ($)</label><input id="shTarget" inputmode="decimal" placeholder="none"></div>
-    <div class="field"><label for="shDrop">Drop alert (%)</label><input id="shDrop" inputmode="decimal" placeholder="default"></div>
-    <div class="field"><label for="shDeal">eBay deal (%)</label><input id="shDeal" inputmode="decimal" placeholder="default"></div>
-    <div class="field"><label for="shLow">New-low alerts</label><select id="shLow"><option value="">Default</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+    <div class="field"><label for="shDrop">Drop Alert (%)</label><input id="shDrop" inputmode="decimal" placeholder="default"></div>
+    <div class="field"><label for="shDeal">eBay Deal (%)</label><input id="shDeal" inputmode="decimal" placeholder="default"></div>
+    <div class="field"><label for="shLow">New-Low Alerts</label><select id="shLow"><option value="">Default</option><option value="yes">Yes</option><option value="no">No</option></select></div>
     <div class="field" style="grid-column:1/-1"><label for="shNotes">Notes</label><input id="shNotes" placeholder="optional"></div>
   </div>
-  <div class="sh-actions"><button class="btn ghost" id="shChart" type="button">Price chart</button><button class="btn ghost" id="shRemove" type="button">Remove</button><button class="btn" id="shDone" type="button">Done</button></div>
+  <div class="sh-actions"><button class="btn ghost" id="shChart" type="button">Price Chart</button><button class="btn ghost" id="shRemove" type="button">Remove</button><button class="btn" id="shDone" type="button">Done</button></div>
 </div>
 <div class="login" id="login" hidden>
   <form class="login-box" id="loginForm" autocomplete="on">
     <div class="brand">Havoth Price Desk<small>Card prices &amp; deals</small></div>
     <label for="loginPw" style="font-weight:600">Password</label>
     <input id="loginPw" name="password" type="password" autocomplete="current-password" required>
-    <button class="btn" type="submit" id="loginBtn">Sign in</button>
+    <button class="btn" type="submit" id="loginBtn">Sign In</button>
     <p class="status" id="loginMsg" role="alert" style="min-height:18px;margin:0"></p>
   </form>
 </div>
@@ -540,7 +541,7 @@ function openMute(){
     const t = new Date(Date.now() + mins * 6e4); t.setSeconds(0, 0); return t.toISOString(); })();
   const opt = (label, until) => `<button class="btn ghost" type="button" data-mute="${esc(until)}" style="justify-content:flex-start">${label}</button>`;
   const inH = h => new Date(Date.now() + h * 36e5).toISOString();
-  openModal(`<h3>Phone alerts</h3><p class="mut" style="font-size:13px;margin:4px 0 12px">${mutedNow() ? (MUTE.until === "forever" ? "Muted until you turn them back on." : "Muted until " + esc(whenAZ(MUTE.until)) + ".") : "Alerts are on."}
+  openModal(`<h3>Phone Alerts</h3><p class="mut" style="font-size:13px;margin:4px 0 12px">${mutedNow() ? (MUTE.until === "forever" ? "Muted until you turn them back on." : "Muted until " + esc(whenAZ(MUTE.until)) + ".") : "Alerts are on."}
     Quiet hours: ${esc(A.quiet_start || "22:00")}-${esc(A.quiet_end || "07:00")} (${esc((A.quiet_mode || "silent") === "hold" ? "held for a summary" : (A.quiet_mode === "off" ? "off" : "silent"))}) - change them in Settings.</p>
     <div style="display:grid;gap:8px">${mutedNow() ? opt("🔔 Turn alerts back on", "") : ""}${opt("🔕 Mute for 1 hour", inH(1))}${opt("🔕 Mute for 4 hours", inH(4))}${opt("🌙 Mute until morning (" + esc(A.quiet_end || "07:00") + ")", morning)}${opt("🔕 Mute until I turn them back on", "forever")}</div>
     <p class="mut" style="font-size:12px;margin-top:10px">While muted, alerts follow your quiet-hours choice: delivered silently, or held for one summary when the mute ends.</p>
@@ -556,7 +557,7 @@ const HINTS = {
   "Card": "The card and the exact printing (set code in brackets). Tap ⓘ next to a deal's card to see that printing on Scryfall.",
   "Price": "Today's TCGplayer market price for this exact printing in Near Mint (from Scryfall, updated every morning).",
   "Price (NM)": "Today's TCGplayer market price in Near Mint for this exact printing.",
-  "CK buylist": "What Card Kingdom pays in cash for a Near Mint copy right now. A deal priced below this is close to guaranteed profit.",
+  "CK Buylist": "What Card Kingdom pays in cash for a Near Mint copy right now. A deal priced below this is close to guaranteed profit.",
   "7d": "Price change over the last 7 days.", "30d": "Price change over the last 30 days.", "90d": "Price change over the last 90 days.", "1y": "Price change over the last year.",
   "Volatility": "How much the price usually swings day to day. Swingy cards are where dips (and spikes) happen.",
   "Group": "Why this card is tracked: your Watchlist, an Auto-track list, or Need: a set you're completing.",
@@ -565,20 +566,20 @@ const HINTS = {
   "Deal %": "How far under fair value an eBay listing must be to count as a deal. Blank = the default in Settings (20%).",
   "Low": "Phone alert when the price hits a new 1-year low.",
   "Found": "When the scanner or sniper found the listing (Arizona time).",
-  "% off": "How far the listing (price + shipping) is under fair value: (fair value - price + ship) ÷ fair value.",
-  "Price + ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
+  "% Off": "How far the listing (price + shipping) is under fair value: (fair value - price + ship) ÷ fair value.",
+  "Price + Ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
   "Condition": "Pick a different condition if the photos disagree - Fair value and % off recalculate and it's saved. From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
-  "Fair value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
-  "Type / ends": "Buy It Now, Best Offer, or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
+  "Fair Value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
+  "Type / Ends": "Buy It Now, Best Offer, or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
   "Listing": "The eBay listing title - tap to open it on eBay.",
   "Rate": "Tell the scanner how it did: 👍 good deal, 👎 bad deal (pick why), 💬 add a comment. Comments become rules on the next scan.",
-  "Have": "Copies you still have (bought minus sold).", "Paid each": "What you paid per copy.",
-  "Worth each": "What one copy is worth now (market price × your condition value).", "Worth": "Value of the copies you still have.",
-  "Gain": "Worth now minus what you paid, for the copies you still have.", "Gain / loss": "What it's worth now minus what you paid.",
-  "Worth now": "Current value: card prices for singles, the drop's card value for Secret Lairs (≈ when priced from the other finish).",
+  "Have": "Copies you still have (bought minus sold).", "Paid Each": "What you paid per copy.",
+  "Worth Each": "What one copy is worth now (market price × your condition value).", "Worth": "Value of the copies you still have.",
+  "Gain": "Worth now minus what you paid, for the copies you still have.", "Gain / Loss": "What it's worth now minus what you paid.",
+  "Worth Now": "Current value: card prices for singles, the drop's card value for Secret Lairs (≈ when priced from the other finish).",
   "Source": "Where the cards came from (e.g. a collection you bought, Secret Lair).",
-  "Sold for": "Price × quantity + the shipping the buyer paid.",
-  "Fees": "eBay / TCGplayer fees. '~' = estimated from the fee rates in Settings.", "Ship cost": "What you paid to ship it.",
+  "Sold For": "Price × quantity + the shipping the buyer paid.",
+  "Fees": "eBay / TCGplayer fees. '~' = estimated from the fee rates in Settings.", "Ship Cost": "What you paid to ship it.",
   "Paid": "What you originally paid for the copies you sold.", "Profit": "Sold for - fees - your shipping - what you paid.",
   "Ordered": "Order date from your Secret Lair spreadsheet.", "Cost": "What you paid for the line (from your spreadsheet).",
   "Status": "Order status from your spreadsheet, or Received once you mark it.", "Qty": "How many you ordered.",
@@ -630,7 +631,7 @@ document.addEventListener("click", e => {
   const th = e.target.closest("thead th"); if (!th || e.target.closest("input,select,button,a")) return;
   const tbl = th.closest("table"), h = thText(th);
   if (!tbl || !h || tbl.id === "allTable") return;               // All prices has its own sorting
-  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / ends" ? 1 : -1); DSORT.k = h; renderDeals(); return; }
+  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / Ends" ? 1 : -1); DSORT.k = h; renderDeals(); return; }
   const k = tableKey(tbl), cur = TSORT[k];
   const dir = cur && cur.h === h ? -cur.dir : 1;
   TSORT[k] = {h, dir}; sortTable(tbl, th.cellIndex, dir); markSorted(tbl, h, dir);
@@ -769,80 +770,80 @@ const flushSaves = async () => { clearTimeout(AUTOSAVE.t); if (S.dirty.size) awa
 // ---------------------------------------------------------------- settings schema
 const SETTINGS = [
   {sec: "prices", title: "Price alerts", fields: [
-    ["default_drop_pct", "Default drop %", "num", 15, "Alert when a card is this % below its 30-day average (for cards without their own drop %)."],
-    ["max_alert_lines", "Max lines per notification", "num", 20, "The rest are listed in report.md."]]},
+    ["default_drop_pct", "Default Drop %", "num", 15, "Alert when a card is this % below its 30-day average (for cards without their own drop %)."],
+    ["max_alert_lines", "Max Lines per Notification", "num", 20, "The rest are listed in report.md."]]},
   {sec: "preferences", title: "★ Top picks - which deals get their own phone alert", fields: [
-    ["prefer_usa", "Only USA sellers", "bool", false, "Deals that don't match still show on the eBay Deals tab and in the summary alert - they just don't get a ★ or their own alert."],
+    ["prefer_usa", "Only USA Sellers", "bool", false, "Deals that don't match still show on the eBay Deals tab and in the summary alert - they just don't get a ★ or their own alert."],
     ["prefer_min_condition", "Lowest condition", "mincond", "ANY", ""],
-    ["prefer_graded", "Graded or ungraded", "graded", "both", ""],
-    ["prefer_min_grade", "Minimum grade (graded cards)", "num", 0, "1-10. 0 = any."]]},
+    ["prefer_graded", "Graded or Ungraded", "graded", "both", ""],
+    ["prefer_min_grade", "Minimum Grade (Graded Cards)", "num", 0, "1-10. 0 = any."]]},
   {sec: "deals", title: "What the eBay scanner catches", fields: [
-    ["default_deal_pct", "Deal threshold %", "num", 20, "How far under fair value a listing must be (price + shipping)."],
-    ["min_market_value", "Only scan cards worth at least ($)", "num", 20, "Raise this to scan fewer, pricier cards."],
-    ["max_cards_per_scan", "Max cards per scan", "num", 400, "Bigger lists rotate across scans. eBay allows about 5,000 searches a day."],
-    ["include_auctions", "Include auctions", "bool", true, "Only auctions ending soon are alerted."],
-    ["auction_hours", "Auction ending within (hours)", "num", 12, ""],
-    ["usa_only", "Only catch USA sellers", "bool", false, "No = sellers anywhere (they must still ship to the US). Leave on No to see everything and use your preferences instead."],
+    ["default_deal_pct", "Deal Threshold %", "num", 20, "How far under fair value a listing must be (price + shipping)."],
+    ["min_market_value", "Only Scan Cards Worth at Least ($)", "num", 20, "Raise this to scan fewer, pricier cards."],
+    ["max_cards_per_scan", "Max Cards per Scan", "num", 400, "Bigger lists rotate across scans. eBay allows about 5,000 searches a day."],
+    ["include_auctions", "Include Auctions", "bool", true, "Only auctions ending soon are alerted."],
+    ["auction_hours", "Auction Ending Within (Hours)", "num", 12, ""],
+    ["usa_only", "Only Catch USA Sellers", "bool", false, "No = sellers anywhere (they must still ship to the US). Leave on No to see everything and use your preferences instead."],
     ["min_condition", "Lowest condition to catch", "mincond", "ANY", "TCGplayer condition terms. Leave on Any to see everything."],
-    ["graded_cards", "Graded cards to catch", "graded", "both", "Slabs (PSA/BGS/CGC) are compared to the ungraded Near Mint price - an alert means a slab is selling below a raw NM copy."],
-    ["min_grade", "Minimum grade for graded cards", "num", 0, "1-10. 0 = any grade."],
-    ["ebay_game_filter", "Magic cards only (eBay's Game field)", "bool", true, "Keeps Pokémon, Yu-Gi-Oh and other games out."],
-    ["skip_suspicious", "Skip suspiciously cheap listings", "bool", true, "These are almost always proxies, fakes or the wrong card."],
-    ["unknown_condition", "If condition isn't stated, assume", "cond", "MP", "Pick a worse condition to be more conservative."],
-    ["default_shipping", "Assumed shipping when calculated ($)", "num", 5, ""],
+    ["graded_cards", "Graded Cards to Catch", "graded", "both", "Slabs (PSA/BGS/CGC) are compared to the ungraded Near Mint price - an alert means a slab is selling below a raw NM copy."],
+    ["min_grade", "Minimum Grade for Graded Cards", "num", 0, "1-10. 0 = any grade."],
+    ["ebay_game_filter", "Magic Cards Only (eBay's Game Field)", "bool", true, "Keeps Pokémon, Yu-Gi-Oh and other games out."],
+    ["skip_suspicious", "Skip Suspiciously Cheap Listings", "bool", true, "These are almost always proxies, fakes or the wrong card."],
+    ["unknown_condition", "If Condition Isn't Stated, Assume", "cond", "MP", "Pick a worse condition to be more conservative."],
+    ["default_shipping", "Assumed Shipping When Calculated ($)", "num", 5, ""],
     ["suspicious_below_pct", "\"Too cheap?\" below (% of fair value)", "num", 35, "Listings under this % of fair value are almost always fakes or the wrong card. With 'Skip suspiciously cheap listings' on, they're dropped; with it off, they show tagged \"too cheap?\"."],
-    ["min_seller_feedback_pct", "Min seller feedback %", "num", 97, ""],
-    ["min_seller_feedback_score", "Min seller feedback count", "num", 10, ""],
-    ["max_alerts_per_run", "Max deal notifications per scan", "num", 10, "Extra deals are grouped into one summary notification."],
+    ["min_seller_feedback_pct", "Min Seller Feedback %", "num", 97, ""],
+    ["min_seller_feedback_score", "Min Seller Feedback Count", "num", 10, ""],
+    ["max_alerts_per_run", "Max Deal Notifications per Scan", "num", 10, "Extra deals are grouped into one summary notification."],
     ["signed_cards", "Signed / autographed cards", "signed", "any", "Include them, hide them, or only show signed cards (alerts and the every-minute sniper)."],
-    ["check_full_listing", "Read the full listing before alerting", "bool", true, "Catches damage mentioned only in the description (e.g. 'small crease on back'). One extra eBay call per possible deal."],
-    ["reprint_margin", "Look-alike reprint warning (x reprint price)", "num", 1.5, "Flags a listing priced near its cheap look-alike (e.g. a 'Legends' card priced like Chronicles)."]]},
+    ["check_full_listing", "Read the Full Listing Before Alerting", "bool", true, "Catches damage mentioned only in the description (e.g. 'small crease on back'). One extra eBay call per possible deal."],
+    ["reprint_margin", "Look-Alike Reprint Warning (x Reprint Price)", "num", 1.5, "Flags a listing priced near its cheap look-alike (e.g. a 'Legends' card priced like Chronicles)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
-    ["quiet_hours", "Quiet hours on", "bool", true, "Stops alerts from waking you up. The 🔔 button at the top mutes on demand."],
+    ["quiet_hours", "Quiet Hours On", "bool", true, "Stops alerts from waking you up. The 🔔 button at the top mutes on demand."],
     ["quiet_start", "Quiet from (24h, e.g. 22:00)", "list", "22:00", ""],
-    ["quiet_end", "Quiet until (24h, e.g. 07:00)", "list", "07:00", ""],
-    ["quiet_mode", "During quiet hours", "quiet", "silent", "Silent = still delivered, no sound. Hold = nothing overnight, one summary when quiet hours end."],
-    ["urgent_override", "Cards you need + below-buylist deals still ring", "bool", false, ""],
-    ["timezone", "Time zone", "list", "America/Phoenix", "e.g. America/Phoenix, America/Denver, America/New_York"]]},
+    ["quiet_end", "Quiet Until (24h, e.g. 07:00)", "list", "07:00", ""],
+    ["quiet_mode", "During Quiet Hours", "quiet", "silent", "Silent = still delivered, no sound. Hold = nothing overnight, one summary when quiet hours end."],
+    ["urgent_override", "Cards You Need + Below-Buylist Deals Still Ring", "bool", false, ""],
+    ["timezone", "Time Zone", "list", "America/Phoenix", "e.g. America/Phoenix, America/Denver, America/New_York"]]},
   {sec: "ai", title: "AI deal checker (Claude looks at photos + description before alerting)", fields: [
-    ["enabled", "Use the AI checker", "bool", true, "Needs ANTHROPIC_API_KEY in GitHub secrets and Apps Script properties. Without a key this is skipped."],
+    ["enabled", "Use the AI Checker", "bool", true, "Needs ANTHROPIC_API_KEY in GitHub secrets and Apps Script properties. Without a key this is skipped."],
     ["model", "Model", "list", "claude-sonnet-5-5", "claude-sonnet-5-5 is the careful default; claude-haiku-5-5 is cheaper."],
-    ["max_reviews_per_day", "Max reviews per day (each scanner)", "num", 40, "Cost control. Only listings that already look like deals are reviewed."],
-    ["min_fair_value", "Only review deals worth at least ($)", "num", 20, ""],
-    ["review_mode", "Which deals get checked", "aimode", "risky", "Risky = only where a mistake is likely or costly: priced like a look-alike reprint, Unlimited/Alpha/Beta and other sets with look-alikes, cards you commented on, big discounts, or high value. All = every deal."],
-    ["risky_discount_pct", "Always check deals at least this % off", "num", 40, "Too-good-to-be-true discounts."],
-    ["always_review_over", "Always check deals worth over ($)", "num", 100, ""],
-    ["cheap_below", "Use the cheaper model below ($)", "num", 75, "Deals worth less than this use the cheaper model and 2 photos instead of 4."],
-    ["cheap_model", "Cheaper model", "list", "claude-haiku-5-5", ""],
-    ["teach_examples", "Your corrections shown to the AI each check", "num", 8, "Recent condition changes and thumbs-down comments, so it learns your standard. 0 = off. Each one adds a tiny bit of cost."],
-    ["overstate_after", "Flag a seller as overstating after (corrections)", "num", 2, "Their listings are valued one grade lower than they claim."],
-    ["upside_checks_per_day", "Mislabeled-bargain photo checks per day", "num", 10, "New listings sold as Chronicles / Unlimited / Revised that would be a deal as the original printing get an AI photo check. 0 = off."],
-    ["upside_min_value", "Only for originals worth at least ($)", "num", 50, ""]]},
+    ["max_reviews_per_day", "Max Reviews per Day (Each Scanner)", "num", 40, "Cost control. Only listings that already look like deals are reviewed."],
+    ["min_fair_value", "Only Review Deals Worth at Least ($)", "num", 20, ""],
+    ["review_mode", "Which Deals Get Checked", "aimode", "risky", "Risky = only where a mistake is likely or costly: priced like a look-alike reprint, Unlimited/Alpha/Beta and other sets with look-alikes, cards you commented on, big discounts, or high value. All = every deal."],
+    ["risky_discount_pct", "Always Check Deals at Least This % Off", "num", 40, "Too-good-to-be-true discounts."],
+    ["always_review_over", "Always Check Deals Worth Over ($)", "num", 100, ""],
+    ["cheap_below", "Use the Cheaper Model Below ($)", "num", 75, "Deals worth less than this use the cheaper model and 2 photos instead of 4."],
+    ["cheap_model", "Cheaper Model", "list", "claude-haiku-5-5", ""],
+    ["teach_examples", "Your Corrections Shown to the AI Each Check", "num", 8, "Recent condition changes and thumbs-down comments, so it learns your standard. 0 = off. Each one adds a tiny bit of cost."],
+    ["overstate_after", "Flag a Seller as Overstating After (Corrections)", "num", 2, "Their listings are valued one grade lower than they claim."],
+    ["upside_checks_per_day", "Mislabeled-Bargain Photo Checks per Day", "num", 10, "New listings sold as Chronicles / Unlimited / Revised that would be a deal as the original printing get an AI photo check. 0 = off."],
+    ["upside_min_value", "Only for Originals Worth at Least ($)", "num", 50, ""]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
-    ["enabled", "Sniper on", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
-    ["min_listing_price", "Ignore new listings under ($)", "num", 10, ""],
-    ["min_market_value", "Only judge cards worth at least ($)", "num", 20, "Cards you need for a set use the Set completion value instead."],
-    ["max_pages", "Pages of 200 per sweep", "num", 2, "More = fewer misses at busy times, more eBay calls."],
-    ["item_details_per_day", "Item-details checks per day", "num", 300, "When a title names a tracked card but not its edition, read eBay's item details (Set, Condition). 1 eBay call each."],
-    ["max_alerts_per_sweep", "Max alerts per sweep", "num", 5, ""]]},
+    ["enabled", "Sniper On", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
+    ["min_listing_price", "Ignore New Listings Under ($)", "num", 10, ""],
+    ["min_market_value", "Only Judge Cards Worth at Least ($)", "num", 20, "Cards you need for a set use the Set completion value instead."],
+    ["max_pages", "Pages of 200 per Sweep", "num", 2, "More = fewer misses at busy times, more eBay calls."],
+    ["item_details_per_day", "Item-Details Checks per Day", "num", 300, "When a title names a tracked card but not its edition, read eBay's item details (Set, Condition). 1 eBay call each."],
+    ["max_alerts_per_sweep", "Max Alerts per Sweep", "num", 5, ""]]},
   {sec: "sets", title: "Set completion", fields: [
-    ["need_min_value", "Scan needed cards worth at least ($)", "num", 5, "Cards you still need for a set are checked for eBay deals on every scan, ahead of everything else."]]},
+    ["need_min_value", "Scan Needed Cards Worth at Least ($)", "num", 5, "Cards you still need for a set are checked for eBay deals on every scan, ahead of everything else."]]},
   {sec: "fees", title: "Selling fees (for profit on the Collection tab)", fields: [
-    ["ebay_fee_pct", "eBay final value fee %", "num", 13.6, "Charged on item + shipping + sales tax. Check your eBay fee page."],
-    ["ebay_order_fee", "eBay per-order fee ($)", "num", 0.40, ""],
-    ["ebay_order_fee_small", "eBay per-order fee, small orders ($)", "num", 0.30, ""],
-    ["ebay_small_order_max", "Small order = total up to ($)", "num", 10, ""],
-    ["sales_tax_pct", "Average sales tax eBay adds %", "num", 8, "eBay's fee is charged on the tax too."],
-    ["tcgplayer_fee_pct", "TCGplayer fees %", "num", 13.25, ""],
-    ["tcgplayer_order_fee", "TCGplayer per-order fee ($)", "num", 0.30, ""],
-    ["other_fee_pct", "Local / cash / trade fee %", "num", 0, ""]]},
+    ["ebay_fee_pct", "eBay Final Value Fee %", "num", 13.6, "Charged on item + shipping + sales tax. Check your eBay fee page."],
+    ["ebay_order_fee", "eBay Per-Order Fee ($)", "num", 0.40, ""],
+    ["ebay_order_fee_small", "eBay Per-Order Fee, Small Orders ($)", "num", 0.30, ""],
+    ["ebay_small_order_max", "Small Order = Total Up To ($)", "num", 10, ""],
+    ["sales_tax_pct", "Average Sales Tax eBay Adds %", "num", 8, "eBay's fee is charged on the tax too."],
+    ["tcgplayer_fee_pct", "TCGplayer Fees %", "num", 13.25, ""],
+    ["tcgplayer_order_fee", "TCGplayer Per-Order Fee ($)", "num", 0.30, ""],
+    ["other_fee_pct", "Local / Cash / Trade Fee %", "num", 0, ""]]},
   {sec: "conditions", title: "Condition value (fraction of Near Mint price)", fields: [
     ["NM", "Near Mint", "num", 1.00, ""], ["LP", "Lightly Played", "num", 0.85, ""], ["MP", "Moderately Played", "num", 0.70, ""],
     ["HP", "Heavily Played", "num", 0.50, ""], ["DMG", "Damaged", "num", 0.35, ""]]},
   {sec: "filters", title: "Listing filters", fields: [
-    ["exclude_words", "Ignore listings containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
-    ["exclude_games", "Also ignore these card games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
-    ["exclude_languages", "Ignore languages", "list", "", "Foreign copies are priced differently."]]},
+    ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
+    ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
+    ["exclude_languages", "Ignore Languages", "list", "", "Foreign copies are priced differently."]]},
 ];
 function parseINI(text){
   const out = {}; let sec = null, lastKey = null;
@@ -886,11 +887,11 @@ function renderSettings_(){
       let input;
       if (type === "bool") input = `<select id="${id}"><option value="yes">Yes</option><option value="no">No</option></select>`;
       else if (type === "cond") input = `<select id="${id}">${["NM","LP","MP","HP","DMG"].map(c => `<option>${c}</option>`).join("")}</select>`;
-      else if (type === "mincond") input = `<select id="${id}"><option value="ANY">Any condition</option><option value="HP">Heavily Played or better</option><option value="MP">Moderately Played or better</option><option value="LP">Lightly Played or better</option><option value="NM">Near Mint only</option></select>`;
-      else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded only</option><option value="graded">Graded only</option><option value="both">Both</option></select>`;
-      else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky deals only (saves money)</option><option value="all">Every deal</option></select>`;
-      else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver silently (no sound)</option><option value="hold">Hold for a morning summary</option><option value="off">Ring as normal</option></select>`;
-      else if (type === "signed") input = `<select id="${id}"><option value="any">Include signed cards</option><option value="hide">Hide signed cards</option><option value="only">Only signed cards</option></select>`;
+      else if (type === "mincond") input = `<select id="${id}"><option value="ANY">Any Condition</option><option value="HP">Heavily Played or Better</option><option value="MP">Moderately Played or Better</option><option value="LP">Lightly Played or Better</option><option value="NM">Near Mint Only</option></select>`;
+      else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option><option value="both">Both</option></select>`;
+      else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky Deals Only (Saves Money)</option><option value="all">Every Deal</option></select>`;
+      else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
+      else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
       else input = `<input id="${id}" type="number" step="any">`;
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
@@ -920,7 +921,7 @@ function addWatch(row){
 function renderMine_(){
   const t = $("#mineTable");
   if (!S.watch.length){ t.innerHTML = `<tr><td class="empty">${S.loadedOnce ? "No cards yet. Add one above, or star cards in All prices." : "Loading your cards…"}</td></tr>`; return; }
-  t.innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="r nosort">Price</th><th class="r nosort hide-sm">CK buylist</th><th class="r nosort">30d</th><th class="r nosort hide-sm">1y</th>
+  t.innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="r nosort">Price</th><th class="r nosort hide-sm">CK Buylist</th><th class="r nosort">30d</th><th class="r nosort hide-sm">1y</th>
     <th class="r nosort">Target $</th><th class="r nosort">Drop %</th><th class="r nosort">Deal %</th><th class="nosort">Low</th><th class="nosort hide-sm">Notes</th><th class="nosort"></th></tr></thead><tbody></tbody>`;
   const tb = t.querySelector("tbody");
   S.watch.forEach((w, i) => {
@@ -990,7 +991,7 @@ async function pickName(name){
 
 // ---------------------------------------------------------------- All tracked
 const ALL_COLS = [
-  ["", null], ["Card", "n"], ["Group", "g"], ["Price", "p"], ["CK buylist", "ck"], ["7d", "c7"], ["30d", "c30"], ["90d", "c90"], ["1y", "c1y"], ["Volatility", "v1y"]];
+  ["", null], ["Card", "n"], ["Group", "g"], ["Price", "p"], ["CK Buylist", "ck"], ["7d", "c7"], ["30d", "c30"], ["90d", "c90"], ["1y", "c1y"], ["Volatility", "v1y"]];
 let allSort = {k: "p", dir: -1}, allLimit = 150;
 function filteredAll(){
   const q = $("#allSearch").value.trim().toLowerCase(), g = $("#allGroup").value, pre = $("#allPreset").value;
@@ -1127,9 +1128,24 @@ const endsHTML = d => { const e = endAt(d), t = endsText(d); if (!t) return "";
   return `<span data-end="${esc(d.url)}" class="${t === "ended" ? "mut" : soon ? "down" : ""}" style="${soon ? "font-weight:600" : ""}"${e ? ` title="Ends ${esc(whenAZ(new Date(e).toISOString()))}"` : ""}>${esc(t)}</span>`; };
 setInterval(() => { if (!document.querySelector("#tab-deals.on")) return;
   document.querySelectorAll("[data-end]").forEach(el => { const d = S.deals.find(x => x.url === el.dataset.end); if (d) el.textContent = endsText(d); }); }, 60000);
+// language: the listing's item details (Language) when we read the full listing, otherwise words in the title
+const LANG_WORDS = [["Japanese", /\b(japanese|japan|jpn|jp)\b/i], ["German", /\b(german|deutsch|ger)\b/i], ["French", /\b(french|fran[cç]ais|fra)\b/i],
+  ["Italian", /\b(italian|italiano|ita)\b/i], ["Spanish", /\b(spanish|espa[nñ]ol|spa)\b/i], ["Portuguese", /\b(portuguese|portugu[eê]s|por)\b/i],
+  ["Korean", /\b(korean|kor)\b/i], ["Chinese", /\b(chinese|chn|simplified|traditional)\b/i], ["Russian", /\b(russian|rus)\b/i],
+  ["Foreign (FBB)", /\b(fbb|foreign black border)\b/i], ["Foreign (FWB)", /\b(fwb|foreign white border)\b/i]];
+function langOf(d){
+  if (d._lang !== undefined) return d._lang;
+  const l = String(d.language || "").trim();
+  if (l) return d._lang = /^english$/i.test(l) ? "" : l;
+  const hit = LANG_WORDS.find(([, re]) => re.test(d.title || ""));
+  return d._lang = hit ? hit[0] : "";
+}
 const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
   if (isEnded(d) && !($("#dEnded") && $("#dEnded").checked)) return false;
+  const lg = $("#dLang") ? $("#dLang").value : "";
+  if (lg === "en" && langOf(d)) return false;
+  if (lg === "foreign" && !langOf(d)) return false;
   const ty = $("#dType") ? $("#dType").value : "";
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
   if (ty === "bin" && isAuction(d)) return false;
@@ -1223,8 +1239,8 @@ function openWhy(d){
     <p style="margin:12px 0 4px"><b>Caught by:</b> ${BY[k.by][0]} ${esc(BY[k.by][1])}</p>
     <p style="margin:4px 0 12px">${esc(d.hidden ? (d.hidden_detail || d.hidden) : (d.ai_reason || ""))}</p>
     <label for="whyCat">Category</label><select id="whyCat">${RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("")}</select>
-    <div class="acts"><button class="btn ghost" id="whyShow" type="button" style="margin-right:auto" title="Not actually a problem - show it with the active deals again">Show it again</button>
-      <button class="btn ghost" id="whyCancel" type="button">Close</button><button class="btn" id="whySave" type="button">Save category</button></div>`);
+    <div class="acts"><button class="btn ghost" id="whyShow" type="button" style="margin-right:auto" title="Not actually a problem - show it with the active deals again">Show It Again</button>
+      <button class="btn ghost" id="whyCancel" type="button">Close</button><button class="btn" id="whySave" type="button">Save Category</button></div>`);
   $("#whyCat").value = k.cat;
   $("#whyCancel").addEventListener("click", closeModal);
   $("#whySave").addEventListener("click", () => { const c = $("#whyCat").value; closeModal(); if (c !== k.cat) saveFB(d, "recat", c, ""); });
@@ -1241,6 +1257,7 @@ function qualityHTML(d){
   let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
   const pn = +d.price_now, p0 = +d.price || +d.total;
   if (!isEnded(d) && pn && p0 && Math.abs(pn - p0) >= 0.5 && !isAuction(d)) h += `<span class="flag ${pn > p0 ? "sus" : "buy"}" title="The seller changed the price since we found it">price now ${money(pn)}</span> `;
+  if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
   h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
@@ -1280,13 +1297,13 @@ function openBought(d){
   if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c]));
   const c = S._cardByLabel.get(d.card) || {};
   const cond = (d.condition || "").replace("?", "").toUpperCase();
-  openModal(`<h3>🛒 I bought this</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
+  openModal(`<h3>🛒 I Bought This</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
     <div class="grid">
       <div><label for="bPaid">Total paid each ($, incl. shipping & tax)</label><input id="bPaid" inputmode="decimal" value="${esc((+d.total || 0).toFixed(2))}"></div>
       <div><label for="bQty">Quantity</label><input id="bQty" type="number" min="1" value="1"></div>
       <div><label for="bCond">Condition</label><select id="bCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
-      <div><label for="bDate">Bought on</label><input id="bDate" type="date" value="${todayAZ()}"></div>
-      <div class="full"><label for="bNote">Notes (optional)</label><input id="bNote" placeholder="order #, seller, tracking…"></div>
+      <div><label for="bDate">Bought On</label><input id="bDate" type="date" value="${todayAZ()}"></div>
+      <div class="full"><label for="bNote">Notes (Optional)</label><input id="bNote" placeholder="order #, seller, tracking…"></div>
     </div>
     <p class="mut" style="font-size:12px;margin-top:10px">It goes into Collection as <b>Ordered</b> (on the way). Tap <b>Mark received</b> there when it arrives. It also counts as a 👍 for the deal checker${d.need ? " and stops NEED alerts for this card" : ""}.</p>
     <div class="acts"><button class="btn ghost" id="bCancel" type="button">Cancel</button><button class="btn" id="bOk" type="button">Add to Collection</button></div>`);
@@ -1321,7 +1338,7 @@ async function saveFB(d, verdict, reason_, note){ const reason = reason_;
 function openFB(d, kind){
   const bad = kind === "bad", head = bad ? "What was wrong?" : kind === "good" ? "Good deal 👍" : "Comment on this card";
   openModal(`<h3>${head}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · ${esc((d.title || "").slice(0, 80))}</div>
-    <div style="margin-top:12px"><label for="fbNote">Tell it what to change (optional)</label>
+    <div style="margin-top:12px"><label for="fbNote">Tell It What to Change (Optional)</label>
       <textarea id="fbNote" rows="3" style="width:100%" placeholder="e.g. skip signed or altered cards · creased cards aren't worth it to me · Alpha needs to be LP or better · never over $400 for this one · stop alerting me on this card"></textarea>
       <div class="mut" style="font-size:12px;margin-top:4px">On the next scan (within 3 hours, or tap Scan eBay now) Claude turns this into a rule. It decides from your wording whether it's for every card, a whole edition, or just ${esc(d.card)}.</div></div>
     ${bad ? `<div style="margin-top:12px"><label>Then pick the main problem:</label><div class="row" style="gap:8px;margin-top:6px">${fbReasons().map(([k, l]) => `<button class="btn ghost" data-r="${k}" type="button">${esc(l)}</button>`).join("")}</div></div>` : ""}
@@ -1342,8 +1359,8 @@ function wireFB(box, rows){
 const DSORT = {k: "", dir: -1};
 const COND_ORDER = {NM: 5, LP: 4, MP: 3, HP: 2, DMG: 1};
 const DEAL_KEYS = {"Found": d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0, "Card": d => (d.card || "").toLowerCase(),
-  "% off": d => +d.discount_pct || 0, "Price + ship": d => +d.total || 0, "Condition": d => COND_ORDER[(d.condition || "").replace("?", "").toUpperCase()] ?? (/psa|bgs|cgc|sgc|grade/i.test(d.condition) ? 6 : 0),
-  "Fair value": d => +d.fair || 0, "Type / ends": d => { const e = endAt(d); return e == null ? 9e15 : e < Date.now() ? 9e15 + 1 : e; }, "Listing": d => (d.title || "").toLowerCase()};
+  "% Off": d => +d.discount_pct || 0, "Price + Ship": d => +d.total || 0, "Condition": d => COND_ORDER[(d.condition || "").replace("?", "").toUpperCase()] ?? (/psa|bgs|cgc|sgc|grade/i.test(d.condition) ? 6 : 0),
+  "Fair Value": d => +d.fair || 0, "Type / Ends": d => { const e = endAt(d); return e == null ? 9e15 : e < Date.now() ? 9e15 + 1 : e; }, "Listing": d => (d.title || "").toLowerCase()};
 function dealCompare(a, b){
   const f = DEAL_KEYS[DSORT.k]; if (!f) return 0;
   const x = f(a), y = f(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * DSORT.dir;
@@ -1361,7 +1378,7 @@ function renderDeals_(){
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
-  t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type / ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
+  t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}. You've marked this seller's condition down before.">⬇ seller overstates</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condCell(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
@@ -1370,7 +1387,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded"];
+const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded", "#dLang"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 // which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
 const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
@@ -1378,7 +1395,7 @@ function showActiveFilters(){
   const box = $("#dActive"); if (!box) return;
   const on = DEAL_FILTERS.filter(s => { const el = $(s); if (!el || el.hidden) return false; return el.type === "checkbox" ? el.checked : String(el.value) !== (DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : "")); })
     .map(s => { const el = $(s); return el.type === "checkbox" ? (el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : `last ${el.value} days`; });
-  box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show all</a>` : "";
+  box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show All</a>` : "";
   if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
     store.set("pd_dealfilters", "{}"); renderDeals(); });
@@ -1391,13 +1408,13 @@ DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
 // ---------------------------------------------------------------- Rules
 function renderRules_(){
   const t = $("#rulesTable");
-  t.innerHTML = `<thead><tr><th class="nosort">Name</th><th class="nosort">Scryfall search</th><th class="nosort">Finish</th><th class="r nosort">Drop %</th><th class="r nosort">Deal %</th><th class="nosort">Low alerts</th><th class="r nosort">Cards now</th><th class="nosort"></th></tr></thead><tbody></tbody>`;
+  t.innerHTML = `<thead><tr><th class="nosort">Name</th><th class="nosort">Scryfall Search</th><th class="nosort">Finish</th><th class="r nosort">Drop %</th><th class="r nosort">Deal %</th><th class="nosort">Low Alerts</th><th class="r nosort">Cards Now</th><th class="nosort"></th></tr></thead><tbody></tbody>`;
   const tb = t.querySelector("tbody");
   S.rules.forEach((r, i) => {
     const n = S.cards.filter(c => c.g === r.label).length;
     const tr = document.createElement("tr");
     tr.innerHTML = `<td><input data-f="label" value="${esc(r.label)}" style="width:180px"></td><td><input data-f="query" value="${esc(r.query)}" style="width:100%;min-width:260px"></td>
-      <td><select data-f="finish"><option>nonfoil</option><option>foil</option><option>etched</option></select></td>
+      <td><select data-f="finish"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></td>
       <td class="r"><input class="num" data-f="drop_pct" value="${esc(r.drop_pct)}"></td><td class="r"><input class="num" data-f="deal_pct" value="${esc(r.deal_pct)}"></td>
       <td><select data-f="alert_low"><option value="no">No</option><option value="yes">Yes</option></select></td>
       <td class="r mut">${n || "–"}</td>
@@ -1429,7 +1446,7 @@ function renderReasonEditor(){
       <td><input data-ri="${i}" data-f="color" type="color" value="${esc(/^#[0-9a-f]{6}$/i.test(r.color || "") ? r.color : "#6f6a5f")}" style="width:44px;height:32px;padding:0"></td>
       <td><input data-ri="${i}" data-f="keywords" value="${esc(r.keywords || "")}" style="min-width:260px;width:100%"></td>
       <td style="white-space:nowrap"><button class="btn ghost small" data-rmove="${i}" title="Move up">↑</button>${["other"].includes(r.key) ? "" : `<button class="btn ghost small" data-rdel="${i}" title="Remove">✕</button>`}</td></tr>`).join("") +
-    `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="reasonAdd">+ Add category</button><button class="btn small" id="reasonSave">Save categories</button><span class="status" id="reasonMsg"></span></div>`;
+    `</tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="reasonAdd">+ Add Category</button><button class="btn small" id="reasonSave">Save Categories</button><span class="status" id="reasonMsg"></span></div>`;
   box.querySelectorAll("[data-ri]").forEach(el => el.addEventListener("input", () => { RS.list[+el.dataset.ri][el.dataset.f] = el.value.trim(); $("#reasonMsg").textContent = "Unsaved changes"; }));
   box.querySelectorAll("[data-rdel]").forEach(b => b.addEventListener("click", () => { RS.list.splice(+b.dataset.rdel, 1); renderReasonEditor(); $("#reasonMsg").textContent = "Unsaved changes"; }));
   box.querySelectorAll("[data-rmove]").forEach(b => b.addEventListener("click", () => { const i = +b.dataset.rmove; if (i > 0){ [RS.list[i - 1], RS.list[i]] = [RS.list[i], RS.list[i - 1]]; renderReasonEditor(); $("#reasonMsg").textContent = "Unsaved changes"; } }));
@@ -1443,7 +1460,7 @@ function renderReasonEditor(){
 }
 function buildWhyFilter(){
   const el = $("#dWhy"); if (!el) return; const cur = el.value;
-  el.innerHTML = '<option value="">All reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
+  el.innerHTML = '<option value="">All Reasons</option>' + RS.list.map(r => `<option value="${esc(r.key)}">${esc(r.icon)} ${esc(r.label)}</option>`).join("");
   el.value = RS.list.some(r => r.key === cur) ? cur : "";
 }
 // ---------------------------------------------------------------- Found elsewhere (collection/elsewhere.csv)
@@ -1484,7 +1501,7 @@ function ewBoard(){
   return `<div class="stats aud-stats" style="margin-top:8px">${tile(`${pctOf(caught.length, rows.length)} <span class="mut" style="font-size:13px">${caught.length}/${rows.length}</span>`, "We caught", "Deals you logged that we also alerted on (last 30 days)")}
     ${tile(pctOf(first, lags.length), "Caught first or same time", "Of the ones we caught, how often we were as fast or faster")}
     ${tile(later.length ? Math.round(later.reduce((a, b) => a + b, 0) / later.length) + " min" : "–", "Average lag when later", "When they beat us, by how much")}</div>
-    ${Object.keys(reasons).length ? `<div style="margin-top:8px;font-size:13px"><b>Why we missed or hid them:</b> ${Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} <b>${n}</b>`).join(" · ")}</div>` : ""}`;
+    ${Object.keys(reasons).length ? `<div style="margin-top:8px;font-size:13px"><b>Why We Missed or Hid Them:</b> ${Object.entries(reasons).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${esc(k)} <b>${n}</b>`).join(" · ")}</div>` : ""}`;
 }
 function sniperCardHTML(){
   const st = (S.sniper || {}).stats; if (!st) return `<p class="mut" style="margin:6px 0 0">Fills in automatically once the latest Code.gs is running in Apps Script.</p>`;
@@ -1500,15 +1517,15 @@ function sniperCardHTML(){
     ${tile(lags.length ? pctOf(fast, lags.length) : "–", "Found within 5 min", "Share of sniper finds caught within 5 minutes of listing")}
     ${tile(Number(sum("seen")).toLocaleString(), "New listings checked (7 days)", "Brand-new Magic listings the sniper looked at")}
     ${tile(`${sum("spec_found")} <span class="mut" style="font-size:13px">of ${sum("spec_tried")}</span>`, "Deals found via item details", "Titles that didn't name the edition - eBay's item details (Set) showed it was a card you track at a deal price")}</div>
-    ${totalWhy ? `<div style="margin-top:8px;font-size:13px"><b>Why listings of cards you track were passed over (7 days):</b><div class="ew-bars">${Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) =>
+    ${totalWhy ? `<div style="margin-top:8px;font-size:13px"><b>Why Listings of Cards You Track Were Passed Over (7 Days):</b><div class="ew-bars">${Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) =>
       `<div><span>${esc(k)}</span><span class="bar"><i style="width:${Math.max(2, Math.round(n / totalWhy * 100))}%"></i></span><b>${n.toLocaleString()}</b></div>`).join("")}</div>
-      <div style="margin-top:8px">💎 <b>Mislabeled bargains (7 days):</b> ${upF} found of ${upT} photo-checked <span class="mut" style="font-size:12px">- listings sold as Chronicles / Unlimited / Revised that would be a deal as the original; the AI checks the photos and you're alerted only if they show the original.</span></div>
+      <div style="margin-top:8px">💎 <b>Mislabeled Bargains (7 Days):</b> ${upF} found of ${upT} photo-checked <span class="mut" style="font-size:12px">- listings sold as Chronicles / Unlimited / Revised that would be a deal as the original; the AI checks the photos and you're alerted only if they show the original.</span></div>
       <div class="mut" style="font-size:12px;margin-top:4px">Nothing to review - this shows which filters do the most work. If "Title doesn't say the edition" is big, item-details checks are catching what keyword-only alerts miss.</div></div>` : ""}`;
 }
 function renderEW(){
   const box = $("#dElse"); if (!box || READONLY) return;
   const recent = EW.rows.slice().sort((a, b) => (b.seen_at || "").localeCompare(a.seen_at || "")).slice(0, 25);
-  box.innerHTML = `<b>Sniper scorecard</b> <span class="mut" style="font-size:13px">- automatic</span>${sniperCardHTML()}
+  box.innerHTML = `<b>Sniper Scorecard</b> <span class="mut" style="font-size:13px">- automatic</span>${sniperCardHTML()}
     <details id="ewDetails" style="margin-top:10px"${EW.open ? " open" : ""}><summary class="mut" style="font-size:13px">Check a specific listing (optional)${EW.rows.length ? ` · ${EW.rows.length} checked` : ""}</summary>
     <div class="ew-form">
       <textarea id="ewLinks" rows="2" placeholder="Paste an eBay link to see if we caught it - and if not, why"></textarea>
@@ -1523,7 +1540,7 @@ function renderEW(){
       <div id="ewResult"></div>
     </div>
     <div>${ewBoard()}</div>
-    ${recent.length ? `<table style="margin-top:10px"><thead><tr><th class="nosort">Seen</th><th class="nosort">Card</th><th class="nosort">Result</th><th class="nosort hide-sm">Why / details</th><th class="nosort"></th></tr></thead><tbody>${recent.map(r => { const t = ewTag(r);
+    ${recent.length ? `<table style="margin-top:10px"><thead><tr><th class="nosort">Seen</th><th class="nosort">Card</th><th class="nosort">Result</th><th class="nosort hide-sm">Why / Details</th><th class="nosort"></th></tr></thead><tbody>${recent.map(r => { const t = ewTag(r);
       return `<tr><td class="mut" style="white-space:nowrap">${esc(whenAZ(new Date(ewTime(r.seen_at) || Date.now()).toISOString()))}</td><td><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.card || (r.title || "").slice(0, 50) || r.item_id)}</a>${r.their_price ? `<div class="mut" style="font-size:12px">${esc(r.source)}: ${money(r.their_price)}</div>` : ""}</td>
         <td><span class="flag ${t.cls}">${t.icon} ${esc(t.label)}</span></td><td class="hide-sm mut" style="font-size:12px">${esc(r.reason || r.note || (r.our_source ? "found by the " + r.our_source : ""))}</td>
         <td><button class="btn ghost small" data-ewdel="${esc(r.item_id)}" title="Remove">✕</button></td></tr>`; }).join("")}</tbody></table>` : ""}
@@ -1581,11 +1598,11 @@ function renderServerCode(){
     : behind ? `<b class="stale">⚠ Update available</b> - running <b>${esc(st.running)}</b>, latest is <b>${esc(st.latest)}</b>.`
     : `✓ Up to date (version ${esc(st.running)}).`;
   box.innerHTML = `<p style="margin:6px 0">${status}</p>
-    <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st ? "" : "disabled"}>Update now</button>
-      <button class="btn ghost" id="srvCopy">Copy latest Code.gs</button></div>
+    <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st ? "" : "disabled"}>Update Now</button>
+      <button class="btn ghost" id="srvCopy">Copy Latest Code.gs</button></div>
     <p class="mut" style="font-size:12px;margin:6px 0 0"><b>Update now</b> replaces the code in Apps Script and redeploys it at the same address - it needs the one-time setup below.
       <b>Copy</b> works without setup: in Apps Script select all, paste, save, then Deploy → Manage deployments → ✏️ → New version → Deploy.</p>
-    <details style="margin-top:8px"><summary><b>One-time setup for one-tap updates</b> (about 10 minutes)</summary>
+    <details style="margin-top:8px"><summary><b>One-Time Setup for One-Tap Updates</b> (about 10 minutes)</summary>
       <ol style="font-size:13px">
         <li>Open <a href="https://script.google.com/home/usersettings" target="_blank" rel="noopener">script.google.com/home/usersettings</a> and turn <b>Google Apps Script API</b> on.</li>
         <li>Open <a href="https://console.cloud.google.com/projectcreate" target="_blank" rel="noopener">Google Cloud → New project</a>. Use the <b>same Google account</b> that owns your Apps Script. Name it "Havoth Desk" and create it.</li>
@@ -1596,7 +1613,7 @@ function renderServerCode(){
         <li>Copy the <b>project number</b> (Cloud home page → Project info).</li>
         <li>In Apps Script: <b>Project Settings</b> (gear) → tick <b>Show "appsscript.json" manifest file in editor</b>. Under <b>Google Cloud Platform (GCP) Project</b> → <b>Change project</b> → paste the number → <b>Set project</b>.</li>
         <li>Open <b>appsscript.json</b> in the editor and add this line after the first <code>{</code> (keep everything else):
-          <pre class="srv-pre">${esc(SCOPES_JSON)},</pre><button class="btn ghost small" id="srvCopyScopes" type="button">Copy this</button></li>
+          <pre class="srv-pre">${esc(SCOPES_JSON)},</pre><button class="btn ghost small" id="srvCopyScopes" type="button">Copy This</button></li>
         <li>Save. Pick <b>authorizeUpdates</b> in the function menu → <b>Run</b> → approve the permissions. (Gmail: "Google hasn't verified this app" → Advanced → Go to… - it's your own script.) The log should say <i>Ready</i>.</li>
         <li>Come back here and tap <b>Update now</b>.</li>
       </ol></details>`;
@@ -1607,7 +1624,7 @@ function renderServerCode(){
 async function copyText(text, msg){
   try{ await navigator.clipboard.writeText(text); toast(msg, 6000); }
   catch(e){   // some browsers block the clipboard after a server call - show it to copy by hand
-    openModal(`<h3>Copy this</h3><p class="mut" style="font-size:13px">Tap in the box, select all, and copy.</p><textarea id="cpyBox" style="width:100%;height:240px;font:12px monospace">${esc(text)}</textarea>
+    openModal(`<h3>Copy This</h3><p class="mut" style="font-size:13px">Tap in the box, select all, and copy.</p><textarea id="cpyBox" style="width:100%;height:240px;font:12px monospace">${esc(text)}</textarea>
       <div class="acts"><button class="btn" id="cpyClose" type="button">Done</button></div>`);
     $("#cpyBox").select(); $("#cpyClose").addEventListener("click", closeModal);
   }
@@ -1617,7 +1634,7 @@ async function copyLatestCode(){
   try{ const src = await server("latestCode"); if (!src) throw new Error("No apps-script/Code.gs in the repo yet");
     await copyText(src, "Latest Code.gs copied. In Apps Script: select all, paste, save, then Deploy → Manage deployments → ✏️ → New version → Deploy."); }
   catch(e){ toast(/Unknown request|UPDATE/i.test(e.message) ? "Your Apps Script is too old for this button - paste the Code.gs file Claude sent one more time." : "Couldn't get it: " + e.message, 8000); }
-  b.disabled = false; b.textContent = "Copy latest Code.gs";
+  b.disabled = false; b.textContent = "Copy Latest Code.gs";
 }
 async function updateServerNow(){
   const st = SRV.st || {};
@@ -1631,8 +1648,8 @@ async function updateServerNow(){
       await new Promise(res => setTimeout(res, 3000));
       try{ const st = await server("codeStatus"); if (st.running === r.version){ SRV.st = st; renderServerCode(); return toast(`✓ Server updated to ${r.version}.`, 5000); } }catch(e){}
     }
-    toast("Saved, but Google is still switching over. Refresh in a minute - it should say Up to date (no need to tap Update again).", 10000); b.disabled = false; b.textContent = "Update now"; }
-  catch(e){ b.disabled = false; b.textContent = "Update now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
+    toast("Saved, but Google is still switching over. Refresh in a minute - it should say Up to date (no need to tap Update again).", 10000); b.disabled = false; b.textContent = "Update Now"; }
+  catch(e){ b.disabled = false; b.textContent = "Update Now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
 }
 // ---------------------------------------------------------------- AI audit (collection/ai_audit.csv)
 // Go through what the AI photo checker decided, mark what it got right or wrong. Every audit:
@@ -1693,7 +1710,7 @@ function audBoard(){
   const {all: a, random: rs, hand, models} = audStats();
   const tile = (big, label, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${label}</div><div class="v">${big}</div></div>`;
   if (!a.n) return `<p class="mut" style="margin:0">No audits yet. Each one you do below shows here as the AI's accuracy, and it's what the AI learns from.</p>`;
-  const honest = `<div class="honest"><b>Honest score:</b> ${rs.n ? `AI fully right on <b>${pctOf(rs.all, rs.n)}</b> of ${rs.n} randomly picked listings` : "audit some listings in “Random sample” to get one"}${rs.n && rs.n < 30 ? ` <span class="mut">- ${30 - rs.n} more for a reliable number</span>` : ""}.
+  const honest = `<div class="honest"><b>Honest Score:</b> ${rs.n ? `AI fully right on <b>${pctOf(rs.all, rs.n)}</b> of ${rs.n} randomly picked listings` : "audit some listings in “Random sample” to get one"}${rs.n && rs.n < 30 ? ` <span class="mut">- ${30 - rs.n} more for a reliable number</span>` : ""}.
     ${hand.n ? ` <span class="mut">Verified in hand: ${hand.n} (edition right ${pctOf(hand.eOk, hand.e)}, condition exact ${pctOf(hand.cOk, hand.c)}).</span>` : ""}
     <div class="mut" style="font-size:12px">This is the number to quote. The tiles below include every audit, and targeted ones lean toward the AI's mistakes.</div></div>`;
   return honest + `<div class="stats aud-stats">${tile(pctOf(a.all, a.n), `Fully right <span class="mut">(${a.all}/${a.n})</span>`, "Verdict, edition and condition all matched your call")}
@@ -1703,7 +1720,7 @@ function audBoard(){
     ${tile(String(a.falseReject), "Good deals it rejected", "AI said reject, you said it was fine - deals you'd have missed")}
     ${tile(String(a.badPassed), "Bad listings it passed", "AI said OK / right edition but it was wrong - the dangerous mistakes")}</div>
     ${a.c >= 3 && Math.abs(a.harsh) >= .3 ? `<p class="mut" style="font-size:12px;margin:6px 0 0">On condition you grade ${a.harsh < 0 ? "harsher" : "easier"} than the AI by about ${Math.abs(a.harsh).toFixed(1)} grade on average - it's told this on every check.</p>` : ""}
-    ${models.length > 1 ? `<table style="margin-top:8px"><thead><tr><th class="nosort">Model</th><th class="nosort r">Audited</th><th class="nosort r">Fully right</th><th class="nosort r">Edition</th><th class="nosort r">Condition</th></tr></thead><tbody>${models.map(([k, s]) => `<tr><td>${esc(k)}</td><td class="r">${s.n}</td><td class="r">${pctOf(s.all, s.n)}</td><td class="r">${pctOf(s.eOk, s.e)}</td><td class="r">${pctOf(s.cOk, s.c)}</td></tr>`).join("")}</tbody></table>` : ""}`;
+    ${models.length > 1 ? `<table style="margin-top:8px"><thead><tr><th class="nosort">Model</th><th class="nosort r">Audited</th><th class="nosort r">Fully Right</th><th class="nosort r">Edition</th><th class="nosort r">Condition</th></tr></thead><tbody>${models.map(([k, s]) => `<tr><td>${esc(k)}</td><td class="r">${s.n}</td><td class="r">${pctOf(s.all, s.n)}</td><td class="r">${pctOf(s.eOk, s.e)}</td><td class="r">${pctOf(s.cOk, s.c)}</td></tr>`).join("")}</tbody></table>` : ""}`;
 }
 // ---- one listing at a time
 function renderAudit(){
@@ -1712,12 +1729,12 @@ function renderAudit(){
   const q = audQueue(); AUD.i = Math.max(0, Math.min(AUD.i, q.length - 1));
   const models = [...new Set(S.deals.map(d => d.ai_model).filter(Boolean))];
   const d = q[AUD.i];
-  box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How accurate is the AI checker?</b>
-      <select id="audRange"><option value="all">All time</option><option value="30">Last 30 days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
+  box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How Accurate Is the AI Checker?</b>
+      <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
     <div class="panel"><div class="row">
-      <select id="audFilter"><option value="random">Random sample (honest score)</option><option value="todo">Newest AI-checked, not audited</option><option value="reject">AI rejected (not audited)</option><option value="warn">AI said "check it" (not audited)</option>
-        <option value="nocheck">Not checked by AI (label for training)</option><option value="done">Already audited</option><option value="all">All AI-checked</option></select>
-      ${models.length ? `<select id="audModel"><option value="">All models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
+      <select id="audFilter"><option value="random">Random Sample (Honest Score)</option><option value="todo">Newest AI-Checked, Not Audited</option><option value="reject">AI Rejected (Not Audited)</option><option value="warn">AI Said "Check It" (Not Audited)</option>
+        <option value="nocheck">Not Checked by AI (Label for Training)</option><option value="done">Already Audited</option><option value="all">All AI-Checked</option></select>
+      ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
       <span class="mut hide-sm" style="font-size:12px;margin-left:auto">Keys: Y = AI was right · ← → = previous/next</span></div></div>
     <div id="audItem">${d ? audItemHTML(d) : `<p class="empty">${AUD.filter === "todo" ? "All caught up - every AI-checked deal is audited. New ones appear after each scan." : "Nothing here."}</p>`}</div>`;
@@ -1741,20 +1758,20 @@ function audItemHTML(d){
       <div><div class="mut" style="font-size:12px;margin-bottom:4px">Listing photos ${imgs.length ? "(tap to open the listing)" : ""}</div>
         ${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
           : `<p class="mut">No photos saved for this one (sniper finds keep the link only). <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
-      <div><div class="mut" style="font-size:12px;margin-bottom:4px">What it should be</div>
+      <div><div class="mut" style="font-size:12px;margin-bottom:4px">What It Should Be</div>
         ${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt=""></a>` : ""}
         <div style="font-size:12px" class="mut">${esc(c.sn || "")}</div></div>
     </div>
     <div style="margin-top:10px"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · listed <b>${esc(String(d._c0 || d.condition).replace("?", " (not stated)"))}</b> · ${esc(dealWhen(d))}</div>
     <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div>
-    <div class="aud-ai">${d.ai_verdict ? `<b>AI said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>` : `<span class="mut">The AI didn't check this one - your answers still make training data.</span>`}</div>
+    <div class="aud-ai">${d.ai_verdict ? `<b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>` : `<span class="mut">The AI didn't check this one - your answers still make training data.</span>`}</div>
     ${d.ai_verdict ? `<button class="btn" id="audYes" type="button" style="margin-top:10px">✓ AI got it right <span class="mut hide-sm">(Y)</span></button><div class="mut" style="font-size:12px;margin:8px 0 2px">…or fix what it got wrong:</div>` : ""}
-    <div class="aud-q"><span>Edition / card</span>${seg("edition", [["matches", "Right edition"], ["wrong", "Wrong edition or card"], ["unclear", "Can't tell"]])}</div>
+    <div class="aud-q"><span>Edition / Card</span>${seg("edition", [["matches", "Right edition"], ["wrong", "Wrong edition or card"], ["unclear", "Can't tell"]])}</div>
     <div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, x]).concat([["unclear", "Can't tell"]]))}</div>${condGuideHTML()}
-    <div class="aud-q"><span>Verdict should be</span>${seg("verdict", [["ok", "✓ OK"], ["warn", "⚠ Check it"], ["reject", "✕ Reject"]])}</div>
+    <div class="aud-q"><span>Verdict Should Be</span>${seg("verdict", [["ok", "✓ OK"], ["warn", "⚠ Check it"], ["reject", "✕ Reject"]])}</div>
     <input id="audNote" placeholder="Why? (optional - e.g. 'white border = Chronicles', 'crease top left'). Short notes teach it the most." value="${esc(a.note || "")}" maxlength="200" style="width:100%;margin-top:8px">
     <div class="acts" style="justify-content:space-between"><div><button class="btn ghost" id="audPrev" type="button">← Prev</button> <button class="btn ghost" id="audSkip" type="button">Skip →</button></div>
-      <button class="btn" id="audSave" type="button">Save &amp; next</button></div>
+      <button class="btn" id="audSave" type="button">Save &amp; Next</button></div>
     ${a.at ? `<p class="mut" style="font-size:12px;margin:6px 0 0">You audited this ${esc(whenAZ(a.at + "+00:00"))}. Saving again replaces it.</p>` : ""}
   </div>`;
 }
@@ -1846,7 +1863,7 @@ function openCondPick(d, preset){
     <label for="cpNote" style="font-size:13px"><b>Why?</b> (required - e.g. "whitening on back corners", "crease top left". This is what teaches the AI checker.)</label>
     <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?" style="width:100%">
     ${condGuideHTML()}
-    <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use listing's condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Cancel</button><button class="btn" id="cpSave" type="button">Save</button></div>`);
+    <div class="acts">${d._adj ? `<button class="btn ghost" id="cpReset" type="button">Use Listing's Condition</button>` : ""}<button class="btn ghost" id="cpClose" type="button">Cancel</button><button class="btn" id="cpSave" type="button">Save</button></div>`);
   // back to the listing's own condition = undo (no why needed); any other grade needs a why
   const needWhy = () => !(sel === listed && !unstated);
   const check = () => { const ok = !needWhy() || $("#cpNote").value.trim().length >= 3; $("#cpSave").disabled = !ok; $("#cpSave").title = ok ? "" : "Say why first"; };
@@ -1887,7 +1904,7 @@ function teachHTML(){
   const st = (T && T.stats) || {}, os = Object.entries((T && T.overstate) || {}), tr = (S.runs || {}).training;
   const acc = st.compared ? `AI condition guesses matched yours <b>${st.agree} of ${st.compared}</b> times${st.avg_diff <= -0.5 ? " - you grade harsher, so it's now told to pick the lower grade when unsure" : st.avg_diff >= 0.5 ? " - it grades harsher than you, so it's told to go easier" : ""}.` :
     "The AI's condition guesses will be compared with yours once you've corrected a few deals it checked.";
-  return `<div style="margin-bottom:10px"><b>Teaching the AI checker</b>
+  return `<div style="margin-bottom:10px"><b>Teaching the AI Checker</b>
     <ul class="mut" style="font-size:12px;margin:4px 0 0;padding-left:18px">
       <li>${Math.max(mine, st.corrections || 0)} condition correction${Math.max(mine, st.corrections || 0) === 1 ? "" : "s"} saved. Your most recent ones (with your “why” notes) are shown to the AI on every photo check${mine > (st.corrections || 0) ? " - new ones from the next scan" : ""}.</li>
       <li>${acc}</li>
@@ -1903,7 +1920,7 @@ function renderLearned(){
   const pending = FB.rows.filter(r => (r.note || "").trim()).length - ((D && D.done) || []).length;
   const th = teachHTML();
   if (!cards.length && !Object.keys(all).length && pending <= 0){ box.innerHTML = th; return; }
-  box.innerHTML = th + `<div class="row" style="justify-content:space-between"><b>Rules learned from your comments</b><button class="btn ghost small" id="lrToggle">${LR.open ? "Hide" : "Show"} (${cards.length + (Object.keys(all).length ? 1 : 0)})</button></div>
+  box.innerHTML = th + `<div class="row" style="justify-content:space-between"><b>Rules Learned from Your Comments</b><button class="btn ghost small" id="lrToggle">${LR.open ? "Hide" : "Show"} (${cards.length + (Object.keys(all).length ? 1 : 0)})</button></div>
     ${pending > 0 ? `<p class="mut" style="font-size:12px;margin:6px 0 0">${pending} new comment${pending > 1 ? "s" : ""} will be turned into rules on the next scan.</p>` : ""}
     ${LR.open ? `<table style="margin-top:8px"><tbody>${Object.keys(all).length ? `<tr><td><b>All cards</b></td><td>${esc(ruleText(all))}</td><td><button class="btn ghost small" data-reset="All cards">Reset</button></td></tr>` : ""}
       ${cards.map(([c, r]) => `<tr><td><b>${esc(c)}</b></td><td>${esc(ruleText(r))}</td><td><button class="btn ghost small" data-reset="${esc(c)}">Reset</button></td></tr>`).join("")}</tbody></table>
@@ -2043,13 +2060,13 @@ function renderSL(){
   if (SL.orders && !READONLY) L += slOrdersHTML();
   L += `<h3 style="margin:18px 0 10px;font-size:16px">Upcoming</h3>`;
   L += up.length ? `<div class="sl-grid">${up.map(slCardHTML).join("")}</div>` : '<p class="mut">No upcoming drops known yet.</p>';
-  L += `<h3 style="margin:26px 0 10px;font-size:16px">All drops</h3>
+  L += `<h3 style="margin:26px 0 10px;font-size:16px">All Drops</h3>
     <div class="panel row"><input id="slQ" placeholder="Search drops or cards…" value="${esc(SL.q)}" style="flex:1;min-width:180px">
-      <select id="slStatus"><option value="">All</option><option value="on sale">On sale now</option><option value="sold out">Sold out</option><option value="past">Past</option><option value="upcoming">Upcoming</option></select>
-      <select id="slSort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="roi">Best value vs retail</option><option value="value">Highest card value</option><option value="fast">Sold out fastest</option></select>
+      <select id="slStatus"><option value="">All</option><option value="on sale">On Sale Now</option><option value="sold out">Sold Out</option><option value="past">Past</option><option value="upcoming">Upcoming</option></select>
+      <select id="slSort"><option value="new">Newest First</option><option value="old">Oldest First</option><option value="roi">Best Value vs Retail</option><option value="value">Highest Card Value</option><option value="fast">Sold Out Fastest</option></select>
       <span class="status" id="slCount"></span></div>
     <div class="panel scroll"><div class="tiles" id="slTiles"></div><table id="slTable" class="desk-table"></table>
-      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="slMore" hidden>Show more</button></div></div>`;
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="slMore" hidden>Show More</button></div></div>`;
   box.innerHTML = L;
   $("#slStatus").value = SL.status; $("#slSort").value = SL.sort;
   box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", () => { SL.detail = el.dataset.sl; renderSL(); window.scrollTo(0, 0); }));
@@ -2083,7 +2100,7 @@ function renderSLList(){
   const rows = slFiltered(); $("#slCount").textContent = `${rows.length} drops`;
   const show = rows.slice(0, SL.limit);
   const vr = (v, r) => { const p = roi(v, r); return p == null ? "" : `<div style="font-size:12px" class="${p >= 0 ? "up" : "down"}">${p >= 0 ? "+" : ""}${p}% vs retail</div>`; };
-  $("#slTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Drop</th><th class="nosort">On sale</th><th class="r nosort">Cards</th><th class="r nosort">Retail NF / Foil</th><th class="r nosort">Value non-foil</th><th class="r nosort">Value foil</th><th class="nosort">Status</th></tr></thead><tbody>` +
+  $("#slTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Drop</th><th class="nosort">On Sale</th><th class="r nosort">Cards</th><th class="r nosort">Retail NF / Foil</th><th class="r nosort">Value Non-Foil</th><th class="r nosort">Value Foil</th><th class="nosort">Status</th></tr></thead><tbody>` +
     show.map(d => { const cv = slCover(d); return `<tr class="click" data-sl="${esc(d.key)}"><td>${cv.src ? `<img class="thumb" src="${esc(cv.src)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="thumb"></div>'}</td>
       <td><div class="cname">${esc(d.name)}</div>${d.superdrop ? `<div class="cset">${esc(d.superdrop)}</div>` : ""}</td>
       <td style="white-space:nowrap">${esc(slDate(d, true))}</td><td class="r">${d.n_cards || "–"}</td>
@@ -2105,7 +2122,7 @@ function renderSLDetail(){
   let L = `<button class="btn ghost small" id="slBack">← All Secret Lairs</button>
     <div style="margin:14px 0 6px"><h2 style="margin:0">${esc(d.name)}</h2><div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 18px">
-      ${stat("On sale", esc(slDate(d, true)) + (cd ? `<div class="sl-count">${cd}</div>` : ""))}
+      ${stat("On Sale", esc(slDate(d, true)) + (cd ? `<div class="sl-count">${cd}</div>` : ""))}
       ${stat("Cards", d.n_cards || "–")}${stat("Retail non-foil / foil", `${money(d.retail_nonfoil)} / ${money(d.retail_foil)}`)}
       ${stat("Card value non-foil", money(d.value_nonfoil))}${stat("Card value foil", money(d.value_foil))}
       ${d.fastest_sellout_min != null ? stat("Fastest sell-out", slMins(d.fastest_sellout_min)) : ""}${d.ships ? stat("Ships", esc(azFmt(d.ships + "T12:00:00-07:00", {month: "short", day: "numeric", year: "numeric"}))) : ""}
@@ -2113,7 +2130,7 @@ function renderSLDetail(){
   const myB = (SL.orders && !READONLY ? SL.orders.lines : []).filter(l => l.drop === d.key && l.components && l.components.length);
   if (myB.length){   // bundles: show what's inside (from your order) with links to each drop
     const comps = myB[0].components, names = new Map((SL.data && SL.data.drops || []).map(x => [x.key, x.name]));
-    L += `<h3 style="font-size:16px;margin:8px 0 10px">What's inside (${comps.length} drops)</h3><div class="panel scroll"><table><thead><tr><th class="nosort">Drop</th><th class="r nosort">Qty</th><th class="r nosort">Value each</th></tr></thead><tbody>` +
+    L += `<h3 style="font-size:16px;margin:8px 0 10px">What's inside (${comps.length} drops)</h3><div class="panel scroll"><table><thead><tr><th class="nosort">Drop</th><th class="r nosort">Qty</th><th class="r nosort">Value Each</th></tr></thead><tbody>` +
       comps.map(c => `<tr class="${c.drop ? "click" : ""}" data-bdrop="${esc(c.drop || "")}"><td>${esc(c.name)}${c.drop && names.get(c.drop) && names.get(c.drop) !== c.name ? ` <span class="mut">(${esc(names.get(c.drop))})</span>` : ""}</td><td class="r">${c.n}</td><td class="r">${c.unit_value == null ? "–" : (c.approx ? "≈ " : "") + money(c.unit_value)}</td></tr>`).join("") +
       `</tbody></table></div><p class="mut" style="font-size:12px">${myB.map(l => `You ordered ×${l.qty} on ${esc(l.date || "")} · paid ${money(l.cost)} · worth ${l.value == null ? "–" : money(l.value)}`).join("<br>")}</p>`;
   }
@@ -2124,7 +2141,7 @@ function renderSLDetail(){
       ${c.u ? `<a href="${esc(c.u)}" target="_blank" rel="noopener">Scryfall</a>` : ""}${c.tcg ? ` · <a href="${esc(c.tcg)}" target="_blank" rel="noopener">TCGplayer</a>` : ""}${c.art ? ` · <span class="mut">${esc(c.art)}</span>` : ""}</figcaption></figure>`).join("") + "</div>";
   } else if (!myB.length) L += `<p class="mut">${/bundle/i.test(d.name) ? "This is a bundle - its cards are listed on each drop inside it." : "Card list not published yet - it appears once the cards are previewed."}</p>`;
   if (st.length){
-    L += `<h3 style="font-size:16px;margin:24px 0 10px">Official store</h3><div class="panel scroll"><table><thead><tr><th class="nosort">Product</th><th class="r nosort">Price</th><th class="nosort">On sale</th><th class="nosort">Status</th></tr></thead><tbody>` +
+    L += `<h3 style="font-size:16px;margin:24px 0 10px">Official Store</h3><div class="panel scroll"><table><thead><tr><th class="nosort">Product</th><th class="r nosort">Price</th><th class="nosort">On Sale</th><th class="nosort">Status</th></tr></thead><tbody>` +
       st.map(p => `<tr><td><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title)}</a></td><td class="r">${money(p.price)}</td><td style="white-space:nowrap">${esc(azFmt(p.on_sale_at, {month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit"}))}</td>
         <td>${p.status === "sold out" && p.sold_out_after_min != null ? `Sold out in ${slMins(p.sold_out_after_min)}` : esc(p.status)}</td></tr>`).join("") + "</tbody></table></div>";
     const imgs = [...new Set(st.flatMap(p => p.images || []))].slice(0, 24);
@@ -2140,23 +2157,23 @@ const gainHTML = (v, base) => v == null ? "–" : `<span class="${v >= 0 ? "up" 
 function slOrdersHTML(){
   const O = SL.orders, t = O.totals;
   const stat = (label, v, sub) => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
-  let L = `<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="margin:0;font-size:16px">My orders</h3>
+  let L = `<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="margin:0;font-size:16px">My Orders</h3>
     <span class="mut" style="font-size:12px">From ${esc(O.file || "your tracker")} · valued ${esc(azFmt(O.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ · only you can see this</span></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:12px 0">
       ${stat("Spent", money(t.spent), `${t.items} items · ${t.lines} lines`)}
-      ${stat("Worth now", money(t.value), t.unpriced_lines ? `${t.unpriced_lines} lines not priced (${money(t.unpriced_cost)})` : "all priced")}
-      ${stat("Gain / loss", t.priced_cost ? gainHTML(t.gain, t.priced_cost) : "–", "on priced items")}
-      ${stat("Still coming", `${t.outstanding_items} items`, `${t.shipped_items} shipped`)}
-      ${stat("Longest wait", `${t.longest_wait} days`, "")}
+      ${stat("Worth Now", money(t.value), t.unpriced_lines ? `${t.unpriced_lines} lines not priced (${money(t.unpriced_cost)})` : "all priced")}
+      ${stat("Gain / Loss", t.priced_cost ? gainHTML(t.gain, t.priced_cost) : "–", "on priced items")}
+      ${stat("Still Coming", `${t.outstanding_items} items`, `${t.shipped_items} shipped`)}
+      ${stat("Longest Wait", `${t.longest_wait} days`, "")}
     </div>
-    <div class="scroll"><table><thead><tr><th class="nosort">Account</th><th class="r nosort">Items</th><th class="r nosort">Spent</th><th class="r nosort">Worth now</th><th class="r nosort">Gain / loss</th><th class="r nosort">Still coming</th><th class="r nosort hide-sm">Longest wait</th></tr></thead><tbody>
+    <div class="scroll"><table><thead><tr><th class="nosort">Account</th><th class="r nosort">Items</th><th class="r nosort">Spent</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="r nosort">Still Coming</th><th class="r nosort hide-sm">Longest Wait</th></tr></thead><tbody>
     ${O.accounts.map(a => `<tr><td>${esc(a.account)}</td><td class="r">${a.items}</td><td class="r">${money(a.spent)}</td><td class="r">${money(a.value)}</td><td class="r">${a.priced_cost ? gainHTML(a.gain) : "–"}</td><td class="r">${a.outstanding_items}</td><td class="r hide-sm">${a.longest_wait}d</td></tr>`).join("")}
     </tbody></table></div>
     <div class="row" style="margin-top:12px"><button class="btn ghost small" id="slOrdersToggle">${SL.ordersOpen ? "Hide order lines" : "Show order lines"}</button></div>`;
   if (SL.ordersOpen){
     const statuses = [...new Set(O.lines.map(l => l.status).filter(Boolean))];
-    L += `<div class="row" style="margin-top:12px"><select id="oAcct"><option value="">All accounts</option>${O.accounts.map(a => `<option>${esc(a.account)}</option>`).join("")}</select>
-      <select id="oStatus"><option value="">All statuses</option><option value="__open">Still coming</option><option value="__tomark">Not marked received</option><option value="__rec">Received (in Collection)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
+    L += `<div class="row" style="margin-top:12px"><select id="oAcct"><option value="">All Accounts</option>${O.accounts.map(a => `<option>${esc(a.account)}</option>`).join("")}</select>
+      <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Not Marked Received</option><option value="__rec">Received (In Collection)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
       <input id="oQ" placeholder="Search products…" style="flex:1;min-width:160px" value="${esc(SL.oQ)}"><span class="status" id="oCount"></span></div>
       <div class="scroll" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
   }
@@ -2176,7 +2193,7 @@ function renderSLOrders(){
   const st = l => (isReceived(l) ? `<b class="up">Received</b>${recDate(l) ? ` <span class="mut">· ${esc(recDate(l))}</span>` : ""}`
       : esc(l.status) + (l.open && l.days_waiting != null ? ` <span class="mut">· ${l.days_waiting}d</span>` : "")) + (l.tracking ? `<div class="mut" style="font-size:12px">${esc(l.tracking)}</div>` : "");
   const name = l => `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${l.notes && !l.components ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`;
-  $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth now</th><th class="r nosort">Gain / loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
+  $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
     rows.map(l => `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(l.date || "")}</td><td>${name(l)}</td><td class="hide-sm mut" style="font-size:12px" title="${esc(l.account)}">${esc(String(l.account).split("@")[0])}</td>
       <td class="r">${l.qty}</td><td class="r">${money(l.cost)}</td><td class="r">${valCell(l)}</td><td class="r">${l.value == null ? "–" : gainHTML(l.value - l.cost)}</td><td>${st(l)}</td><td class="mk">${markHTML(l)}</td></tr>`).join("") + "</tbody>";
   $("#oTiles").innerHTML = rows.map(l => `<button class="tile" type="button" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
@@ -2196,11 +2213,11 @@ function wireSLOrders(){
 }
 function slEditorHTML(){
   return `<div class="panel sl-edit"><b>Upcoming drops you know about</b><p class="mut" style="margin:4px 0 10px;font-size:13px">For drops announced on X or by Wizards before the store lists them. Once the official store lists a drop, its time wins. Times are Arizona time.</p>
-    <div class="scroll"><table><thead><tr><th class="nosort">Drop name</th><th class="nosort">On-sale date</th><th class="nosort">Time</th><th class="nosort">Notes</th><th class="nosort">Link</th><th class="nosort"></th></tr></thead><tbody>
+    <div class="scroll"><table><thead><tr><th class="nosort">Drop Name</th><th class="nosort">On-Sale Date</th><th class="nosort">Time</th><th class="nosort">Notes</th><th class="nosort">Link</th><th class="nosort"></th></tr></thead><tbody>
     ${SL.upcoming.map((r, i) => `<tr><td><input data-i="${i}" data-f="name" value="${esc(r.name)}" style="min-width:200px"></td><td><input data-i="${i}" data-f="on_sale_date" type="date" value="${esc(r.on_sale_date)}"></td>
       <td><input data-i="${i}" data-f="on_sale_time" value="${esc(r.on_sale_time)}" placeholder="9:00 AM" style="width:90px"></td><td><input data-i="${i}" data-f="notes" value="${esc(r.notes)}"></td>
       <td><input data-i="${i}" data-f="link" value="${esc(r.link)}" placeholder="https://"></td><td><button class="btn ghost small" data-del-up="${i}">Delete</button></td></tr>`).join("")}
-    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh now).</span></div></div>`;
+    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add Drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh now).</span></div></div>`;
 }
 function wireSLEditor(){
   document.querySelectorAll(".sl-edit input[data-i]").forEach(el => el.addEventListener("change", () => { SL.upcoming[+el.dataset.i][el.dataset.f] = el.value.trim(); markDirty("upcoming"); }));
@@ -2296,7 +2313,7 @@ function renderCOL(){
   const box = $("#colBody"); if (!box) return;
   if (READONLY){ box.innerHTML = '<p class="empty">Not available.</p>'; return; }
   if (COL.loading && !COL.loaded){ box.innerHTML = '<p class="empty">Loading your collection…</p>'; return; }
-  if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
+  if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try Again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
   const items = colItems(), sales = colSales();
   const held = items.filter(i => i.left > 0), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
@@ -2306,26 +2323,26 @@ function renderCOL(){
   const srcs = [...new Set(items.map(i => i.source))].sort();
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
       <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run (or tap Refresh now).` : ""}</p></div>
-      <div class="row"><button class="btn small" id="colAdd">+ Add card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label><button class="btn ghost small" id="colReload">Refresh</button></div></div>
+      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label><button class="btn ghost small" id="colReload">Refresh</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       ${stat("Held", `${sum(held, i => i.left)} items`, `${held.length} rows`)}
       ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you still have")}
-      ${stat("Worth now", money(sum(priced, i => i.value)), held.length - priced.length ? `${held.length - priced.length} rows not priced yet` : "")}
+      ${stat("Worth Now", money(sum(priced, i => i.value)), held.length - priced.length ? `${held.length - priced.length} rows not priced yet` : "")}
       ${stat("Unrealized gain", gainHTML(sum(priced, i => i.value - i.cost_left), sum(priced, i => i.cost_left)), "if you sold at market")}
       ${stat("Profit this month", gainHTML(sum(sales.filter(x => (x.date || "").startsWith(mo)), x => x.profit)), "after fees & shipping")}
       ${stat("Profit this year", gainHTML(sum(sales.filter(x => (x.date || "").startsWith(yr)), x => x.profit)), `${sales.length} sales all-time`)}
     </div>
     <div class="panel row"><input id="colQ" placeholder="Search your collection…" value="${esc(COL.q)}" style="flex:1;min-width:180px">
-      <select id="colSrc"><option value="">All sources</option>${srcs.map(x => `<option>${esc(x)}</option>`).join("")}</select>
-      <select id="colStatus"><option value="held">Still have</option><option value="ordered">Ordered (on the way)</option><option value="listed">Listed</option><option value="sold">Sold out</option><option value="">Everything</option></select>
+      <select id="colSrc"><option value="">All Sources</option>${srcs.map(x => `<option>${esc(x)}</option>`).join("")}</select>
+      <select id="colStatus"><option value="held">Still Have</option><option value="ordered">Ordered (On the Way)</option><option value="listed">Listed</option><option value="sold">Sold Out</option><option value="">Everything</option></select>
       <select id="colKind"><option value="">Cards + Secret Lair</option><option value="card">Cards</option><option value="secret_lair">Secret Lair</option></select>
       <span class="status" id="colCount"></span></div>
     <div class="panel scroll"><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table>
-      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show more</button></div></div>`;
+      <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show More</button></div></div>`;
   // sales + breakdowns
   L += `<div class="row" style="justify-content:space-between;margin-top:22px"><h3 style="margin:0;font-size:16px">Sales</h3><button class="btn ghost small" id="colSalesToggle">${COL.showSales ? "Hide" : "Show"} sales (${sales.length})</button></div>`;
   if (COL.showSales){
-    L += `<div class="panel scroll" style="margin-top:10px"><table><thead><tr><th class="nosort">Date</th><th class="nosort">Item</th><th class="r nosort">Qty</th><th class="r nosort">Sold for</th><th class="r nosort">Fees</th><th class="r nosort hide-sm">Ship cost</th><th class="r nosort hide-sm">Paid</th><th class="r nosort">Profit</th><th class="nosort"></th></tr></thead><tbody>` +
+    L += `<div class="panel scroll" style="margin-top:10px"><table><thead><tr><th class="nosort">Date</th><th class="nosort">Item</th><th class="r nosort">Qty</th><th class="r nosort">Sold For</th><th class="r nosort">Fees</th><th class="r nosort hide-sm">Ship Cost</th><th class="r nosort hide-sm">Paid</th><th class="r nosort">Profit</th><th class="nosort"></th></tr></thead><tbody>` +
       (sales.map(x => `<tr><td style="white-space:nowrap">${esc(x.date)}</td><td><div class="cname">${esc(x.name)}</div><div class="cset">${esc(x.platform)} · ${esc(x.source)}</div></td><td class="r">${x.qty}</td><td class="r">${money(x.revenue)}</td>
         <td class="r">${x.est ? '<span title="Estimated from your fee settings">~</span>' : ""}${money(x.fee)}</td><td class="r hide-sm">${money(x.ship)}</td><td class="r hide-sm">${money(x.cost)}</td><td class="r">${gainHTML(x.profit)}</td>
         <td><button class="btn ghost small" data-delsale="${esc(x.id)}">Undo</button></td></tr>`).join("") || '<tr><td colspan="9" class="empty">No sales yet - use Sell on an item.</td></tr>') + "</tbody></table></div>";
@@ -2334,7 +2351,7 @@ function renderCOL(){
     sales.forEach(x => { const a = bySrc[x.source] = bySrc[x.source] || {cards: 0, paid: 0, value: 0, realized: 0}; a.realized += x.profit; });
     L += `<div class="grid2" style="margin-top:6px"><div class="panel scroll"><b>By month</b><table style="margin-top:6px"><thead><tr><th class="nosort">Month</th><th class="r nosort">Sales</th><th class="r nosort">Revenue</th><th class="r nosort">Fees</th><th class="r nosort">Profit</th></tr></thead><tbody>` +
       Object.entries(months).sort((a, b) => b[0].localeCompare(a[0])).map(([m, a]) => `<tr><td>${esc(m)}</td><td class="r">${a.n}</td><td class="r">${money(a.rev)}</td><td class="r">${money(a.fee)}</td><td class="r">${gainHTML(a.p)}</td></tr>`).join("") + `</tbody></table></div>
-      <div class="panel scroll"><b>By source</b><table style="margin-top:6px"><thead><tr><th class="nosort">Source</th><th class="r nosort">Held</th><th class="r nosort">Worth</th><th class="r nosort">Sold profit</th></tr></thead><tbody>` +
+      <div class="panel scroll"><b>By source</b><table style="margin-top:6px"><thead><tr><th class="nosort">Source</th><th class="r nosort">Held</th><th class="r nosort">Worth</th><th class="r nosort">Sold Profit</th></tr></thead><tbody>` +
       Object.entries(bySrc).sort((a, b) => b[1].value - a[1].value).map(([k, a]) => `<tr><td>${esc(k)}</td><td class="r">${a.cards}</td><td class="r">${money(a.value)}</td><td class="r">${gainHTML(Math.round(a.realized * 100) / 100)}</td></tr>`).join("") + "</tbody></table></div></div>";
   }
   box.innerHTML = L;
@@ -2357,8 +2374,8 @@ function renderCOLList(){
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
   const meta = i => `${i.kind === "secret_lair" ? "Secret Lair" : esc(i.set_name || i.set) + (i.number ? " #" + esc(i.number) : "")} · ${esc(i.finish)}${i.kind === "card" ? " · " + esc(i.condition) : ""}`;
-  const acts = i => (i.status === "ordered" ? `<button class="btn small" data-recv="${esc(i.id)}">Mark received</button> ` : i.left > 0 ? `<button class="btn small" data-sell="${esc(i.id)}">Sell</button> ` : "") + `<button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
-  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="nosort hide-sm">Source</th><th class="r nosort">Have</th><th class="r nosort">Paid each</th><th class="r nosort">Worth each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
+  const acts = i => (i.status === "ordered" ? `<button class="btn small" data-recv="${esc(i.id)}">Mark Received</button> ` : i.left > 0 ? `<button class="btn small" data-sell="${esc(i.id)}">Sell</button> ` : "") + `<button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
+  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="nosort hide-sm">Source</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
     (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}${i.status === "listed" ? ' <span class="badge b-up">LISTED</span>' : ""}${i.status === "ordered" ? ' <span class="badge b-up" title="Bought, not received yet">ORDERED</span>' : ""}</div><div class="cset">${meta(i)}</div></td>
       <td class="hide-sm mut" style="font-size:12px">${esc(i.source)}</td><td class="r">${i.left}${i.left !== i.qty ? `<span class="mut">/${i.qty}</span>` : ""}</td><td class="r">${money(i.cost_each)}</td>
       <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${i.value == null ? "–" : gainHTML(i.value - i.cost_left)}</td><td class="mk">${acts(i)}</td></tr>`).join("") ||
@@ -2381,13 +2398,13 @@ function renderCOLList(){
 async function openReceiveCheck(r){
   if (!FB.loaded) await loadFB();
   const d = S.deals.find(x => x.url === r.ref) || {}, cond = COND_LIST.includes((r.condition || "").toUpperCase()) ? r.condition.toUpperCase() : "LP";
-  openModal(`<h3>📦 Check it in hand</h3><div class="mut" style="font-size:13px">${esc(r.name)} [${esc((r.set || "").toUpperCase())}]${d.title ? " · " + esc(d.title.slice(0, 80)) : ""}</div>
+  openModal(`<h3>📦 Check It in Hand</h3><div class="mut" style="font-size:13px">${esc(r.name)} [${esc((r.set || "").toUpperCase())}]${d.title ? " · " + esc(d.title.slice(0, 80)) : ""}</div>
     <p class="mut" style="font-size:13px">Now that you're holding it: was the listing right? This is the most reliable lesson the AI checker gets${d.ai_verdict ? ` (it said ${esc(d.ai_verdict.toUpperCase())}${d.ai_condition ? ", " + esc(d.ai_condition) : ""})` : ""}.</p>
-    <div class="aud-q"><span>Edition / card</span><div class="seg" id="rcEd"><button type="button" class="btn small" data-v="matches">Right edition</button><button type="button" class="btn small ghost" data-v="wrong">Wrong edition or card</button><button type="button" class="btn small ghost" data-v="fake">Fake / proxy</button></div></div>
-    <div class="aud-q"><span>Real condition</span><div class="seg" id="rcCond">${COND_LIST.map(c => `<button type="button" class="btn small${c === cond ? "" : " ghost"}" data-v="${c}">${c}</button>`).join("")}</div></div>
+    <div class="aud-q"><span>Edition / Card</span><div class="seg" id="rcEd"><button type="button" class="btn small" data-v="matches">Right Edition</button><button type="button" class="btn small ghost" data-v="wrong">Wrong Edition or Card</button><button type="button" class="btn small ghost" data-v="fake">Fake / Proxy</button></div></div>
+    <div class="aud-q"><span>Real Condition</span><div class="seg" id="rcCond">${COND_LIST.map(c => `<button type="button" class="btn small${c === cond ? "" : " ghost"}" data-v="${c}">${c}</button>`).join("")}</div></div>
     ${condGuideHTML()}
     <input id="rcNote" placeholder="Anything the photos hid? (optional)" maxlength="200" style="width:100%;margin-top:8px">
-    <div class="acts"><button class="btn ghost" id="rcSkip" type="button">Just mark received</button><button class="btn" id="rcOk" type="button">Save &amp; mark received</button></div>`);
+    <div class="acts"><button class="btn ghost" id="rcSkip" type="button">Just Mark Received</button><button class="btn" id="rcOk" type="button">Save &amp; Mark Received</button></div>`);
   const sel = {ed: "matches", cond};
   [["#rcEd", "ed"], ["#rcCond", "cond"]].forEach(([id, k]) => $(id).addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return; sel[k] = b.dataset.v; $(id).querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b)); }));
   const finish = async withCheck => {
@@ -2419,16 +2436,16 @@ function openSell(id){
   const sug = it.list_price ?? it.value_each ?? "";
   openModal(`<h3>Sell: ${esc(it.name)}</h3><div class="mut" style="font-size:13px">You have ${it.left} · paid ${money(it.cost_each)} each${it.value_each != null ? ` · worth ~${money(it.value_each)} each` : ""}</div>
     <div class="grid">
-      <div><label for="sQty">Quantity sold</label><input id="sQty" type="number" min="1" max="${it.left}" value="1"></div>
+      <div><label for="sQty">Quantity Sold</label><input id="sQty" type="number" min="1" max="${it.left}" value="1"></div>
       <div><label for="sDate">Date</label><input id="sDate" type="date" value="${todayAZ()}"></div>
       <div><label for="sPrice">Price each ($)</label><input id="sPrice" inputmode="decimal" value="${sug === "" ? "" : esc(sug)}"></div>
-      <div><label for="sPlat">Sold on</label><select id="sPlat"><option value="ebay">eBay</option><option value="tcgplayer">TCGplayer</option><option value="local">Local / cash / trade</option></select></div>
+      <div><label for="sPlat">Sold On</label><select id="sPlat"><option value="ebay">eBay</option><option value="tcgplayer">TCGplayer</option><option value="local">Local / Cash / Trade</option></select></div>
       <div><label for="sShipC">Shipping the buyer paid ($)</label><input id="sShipC" inputmode="decimal" value="0"></div>
       <div><label for="sShipX">Your shipping cost ($)</label><input id="sShipX" inputmode="decimal" value="0"></div>
       <div class="full"><label for="sFees">Fees ($) - leave blank to estimate</label><input id="sFees" inputmode="decimal" placeholder="estimated"></div>
       <div class="full"><label for="sNotes">Notes</label><input id="sNotes" placeholder="optional (buyer, order #...)"></div>
     </div><div class="preview" id="sPrev"></div>
-    <div class="acts"><button class="btn ghost" id="sCancel" type="button">Cancel</button><button class="btn" id="sOk" type="button">Record sale</button></div>`);
+    <div class="acts"><button class="btn ghost" id="sCancel" type="button">Cancel</button><button class="btn" id="sOk" type="button">Record Sale</button></div>`);
   const read = () => ({id: newId("s-"), date: $("#sDate").value, item_id: id, name: it.name, qty: String(Math.min(it.left, Math.max(1, parseInt($("#sQty").value) || 1))),
     price_each: $("#sPrice").value.trim(), shipping_charged: $("#sShipC").value.trim(), shipping_cost: $("#sShipX").value.trim(), platform: $("#sPlat").value, fees: $("#sFees").value.trim(), notes: $("#sNotes").value.trim()});
   const prev = () => { const s = read(); const q = parseInt(s.qty); const {fee, est} = feeFor(s); const rev = (numOrNull(s.price_each) || 0) * q + (numOrNull(s.shipping_charged) || 0);
@@ -2447,15 +2464,15 @@ function openColEdit(id, pre){
   const isSL = (r.kind || "") === "secret_lair";
   openModal(`<h3>${id ? "Edit" : "Add card"}</h3>${isSL ? '<div class="mut" style="font-size:13px">Secret Lair item - valued from its drop.</div>' : '<div class="mut" style="font-size:13px">Set code and collector number are optional but pick the exact printing (shown on Scryfall).</div>'}
     <div class="grid">
-      <div class="full"><label for="eName">Card / product</label><input id="eName" value="${esc(r.name)}" list="eNames" autocomplete="off" ${isSL ? "readonly" : ""}><datalist id="eNames"></datalist></div>
-      ${isSL ? "" : `<div><label for="eSet">Set code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
-      <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
+      <div class="full"><label for="eName">Card / Product</label><input id="eName" value="${esc(r.name)}" list="eNames" autocomplete="off" ${isSL ? "readonly" : ""}><datalist id="eNames"></datalist></div>
+      ${isSL ? "" : `<div><label for="eSet">Set Code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
+      <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
       ${isSL ? "" : `<div><label for="eCond">Condition</label><select id="eCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
       <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
-      <div><label for="eSrc">Where from</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
+      <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div><label for="eAcq">Acquired</label><input id="eAcq" type="date" value="${esc(r.acquired)}"></div>
-      <div><label for="eStat">Status</label><select id="eStat"><option value="owned">Owned</option><option value="ordered">Ordered (on the way)</option><option value="listed">Listed for sale</option></select></div>
+      <div><label for="eStat">Status</label><select id="eStat"><option value="owned">Owned</option><option value="ordered">Ordered (On the Way)</option><option value="listed">Listed for Sale</option></select></div>
       <div><label for="eList">Listed at ($)</label><input id="eList" inputmode="decimal" value="${esc(r.list_price)}"></div>
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
     </div>
@@ -2550,10 +2567,10 @@ function renderSETS(){
   SETS.open = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
     <p class="sub" style="margin:0">Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.</p></div>
-    <button class="btn small" id="setAdd">+ Add a set</button></div>`;
+    <button class="btn small" id="setAdd">+ Add a Set</button></div>`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
-      <select id="setFin"><option value="nonfoil">Non-foil</option><option value="foil">Foil</option></select>
-      <label><input type="checkbox" id="setNB" checked> Skip basic lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
+      <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
+      <label><input type="checkbox" id="setNB" checked> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
   if (!goals.length) L += `<div class="panel"><p class="empty" style="margin:0">No sets yet. Tap <b>+ Add a set</b> and pick the sets you want to complete.</p></div>`;
   else {
     L += `<div class="sl-grid" style="margin-top:14px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
@@ -2595,7 +2612,7 @@ async function showSetHits(q){
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
-  if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All sets</button><p class="empty">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
+  if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
   const deal = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
   const tracked = new Map(S.cards.map(x => [x.s.toLowerCase() + "|" + x.num + "|" + x.f, x]));
   const q = SETS.q.trim().toLowerCase();
@@ -2603,10 +2620,10 @@ function renderSetDetail(g){
     .filter(r => !q || r.c.name.toLowerCase().includes(q)).slice().sort((a, b) => (b.price || 0) - (a.price || 0));
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
-  let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All sets</button>
+  let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
       <h2 style="margin-top:10px">${esc(title)}${(g.finish || "nonfoil") !== "nonfoil" ? " (" + esc(g.finish) + ")" : ""}</h2>
       <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
-      <div class="row"><button class="btn ghost small" id="setPause">${paused ? "Resume tracking" : "Pause"}</button><button class="btn ghost small" id="setDel">Remove set</button></div></div>
+      <div class="row"><button class="btn ghost small" id="setPause">${paused ? "Resume tracking" : "Pause"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       <div class="stat"><span>Progress</span><b>${pr.have} / ${pr.total}</b><span>${pct}% complete</span></div>
       <div class="stat"><span>Still need</span><b>${pr.need.length} cards</b><span>${pr.unpriced ? pr.unpriced + " without a price" : ""}</span></div>
@@ -2614,7 +2631,7 @@ function renderSetDetail(g){
       <div class="stat"><span>What you have is worth</span><b>${money(pr.owned)}</b><span>at Near Mint market</span></div>
     </div><div class="bar" style="margin-bottom:14px"><span style="width:${pct}%"></span></div>
     <div class="panel row"><input id="setFind" placeholder="Search this set…" value="${esc(SETS.q)}" style="flex:1;min-width:180px">
-      <select id="setView"><option value="need">Cards I need</option><option value="have">Cards I have</option><option value="all">Whole set</option></select>
+      <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
       <label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>
       <span class="status">${rows.length} cards</span></div>
     <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable"></table></div>
@@ -2624,7 +2641,7 @@ function renderSetDetail(g){
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + (g.finish || "nonfoil"));
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
   const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>` :
-    `<button class="btn small" data-got="${esc(r.c.id)}">Got it</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
+    `<button class="btn small" data-got="${esc(r.c.id)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
       <td><div class="cname"><a href="${esc(r.c.scryfall_uri)}" target="_blank" rel="noopener">${esc(r.c.name)}</a></div><div class="cset">${esc(r.c.type_line || "")}</div></td>
@@ -2648,7 +2665,7 @@ function renderSetDetail(g){
 
 // ---------------------------------------------------------------- last updated
 const STALE_H = {prices: 27, deals: 7, secret_lair: 7, collection: 27};
-const RUN_NAMES = {prices: "Prices", deals: "eBay deals", secret_lair: "Secret Lair", collection: "Collection values"};
+const RUN_NAMES = {prices: "Prices", deals: "eBay Deals", secret_lair: "Secret Lair", collection: "Collection Values"};
 function whenAZ(iso){
   if (!iso) return "never";
   const day = d => new Date(d).toLocaleDateString("en-CA", {timeZone: "America/Phoenix"});
@@ -2678,9 +2695,9 @@ function renderUpdated(msg){
 }
 function sniperRow(){
   const sn = S.sniper; if (!sn) return "";
-  if (sn.error) return `<tr><td><b>eBay sniper</b></td><td colspan="3" class="mut">${esc(sn.error)}</td></tr>`;
+  if (sn.error) return `<tr><td><b>eBay Sniper</b></td><td colspan="3" class="mut">${esc(sn.error)}</td></tr>`;
   const st = sn.status || {}, live = sn.on && st.at && Date.now() - new Date(st.at) < 5 * 6e4 && !st.error;
-  return `<tr><td><b>eBay sniper</b><div class="mut" style="font-size:12px">new listings, every minute</div></td>
+  return `<tr><td><b>eBay Sniper</b><div class="mut" style="font-size:12px">new listings, every minute</div></td>
     <td class="${sn.on && !live ? "stale" : ""}">${!sn.on ? '<span class="mut">Off - run setupSniper in Apps Script to turn it on</span>' : st.at ? `${live ? "" : "⚠ "}${esc(whenAZ(st.at))} <span class="mut">(${esc(ago(st.at))})</span>` : "starting…"}</td>
     <td class="hide-sm mut">${st.error ? esc(st.error) : st.at ? `${st.fresh} new listings checked last minute · ${(sn.log || []).length} recent finds · ${sn.calls ? sn.calls.n : 0} eBay calls today · ${sn.ai_key ? `AI checker on (${sn.ai && sn.ai.n || 0} reviews today)` : "AI checker off (no API key)"}` : ""}</td>
     <td>${sn.on ? "every minute" : "–"}</td></tr>`;
@@ -2692,10 +2709,10 @@ function quotaText(){
 }
 function renderRuns(){
   const box = $("#runsBody"); if (!box) return; const r = S.runs || {};
-  box.innerHTML = `<table><thead><tr><th class="nosort">Part</th><th class="nosort">Last updated (AZ)</th><th class="nosort hide-sm">Details</th><th class="nosort">Next scheduled</th></tr></thead><tbody>` +
-    ((S.runs || {}).ebay ? `<tr><td><b>eBay allowance</b><div class="mut" style="font-size:12px">searches per day</div></td><td>${esc(quotaText())}</td><td class="hide-sm mut">checked ${esc(whenAZ(S.runs.ebay.at))} (${esc(ago(S.runs.ebay.at))}) · ${Number(S.runs.ebay.used || 0).toLocaleString()} used so far</td><td>after each scan</td></tr>` : "") +
-    ((S.runs || {}).ai ? `<tr><td><b>AI checker</b><div class="mut" style="font-size:12px">3-hour scan</div></td><td class="${S.runs.ai.ok ? "" : "stale"}">${S.runs.ai.ok ? "✓ connected" : "⚠ not working"} <span class="mut">(${esc(ago(S.runs.ai.at))})</span></td><td class="hide-sm mut">${esc(S.runs.ai.ok ? "Model " + S.runs.ai.model : S.runs.ai.error)}</td><td>–</td></tr>` : "") +
-    ((S.runs || {}).training ? `<tr><td><b>Training data</b><div class="mut" style="font-size:12px">for a custom model</div></td><td>${esc(whenAZ(S.runs.training.at))} <span class="mut">(${esc(ago(S.runs.training.at))})</span></td><td class="hide-sm mut">${S.runs.training.examples} labelled listings · ${S.runs.training.with_photos} with photos · ${S.runs.training.edition_wrong} wrong-edition examples</td><td>after each scan</td></tr>` : "") +
+  box.innerHTML = `<table><thead><tr><th class="nosort">Part</th><th class="nosort">Last Updated (AZ)</th><th class="nosort hide-sm">Details</th><th class="nosort">Next Scheduled</th></tr></thead><tbody>` +
+    ((S.runs || {}).ebay ? `<tr><td><b>eBay Allowance</b><div class="mut" style="font-size:12px">searches per day</div></td><td>${esc(quotaText())}</td><td class="hide-sm mut">checked ${esc(whenAZ(S.runs.ebay.at))} (${esc(ago(S.runs.ebay.at))}) · ${Number(S.runs.ebay.used || 0).toLocaleString()} used so far</td><td>after each scan</td></tr>` : "") +
+    ((S.runs || {}).ai ? `<tr><td><b>AI Checker</b><div class="mut" style="font-size:12px">3-hour scan</div></td><td class="${S.runs.ai.ok ? "" : "stale"}">${S.runs.ai.ok ? "✓ connected" : "⚠ not working"} <span class="mut">(${esc(ago(S.runs.ai.at))})</span></td><td class="hide-sm mut">${esc(S.runs.ai.ok ? "Model " + S.runs.ai.model : S.runs.ai.error)}</td><td>–</td></tr>` : "") +
+    ((S.runs || {}).training ? `<tr><td><b>Training Data</b><div class="mut" style="font-size:12px">for a custom model</div></td><td>${esc(whenAZ(S.runs.training.at))} <span class="mut">(${esc(ago(S.runs.training.at))})</span></td><td class="hide-sm mut">${S.runs.training.examples} labelled listings · ${S.runs.training.with_photos} with photos · ${S.runs.training.edition_wrong} wrong-edition examples</td><td>after each scan</td></tr>` : "") +
     sniperRow() + ["prices", "deals", "secret_lair", "collection"].map(k => { const x = r[k];
       const det = !x ? "" : k === "prices" ? `${x.cards} cards priced` : k === "deals" ? (x.limit_hit ? "⚠ eBay's daily search limit was reached - scan stopped early (resets overnight). " : "") + `${x.cards} cards checked${x.searches ? " in " + x.searches + " eBay searches" : ""} · ${x.listings} listings under ceiling · ${x.found} new deal${x.found === 1 ? "" : "s"}` :
         k === "secret_lair" ? `${x.drops} drops · ${x.upcoming} upcoming` : `${x.rows} rows valued`;
@@ -2739,7 +2756,7 @@ async function loadAll(){
   else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
   S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
   const groups = [...new Set(S.cards.map(c => c.g))].sort();
-  $("#allGroup").innerHTML = `<option value="">All groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
+  $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
   renderUpdated(d0.dashboard ? null : "No price data yet - run the update once");
   if (!READONLY) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
