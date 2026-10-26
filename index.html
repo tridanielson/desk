@@ -230,6 +230,17 @@ select option{background:var(--panel);color:var(--ink)}
 #sfPop{position:fixed;z-index:30;display:none;width:250px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
 #sfPop img{width:100%;border-radius:10px;display:block}#sfPop div{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
 .srv-pre{font-size:12px;background:var(--soft);padding:8px;border-radius:6px;overflow:auto;white-space:pre}
+.guide-toc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}.guide-toc a{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;text-decoration:none;color:var(--ink);background:var(--panel)}
+.guide-steps{display:grid;gap:10px}.gstep{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}.gstep p{margin:4px 0 0;font-size:14px}
+.gnum{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.guide-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}.guide-tools div{background:var(--soft);border-radius:8px;padding:10px}.guide-tools span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
+.gcmp{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}.gcmp:first-child{border-top:0;margin-top:0;padding-top:0}.gcmp h4{margin:0 0 8px;font-size:15px}
+.gpair{display:grid;grid-template-columns:repeat(2,minmax(0,220px));gap:12px}.gpair.one{grid-template-columns:minmax(0,200px)}
+.gcmp.gone{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start}
+.gfig{margin:0}.gfig img{width:100%;border-radius:10px;display:block;background:var(--soft);aspect-ratio:488/680}.gfig figcaption{font-size:12px;color:var(--muted);text-align:center;margin-top:4px}
+.gmiss{aspect-ratio:488/680;display:grid;place-items:center;background:var(--soft);border-radius:10px;font-size:13px}
+.guide-list{margin:8px 0 0;padding-left:18px}.guide-list li{margin:4px 0;font-size:14px}
+@media (max-width:700px){.gcmp.gone{grid-template-columns:1fr}.gpair.one{grid-template-columns:minmax(0,180px)}}
 .honest{padding:10px 12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
 @media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats,.aud-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
@@ -248,6 +259,7 @@ select option{background:var(--panel);color:var(--ink)}
     <button data-tab="sl" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
     <button data-tab="col" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" title="Sets you are completing and the cards you still need">Sets</button>
+    <button data-tab="guide" title="How to spot fakes and proxies, and tell look-alike editions apart">ID &amp; Fake Guide</button>
     <button data-tab="rules" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
     <button data-tab="settings" title="Deal rules, alert defaults, condition values, selling fees">Settings</button>
     <button data-tab="connect" title="Connection status and a guide to every tab">Setup &amp; Help</button>
@@ -356,7 +368,7 @@ select option{background:var(--panel);color:var(--ink)}
     <label><input type="checkbox" id="dUSA"> USA Sellers Only</label>
     <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended</label>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
-    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - ending soonest</option><option value="bin">Buy It Now Only</option></select>
+    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option></select>
     <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
@@ -382,6 +394,78 @@ select option{background:var(--panel);color:var(--ink)}
 </section>
 
 <!-- SETS -->
+<section class="tab" id="tab-guide">
+  <h2>ID &amp; Fake Guide</h2>
+  <p class="sub">One place to check a card before you buy or sell it: how to spot proxies and counterfeits, and how to tell look-alike editions apart (the Unlimited vs Revised kind of mistake). Pictures are the real printings from Scryfall. Tap a picture to open it bigger.</p>
+
+  <div class="guide-toc">
+    <a href="#g-tests">Fake checks</a><a href="#g-tools">Tools</a><a href="#g-editions">Edition look-alikes</a><a href="#g-special">Not-legal versions</a><a href="#g-listings">Listing red flags</a><a href="#g-sources">Sources</a>
+  </div>
+
+  <div class="panel" id="g-tests">
+    <h3>Fake Checks - Do Them in This Order</h3>
+    <p class="mut" style="margin-top:0">No single test proves a card is real. Run several, and always compare against a card you know is genuine from the same set (a common from the same era is perfect).</p>
+    <div class="guide-steps">
+      <div class="gstep"><div class="gnum">1</div><div><b>Compare Side by Side</b><p>Put it next to a known-genuine card from the same set. Check size, font, letter spacing, the mana symbols, colors and how glossy it is. Fakes often have brighter colors, lost detail in the art, or slightly different fonts (the type line and the blue mana drop are common giveaways).</p></div></div>
+      <div class="gstep"><div class="gnum">2</div><div><b>Loupe Test (Most Reliable)</b><p>Under a 30-60x loupe, the colors on a real card are a neat flower-like <b>rosette</b> of dots. The black text, frame and mana-symbol outlines are printed as solid, sharp lines on top. On fakes the dots are blurry or chaotic, and black lines are made of dots or have fuzzy edges. Straight lines (like the box around "Deckmaster" on the back) should be perfectly straight.</p></div></div>
+      <div class="gstep"><div class="gnum">3</div><div><b>Weigh It</b><p>A real card weighs about <b>1.7-1.8 g</b>. Many recent fakes weigh about <b>1.9 g</b> because of extra plastic. Use a 0.01 g scale and weigh a known-genuine card from the same era first: anything around <b>1.85 g or more</b> deserves a closer look. Rebacks (a front glued onto a real back) are usually heavier too.</p></div></div>
+      <div class="gstep"><div class="gnum">4</div><div><b>Light Test</b><p>Shine a bright LED through the card. Real cards glow with a slight <b>blue tint</b> from the blue core layer, which you can also see as a thin line on the edge. A <b>black core</b> or a card that blocks the light is a big red flag. Some fakes pass this test, and a few genuine sets (Ice Age, for example) have no blue core, so compare with a real card from the same set.</p></div></div>
+      <div class="gstep"><div class="gnum">5</div><div><b>Check the Back</b><p>Three details fakes usually get wrong: the yellow spot inside the <b>green dot</b> has four tiny red dots in an L shape with a solid black ring around it; the <b>"T" in "The"</b> has a straight left edge and wavy bottom and right edges; and there are tiny <b>"demon horn"</b> crescents above each "E" in Deckmaster.</p></div></div>
+      <div class="gstep"><div class="gnum">6</div><div><b>Modern Rares: Holo Stamp</b><p>Rares and mythics since Core Set 2015 (2014) have an oval holographic stamp at the bottom center. Fake stamps often look flat or damaged up close.</p></div></div>
+    </div>
+    <p class="mut" style="font-size:13px"><b>Skip these:</b> the bend test (it can crease a real card), the rip test (destroys it), and the blacklight test (unreliable). Graded slabs: always look up the certificate number on the grader's own website - fake slabs and labels exist.</p>
+  </div>
+
+  <div class="panel" id="g-tools">
+    <h3>Tools Worth Owning</h3>
+    <div class="guide-tools">
+      <div><b>⚖️ 0.01 g Pocket Scale</b><span>For the weight test. Cheap and fast.</span></div>
+      <div><b>🔍 30-60x Loupe</b><span>For the rosette and black-line checks. The single most useful tool.</span></div>
+      <div><b>🔦 Bright LED Light</b><span>For the light test (a phone torch works).</span></div>
+      <div><b>📐 Corner Radius Gauge</b><span>For Alpha vs Beta: Alpha corners are about 2 mm, Beta and later about 1 mm.</span></div>
+      <div><b>🃏 Known-Genuine Cards</b><span>A few commons from each era you buy, to compare against.</span></div>
+    </div>
+  </div>
+
+  <div class="panel" id="g-editions">
+    <h3>Edition Look-Alikes</h3>
+    <p class="mut" style="margin-top:0">Sellers mix these up all the time - sometimes in your favor (see 💎 mislabeled bargains on the eBay Deals tab).</p>
+    <div id="guideCmp"></div>
+  </div>
+
+  <div class="panel" id="g-special">
+    <h3>Not-Legal Versions That Look Like the Real Thing</h3>
+    <p class="mut" style="margin-top:0">These are genuine Wizards products, but worth far less than the originals and not legal in tournaments. They are often listed in ways that make them look like Alpha or Beta.</p>
+    <div id="guideSpecial"></div>
+  </div>
+
+  <div class="panel" id="g-listings">
+    <h3>Listing Red Flags</h3>
+    <ul class="guide-list">
+      <li><b>Words in the title or description:</b> proxy, custom, altered, playtest, "reprint", "replica", "not tournament legal", "fan made", "MPC". The scanner already skips these.</li>
+      <li><b>Too cheap:</b> far under what the card normally sells for - the "too cheap?" tag on eBay Deals.</li>
+      <li><b>Stock photos</b> or one blurry photo, or photos that never show the back.</li>
+      <li><b>Edition words that don't match the photos:</b> "Beta" with white borders, "Unlimited" with a tap symbol, "Legends" with a white border.</li>
+      <li><b>No condition stated</b> on an expensive card, or damage words hidden in the description (the scanner reads the full description).</li>
+      <li><b>Low-feedback or brand-new sellers</b> on high-value cards.</li>
+      <li><b>Graded slabs</b> without a clear photo of the label and certificate number.</li>
+    </ul>
+  </div>
+
+  <div class="panel" id="g-sources">
+    <h3>Sources</h3>
+    <ul class="guide-list mut" style="font-size:13px">
+      <li><a href="https://www.threeforonetrading.com/en/fake-magic-cards" target="_blank" rel="noopener">Three for One Trading - Fakes and counterfeit Magic cards</a> (weights, back details, light test)</li>
+      <li><a href="https://seller.tcgplayer.com/blog/articles/how-to-identify-counterfeit-magic-the-gathering-cards" target="_blank" rel="noopener">TCGplayer - How to identify counterfeit Magic cards</a></li>
+      <li><a href="https://draftsim.com/unlimited-vs-revised-mtg/" target="_blank" rel="noopener">Draftsim - Unlimited vs Revised</a></li>
+      <li><a href="https://www.misprint.com/posts/alpha-vs-beta-vs-unlimited-magic" target="_blank" rel="noopener">Misprint - Alpha vs Beta vs Unlimited</a></li>
+      <li><a href="https://www.retrotcg.net/games/magic-the-gathering-ccg/lea?page=2" target="_blank" rel="noopener">RetroTCG - Alpha corner radius</a></li>
+      <li><a href="https://mtg.wiki/page/Tap" target="_blank" rel="noopener">MTG Wiki - Tap symbol history</a></li>
+      <li>Card pictures: <a href="https://scryfall.com" target="_blank" rel="noopener">Scryfall</a>. Card images © Wizards of the Coast.</li>
+    </ul>
+  </div>
+</section>
+
 <section class="tab" id="tab-sets">
   <div id="setsBody"><p class="empty">Loading…</p></div>
 </section>
@@ -1651,6 +1735,61 @@ async function updateServerNow(){
     toast("Saved, but Google is still switching over. Refresh in a minute - it should say Up to date (no need to tap Update again).", 10000); b.disabled = false; b.textContent = "Update Now"; }
   catch(e){ b.disabled = false; b.textContent = "Update Now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
 }
+// ---------------------------------------------------------------- ID & Fake Guide (education tab)
+const sfImgNamed = (name, set) => `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&set=${set}&format=image&version=normal`;
+const sfPage = (name, set) => `https://scryfall.com/search?q=${encodeURIComponent(`!"${name}" set:${set}`)}`;
+const sfRandom = q => `https://api.scryfall.com/cards/random?q=${encodeURIComponent(q)}&format=image&version=normal`;
+const GUIDE_CMP = [
+  {title: "Alpha vs Beta", a: ["Lightning Bolt", "lea", "Alpha (1993)"], b: ["Lightning Bolt", "leb", "Beta (1993)"],
+   tells: ["<b>Corners:</b> Alpha's are much rounder - about 2 mm radius vs about 1 mm on Beta and every later set. The quickest check.",
+           "Both have black borders, no set symbol and no copyright line.",
+           "Alpha has no Volcanic Island or Circle of Protection: Black - they were added in Beta.",
+           "Beware Beta cards trimmed to look like Alpha: the corners come out uneven, and the cut doesn't match on the back."]},
+  {title: "Beta vs Unlimited", a: ["Serra Angel", "leb", "Beta"], b: ["Serra Angel", "2ed", "Unlimited"],
+   tells: ["<b>Border:</b> Beta is black, Unlimited is white. Same card frames otherwise.",
+           "A white-bordered card sold as \"Beta\" is Unlimited (or later)."]},
+  {title: "Unlimited vs Revised (the classic mix-up)", a: ["Prodigal Sorcerer", "2ed", "Unlimited"], b: ["Prodigal Sorcerer", "3ed", "Revised"],
+   tells: ["<b>Inner border:</b> Unlimited has a bevel - a lighter grey line just inside the black outline. Revised has one flat black line.",
+           "<b>Tap symbol:</b> Revised introduced it (a grey circle with a slanted T). Unlimited spells out \"Tap\". Any tap symbol = Revised or later.",
+           "<b>Artist credit:</b> sits higher on Unlimited; on Revised it nearly touches the bottom line.",
+           "<b>Name:</b> on Unlimited it sits close to the border; Revised leaves more space before the first letter.",
+           "<b>Colors:</b> Unlimited is darker and richer; Revised looks washed out (clearest side by side).",
+           "Neither has a set symbol, so the border and text tells are what matter."]},
+  {title: "Revised vs 4th Edition", a: ["Prodigal Sorcerer", "3ed", "Revised"], b: ["Prodigal Sorcerer", "4ed", "4th Edition"],
+   tells: ["<b>Copyright line:</b> 4th Edition prints \"©1995 Wizards of the Coast\" at the bottom; Revised has none.",
+           "<b>Tap symbol:</b> 4th uses a curved arrow over a tilted card instead of Revised's circled T."]},
+  {title: "Arabian Nights / Antiquities / Legends / The Dark vs Chronicles", a: ["Erhnam Djinn", "arn", "Arabian Nights"], b: ["Erhnam Djinn", "chr", "Chronicles"],
+   tells: ["<b>Border:</b> the originals are black-bordered; the Chronicles reprints are white-bordered.",
+           "<b>Set symbol:</b> each original has its own (Arabian Nights scimitar, Antiquities anvil, Legends column, The Dark crescent moon); Chronicles has a different one.",
+           "Sellers sometimes list Chronicles as the original - and occasionally the other way round, which can be a bargain."]},
+];
+const GUIDE_SPECIAL = [
+  {title: "Collectors' Edition & International Edition (1993)", img: ["Black Lotus", "ced", "Collectors' Edition"],
+   tells: ["<b>Square corners</b> (not rounded) and a <b>gold-bordered back</b> reading \"Collector's Edition\" or \"International Edition\".",
+           "The front looks like Beta, so always check the corners and the back photo."]},
+  {title: "30th Anniversary Edition (2022)", img: ["Black Lotus", "30a", "30th Anniversary"],
+   tells: ["Reprints of the Alpha/Beta cards with a <b>different card back</b> made for this product - not the normal Magic back.",
+           "Ask for a photo of the back on anything sold as Alpha or Beta."]},
+  {title: "World Championship Decks (1997-2004)", img: null, q: "set:wc97", label: "World Championship card",
+   tells: ["<b>Gold borders</b> and a gold-bordered back; many show a player's <b>signature</b> printed on the card.",
+           "Sometimes listed as \"rare gold border\" versions - they aren't worth what the normal card is."]},
+  {title: "Foreign Black Border (FBB)", img: null, q: "set:fbb", label: "Foreign Black Border card",
+   tells: ["Revised-era cards printed in other languages <b>with black borders</b>. Black border alone doesn't mean Alpha or Beta - check the language and the card text."]},
+];
+function guideCard(name, set, label, q){
+  const src = q ? sfRandom(q) : sfImgNamed(name, set), href = q ? `https://scryfall.com/search?q=${encodeURIComponent(q)}` : sfPage(name, set);
+  return `<figure class="gfig"><a href="${esc(href)}" target="_blank" rel="noopener"><img loading="lazy" src="${esc(src)}" alt="${esc(label)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'gmiss',textContent:'Open on Scryfall'}))"></a><figcaption>${esc(label)}</figcaption></figure>`;
+}
+function renderGuide(){
+  const box = $("#guideCmp"); if (!box || box.dataset.done) return; box.dataset.done = "1";
+  box.innerHTML = GUIDE_CMP.map(c => `<div class="gcmp"><h4>${esc(c.title)}</h4><div class="gpair">${guideCard(...c.a)}${guideCard(...c.b)}</div>
+    <ul class="guide-list">${c.tells.map(t => `<li>${t}</li>`).join("")}</ul></div>`).join("");
+  $("#guideSpecial").innerHTML = GUIDE_SPECIAL.map(c => `<div class="gcmp gone"><div class="gpair one">${c.img ? guideCard(...c.img) : guideCard("", "", c.label, c.q)}</div>
+    <div><h4>${esc(c.title)}</h4><ul class="guide-list">${c.tells.map(t => `<li>${t}</li>`).join("")}</ul></div></div>`).join("");
+}
+document.addEventListener("click", e => { const a = e.target.closest(".guide-toc a"); if (!a) return; e.preventDefault();
+  const el = document.querySelector(a.getAttribute("href")), head = document.querySelector("header");
+  if (el) window.scrollTo({top: el.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 10, behavior: "smooth"}); });
 // ---------------------------------------------------------------- AI audit (collection/ai_audit.csv)
 // Go through what the AI photo checker decided, mark what it got right or wrong. Every audit:
 //  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
@@ -2733,6 +2872,7 @@ function switchTab(name){
   if (name === "col" && typeof loadCOL === "function") loadCOL();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "audit" && !READONLY) renderAudit();
+  if (name === "guide") renderGuide();
   if (name === "settings" && !READONLY){ if (!FB.loaded) loadFB(); else renderReasonEditor(); }
 }
 document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => { if (b.dataset.tab === "detail" && S.selected) showDetail(S.selected); else switchTab(b.dataset.tab); }));
