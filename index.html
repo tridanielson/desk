@@ -356,7 +356,7 @@ select option{background:var(--panel);color:var(--ink)}
     <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - ending soonest</option><option value="bin">Buy It Now only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + ungraded</option><option value="raw">Ungraded only</option><option value="graded">Graded only</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
-    <span class="status" id="dCount"></span>
+    <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
   </div>
   <div class="panel scroll"><div class="tiles" id="dealsTiles"><p class="empty">Loading deals…</p></div><table id="dealsTable" class="desk-table"><tr><td class="empty">Loading deals…</td></tr></table></div>
 </section>
@@ -1350,7 +1350,7 @@ function renderDeals_(){
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => dealCompare(a, b) || (!DSORT.k && $("#dType") && $("#dType").value === "auction" ? endAt(a) - endAt(b) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
-  $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows;
+  $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% off</th><th class="r nosort">Price + ship</th><th class="nosort">Condition</th><th class="r nosort">Fair value</th><th class="nosort hide-sm">Type / ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Rate</th></tr></thead><tbody>` +
@@ -1364,6 +1364,17 @@ function renderDeals_(){
 }
 const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
+// which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
+const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
+function showActiveFilters(){
+  const box = $("#dActive"); if (!box) return;
+  const on = DEAL_FILTERS.filter(s => { const el = $(s); if (!el || el.hidden) return false; return el.type === "checkbox" ? el.checked : String(el.value) !== (DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : "")); })
+    .map(s => { const el = $(s); return el.type === "checkbox" ? (el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : `last ${el.value} days`; });
+  box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show all</a>` : "";
+  if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
+    DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
+    store.set("pd_dealfilters", "{}"); renderDeals(); });
+}
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
   renderDeals();
