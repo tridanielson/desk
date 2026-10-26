@@ -366,7 +366,7 @@ select option{background:var(--panel);color:var(--ink)}
     <div class="row" style="justify-content:space-between"><b>How eBay Deals Works</b><button class="btn ghost small" id="dHowOk" type="button">Got It</button></div>
     <ol>
       <li><b>Deals come in by themselves.</b> The ⚡ sniper checks brand-new listings every minute and a full scan runs every 3 hours. The best ones also send a phone alert.</li>
-      <li><b>Tap Review on a deal</b> to tell it: right edition? real condition? good deal? bought it? One save teaches everything - your filters, the AI checker and the training data.</li>
+      <li><b>Tap Review on a deal</b> to tell it: right card? real condition? should it have shown this? bought it? One save teaches everything - your filters, the AI checker and the training data.</li>
       <li><b>Review Queue</b> (tab) goes through deals one after another. The score at the top shows how accurate the AI is.</li>
       <li><b>Tags</b> explain a deal at a glance: NEED (a set you're completing), below buylist, 💎 mislabeled bargain, too cheap?, ended. Hover or tap a tag to read what it means.</li>
       <li><b>More Filters</b> has everything else. The line next to the deal count shows which filters are on.</li>
@@ -860,7 +860,7 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("feedback")){ S.dirty.delete("feedback");
       FB.sha = await putIfChanged("collection/deal_feedback.csv", toCSV(FB_COLS, FB.rows), FB.sha, "Deal reviews (Price Desk)"); }
     if (S.dirty.has("elsewhere")){ S.dirty.delete("elsewhere");
@@ -1379,7 +1379,7 @@ function qualityHTML(d){
   return h;
 }
 // ---- your feedback on deals (collection/deal_feedback.csv) - teaches the scanner + sniper
-const FB_COLS = ["at", "url", "card", "key", "seller", "verdict", "reason", "note", "title"];
+const FB_COLS = ["at", "url", "card", "key", "seller", "verdict", "reason", "note", "title", "fault"];
 const SMALL_W = new Set(["a", "an", "and", "as", "at", "but", "by", "for", "in", "of", "on", "or", "the", "to", "vs"]);
 const titleCase = t => String(t || "").split(" ").map((w, i, arr) => !w || /[A-Z]/.test(w.slice(1)) || (i && i < arr.length - 1 && SMALL_W.has(w.toLowerCase())) ? w : w[0].toUpperCase() + w.slice(1)).join(" ");
 const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller" ? "Seller - Block Them" : titleCase(r.label)}`]);
@@ -1836,14 +1836,14 @@ const fbLast = d => FB.rows.filter(r => r.url === d.url && ["good", "bad", "note
 function reviewedState(d){
   const f = fbLast(d), a = AUD.rows[d.url], c = DC.map[d.url];
   if (!f && !a && !c) return null;
-  return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason))};
+  return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
 function reviewBtnHTML(d, tile){
   if (READONLY || !FB.loaded) return "";
   const st = reviewedState(d), tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
   const bought = boughtFor(d) ? `<span class="badge b-on" title="You bought this - it's in Collection as Ordered">🛒 BOUGHT</span> ` : "";
-  if (!st) return `${bought}<${tag} class="btn small rv" data-review="${esc(d.url)}" title="Right edition? Condition? Good deal? - one save teaches everything">Review</${end}>`;
-  const icons = st.wrongEd ? "✕ Wrong Card" : (st.good === "good" ? "👍" : st.good === "bad" ? "👎" : "") + (st.cond ? " " + st.cond : "");
+  if (!st) return `${bought}<${tag} class="btn small rv" data-review="${esc(d.url)}" title="Right card? Condition? Should it have shown this? - one save teaches everything">Review</${end}>`;
+  const icons = st.wrongEd ? (st.fault === "app" ? "✕ App Mismatch" : "✕ Seller Mislabeled") : (st.good === "good" ? "👍" : st.good === "bad" ? "👎" : "") + (st.cond ? " " + st.cond : "");
   return `${bought}<${tag} class="btn ghost small rv done" data-review="${esc(d.url)}" title="You reviewed this - tap to change">✓ ${esc(icons.trim() || "Reviewed")}</${end}>`;
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-review]"); if (!b) return; e.preventDefault(); e.stopPropagation();
@@ -1856,7 +1856,8 @@ function reviewStart(d){
   const f = fbLast(d), a = AUD.rows[d.url] || {}, c = DC.map[d.url];
   return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition || ""), condition: c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
     good: f && f.verdict === "good" ? "up" : f && f.verdict === "bad" ? "down" : a.verdict === "ok" ? "up" : a.verdict === "reject" ? "down" : "",
-    reason: f && f.verdict === "bad" ? (f.reason || "") : "", bought: false};
+    reason: f && f.verdict === "bad" ? (f.reason || "") : "", bought: false,
+    fault: (f && f.fault) || a.fault || "", cfault: c ? (c.fault || "seller") : ""};
 }
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
@@ -1874,23 +1875,31 @@ function reviewHTML(d, mode){
       <div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}<div class="mut" style="font-size:12px">What it should be${c.sn ? ": " + esc(c.sn) : ""}</div></div>
     </div>
     ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
-      <button class="btn small" id="rvAIok" type="button" style="margin-top:6px">✓ AI Got It Right <span class="mut hide-sm">(Y)</span></button></div>` : ""}
+      <button class="btn small" id="rvAIok" type="button" style="margin-top:6px">✓ AI Got It Right <span class="mut hide-sm">(Y)</span></button></div>`
+      : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"], ["edition", "Wrong Edition / Reprint"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]])}</div>
+    <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Whose Mistake?</span>${seg("fault", [["seller", "The Seller's Listing Is Wrong"], ["app", "The App Matched It Wrong"]])}</div>
+    <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
     <div id="rvRest"${isWrong(s.edition) ? " hidden" : ""}>
-    <div class="aud-q"><span>Condition</span>${seg("condition", (d._graded ? [] : COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`])).concat([["unclear", d._graded ? "Graded Slab" : "Can't Tell"]]))}</div>
-    <div class="aud-q"><span>Good Deal?</span>${seg("good", [["up", "👍 Yes"], ["down", "👎 No"], ["", "Skip"]])}</div>
+    ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
+      : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+        <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Whose Mistake?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["app", "The App Misread the Listing"]])}</div>`}
+    <div class="aud-q"><span>Should It Have Shown This?</span>${seg("good", [["up", "👍 Yes - Real Deal"], ["down", "👎 No"], ["", "Skip"]])}</div>
     <div class="aud-q" id="rvReasonRow"${s.good === "down" ? "" : " hidden"}><span>Why Not?</span><div class="seg" data-k="reason">${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" id="rvWhyHint" style="font-size:12px;margin-top:2px"${s.good === "down" ? "" : " hidden"}>Optional. If it's the condition, just change the condition above - that's recorded as the reason.</div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
-    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Why? (required if you change the condition) · Or a rule, e.g. 'skip signed copies', 'never over $400 for this card'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
+    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Why? (required if you change the condition) · For an app mistake, say how to tell (e.g. 'Commander Legends is not Legends') · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
     ${condGuideHTML()}`;
 }
 function wireReview(root, d, done){
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
     if (sg.dataset.k === "good"){ root.querySelector("#rvReasonRow").hidden = b.dataset.v !== "down"; root.querySelector("#rvWhyHint").hidden = b.dataset.v !== "down"; }
-    if (sg.dataset.k === "edition") root.querySelector("#rvRest").hidden = isWrong(b.dataset.v);   // wrong card: condition and deal questions don't apply
+    if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w;   // wrong card: condition and deal questions don't apply
+      root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
+    if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
+      row.hidden = !changed; if (changed && !RV.sel.cfault){ RV.sel.cfault = "seller"; row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== "seller")); } } }
   }));
   const ai = root.querySelector("#rvAIok");
   if (ai) ai.addEventListener("click", () => {
@@ -1904,7 +1913,9 @@ function wireReview(root, d, done){
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
   sel = Object.assign({}, sel);
-  if (isWrong(sel.edition)){ sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
+  if (isWrong(sel.edition)){
+    if (!sel.fault && !agreeAI){ toast("Whose mistake was it - the seller's listing, or the app's match?", 4500); return; }
+    sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
@@ -1914,11 +1925,12 @@ function saveReview(d, sel, note, done, agreeAI){
   const verdict = sel.good === "up" ? "good" : sel.good === "down" ? "bad" : (note && !condChanged && !agreeAI ? "note" : "");
   const last = fbLast(d), fbNote = condChanged || agreeAI ? "" : note;
   if (verdict && !(last && last.verdict === verdict && (last.reason || "") === (sel.reason || "") && (last.note || "") === fbNote)){
-    FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150)});
+    FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
+      fault: isWrong(sel.edition) ? (sel.fault || "seller") : (sel.reason === "condition" ? (sel.cfault || "seller") : sel.reason === "price" ? "app" : "")});
     markDirty("feedback");
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
-  if (condChanged) DC.map[d.url] = {c: sel.condition, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || ""};
+  if (condChanged) DC.map[d.url] = {c: sel.condition, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: sel.cfault || "seller"};
   else if (sel.condition === listed && DC.map[d.url]) delete DC.map[d.url];
   if (DC.loaded && (condChanged || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
@@ -1926,11 +1938,12 @@ function saveReview(d, sel, note, done, agreeAI){
     AUD.rows[d.url] = {url: d.url, card: d.card, at, ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(), ai_model: d.ai_model || "",
       ai_reason: (d.ai_reason || "").slice(0, 200), verdict: sel.good === "up" ? "ok" : sel.good === "down" ? "reject" : "",
       edition: isWrong(sel.edition) ? "wrong" : (sel.edition || ""), condition: sel.condition || "",
-      note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""), title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted"};
+      note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
+      fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted"};
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
-  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : sel.reason === "edition" ? "this card now needs a photo check before a loud alert; hidden after the next scan" : "hidden after the next scan / Apply My Ratings") : verdict === "good" ? "noted as a good deal" : "",
+  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden after the next scan" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden after the next scan" : "hidden after the next scan / Apply My Ratings") : verdict === "good" ? "noted as a good deal" : "",
     condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule on the next scan" : ""].filter(Boolean).join(" · ");
   toast("Saved" + (msg ? " - " + msg : "") + ".", 4000);
   renderDeals(); if (done && done.after) done.after();
@@ -1949,7 +1962,7 @@ function openReview(d){
 //  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
 //  - becomes a labelled example for a future custom model (training.py)
 //  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
-const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how"];
+const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
   ["MP", "Moderately Played", "Clear wear: surface marks, edge wear, light creases or bends; still structurally sound."],
@@ -2060,10 +2073,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
 });
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
-const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note"];
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault"];
 const DC = {map: {}, sha: null, loaded: false};
 function loadDC(x){
-  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note}; }); }catch(e){}
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault}; }); }catch(e){}
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
