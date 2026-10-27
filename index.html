@@ -2304,7 +2304,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetIdx >
 
 // ---------------------------------------------------------------- Secret Lair
 const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", data: null, upcoming: [], upSha: null, loading: false, error: "", detail: null, status: "", q: "", sort: "new", limit: 120, editing: false};
-const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link"];
+const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image"];
 const sfImg = (sid, size) => sid ? `https://cards.scryfall.io/${size || "large"}/front/${sid[0]}/${sid[1]}/${sid}.${size === "png" ? "png" : "jpg"}` : "";
 const azFmt = (v, o) => v ? new Date(v).toLocaleString("en-US", Object.assign({timeZone: "America/Phoenix"}, o)) : "";
 function slDate(d, withYear){
@@ -2326,7 +2326,8 @@ function slStatusBadge(d){
 function slMins(m){ return m < 90 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} hr` : `${Math.round(m / 1440)} days`; }
 function slCover(d){
   const c = d.cards && d.cards[0]; if (c) return {src: sfImg(c.sid, "normal"), wide: false};
-  const st = (d.store || []).find(p => p.images && p.images.length); return st ? {src: st.images[0], wide: true} : {src: "", wide: false};
+  const st = (d.store || []).find(p => p.images && p.images.length); if (st) return {src: st.images[0], wide: true};
+  return d.teaser && d.teaser.length ? {src: d.teaser[0], wide: true} : {src: "", wide: false};   // Coming Soon teaser (store homepage or your Picture)
 }
 const roi = (v, r) => v != null && r ? Math.round((v / r - 1) * 100) : null;
 async function loadSL(force){
@@ -2424,6 +2425,8 @@ function renderSLDetail(){
       comps.map(c => `<tr class="${c.drop ? "click" : ""}" data-bdrop="${esc(c.drop || "")}"><td>${esc(c.name)}${c.drop && names.get(c.drop) && names.get(c.drop) !== c.name ? ` <span class="mut">(${esc(names.get(c.drop))})</span>` : ""}</td><td class="r">${c.n}</td><td class="r">${c.unit_value == null ? "–" : (c.approx ? "≈ " : "") + money(c.unit_value)}</td></tr>`).join("") +
       `</tbody></table></div><p class="mut" style="font-size:12px">${myB.map(l => `You ordered ×${l.qty} on ${esc(l.date || "")} · paid ${money(l.cost)} · worth ${l.value == null ? "–" : money(l.value)}`).join("<br>")}</p>`;
   }
+  if (!d.cards.length && !st.some(p => p.images && p.images.length) && d.teaser && d.teaser.length)   // announced, not listed yet: show the teaser
+    L += `<h3 style="font-size:16px;margin:8px 0 10px">Teaser</h3><a href="${esc(d.teaser[0])}" target="_blank" rel="noopener"><img src="${esc(d.teaser[0])}" alt="" style="width:100%;max-width:900px;border-radius:12px;display:block" onerror="this.remove()"></a>`;
   if (d.cards.length){
     L += `<h3 style="font-size:16px;margin:8px 0 10px">Cards (${d.cards.length})</h3><div class="sl-cards">` + d.cards.map(c => `<figure>
       <img src="${esc(sfImg(c.sid, "large"))}" data-full="${esc(sfImg(c.sid, "png"))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
@@ -2503,16 +2506,16 @@ function wireSLOrders(){
 }
 function slEditorHTML(){
   return `<div class="panel sl-edit"><b>Upcoming drops you know about</b><p class="mut" style="margin:4px 0 10px;font-size:13px">For drops announced on X or by Wizards before the store lists them. Once the official store lists a drop, its time wins. Times are Arizona time.</p>
-    <div class="scroll"><table><thead><tr><th class="nosort">Drop Name</th><th class="nosort">On-Sale Date</th><th class="nosort">Time</th><th class="nosort">Notes</th><th class="nosort">Link</th><th class="nosort"></th></tr></thead><tbody>
+    <div class="scroll"><table><thead><tr><th class="nosort">Drop Name</th><th class="nosort">On-Sale Date</th><th class="nosort">Time</th><th class="nosort">Notes</th><th class="nosort">Link</th><th class="nosort" title="Teaser picture address - e.g. right-click the image in the @SecretLair post on X → Copy image address">Picture</th><th class="nosort"></th></tr></thead><tbody>
     ${SL.upcoming.map((r, i) => `<tr><td><input data-i="${i}" data-f="name" value="${esc(r.name)}" style="min-width:200px"></td><td><input data-i="${i}" data-f="on_sale_date" type="date" value="${esc(r.on_sale_date)}"></td>
       <td><input data-i="${i}" data-f="on_sale_time" value="${esc(r.on_sale_time)}" placeholder="9:00 AM" style="width:90px"></td><td><input data-i="${i}" data-f="notes" value="${esc(r.notes)}"></td>
-      <td><input data-i="${i}" data-f="link" value="${esc(r.link)}" placeholder="https://"></td><td><button class="btn ghost small" data-del-up="${i}">Delete</button></td></tr>`).join("")}
-    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add Drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh now).</span></div></div>`;
+      <td><input data-i="${i}" data-f="link" value="${esc(r.link)}" placeholder="https://"></td><td><input data-i="${i}" data-f="image" value="${esc(r.image || "")}" placeholder="image address (optional)"></td><td><button class="btn ghost small" data-del-up="${i}">Delete</button></td></tr>`).join("")}
+    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add Drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh Now). Teaser pictures from the store's Coming Soon section are picked up by themselves; add one under Picture for drops only teased on X (right-click the image → Copy image address).</span></div></div>`;
 }
 function wireSLEditor(){
   document.querySelectorAll(".sl-edit input[data-i]").forEach(el => el.addEventListener("change", () => { SL.upcoming[+el.dataset.i][el.dataset.f] = el.value.trim(); markDirty("upcoming"); }));
   document.querySelectorAll("[data-del-up]").forEach(b => b.addEventListener("click", () => { SL.upcoming.splice(+b.dataset.delUp, 1); markDirty("upcoming"); renderSL(); }));
-  $("#slAddUp").addEventListener("click", () => { SL.upcoming.push({name: "", on_sale_date: "", on_sale_time: "9:00 AM", notes: "", link: ""}); renderSL(); });
+  $("#slAddUp").addEventListener("click", () => { SL.upcoming.push({name: "", on_sale_date: "", on_sale_time: "9:00 AM", notes: "", link: "", image: ""}); renderSL(); });
 }
 
 // ---------------------------------------------------------------- Collection + received marks
