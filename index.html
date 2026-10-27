@@ -333,7 +333,7 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:25 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:42 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -820,7 +820,7 @@ new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = se
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
 const BUSY_TEXT = {loadAll: "Loading prices and deals… (the first load can take 10-20 seconds)", loadSecretLair: "Loading Secret Lair…",
-  readFiles: "Loading…", saveFile: "Saving to GitHub…", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…"};
+  readFiles: "Loading…", saveFile: "", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…"};
 function busy(on, fn){
   if (on){ BUSY.n++; BUSY.labels.push(fn); } else { BUSY.n = Math.max(0, BUSY.n - 1); const i = BUSY.labels.indexOf(fn); if (i >= 0) BUSY.labels.splice(i, 1); }
   clearTimeout(BUSY.t);
@@ -2012,9 +2012,8 @@ function reviewHTML(d, mode){
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Whose Mistake?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["app", "The App Misread the Listing"]])}</div>`}
-    <div class="aud-q"><span>Should It Have Shown This?</span>${seg("good", [["up", "👍 Yes - Real Deal"], ["down", "👎 No"], ["", "Skip"]])}</div>
-    <div class="aud-q" id="rvReasonRow"${s.good === "down" ? "" : " hidden"}><span>Why Not?</span><div class="seg" data-k="reason">${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
-    <div class="mut" id="rvWhyHint" style="font-size:12px;margin-top:2px"${s.good === "down" ? "" : " hidden"}>Optional. If it's the condition, just change the condition above - that's recorded as the reason.</div>
+    <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason"><button type="button" class="btn small${s.reason ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Why? (required if you change the condition) · For an app mistake, say how to tell (e.g. 'Commander Legends is not Legends') · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
@@ -2023,7 +2022,6 @@ function reviewHTML(d, mode){
 function wireReview(root, d, done){
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
-    if (sg.dataset.k === "good"){ root.querySelector("#rvReasonRow").hidden = b.dataset.v !== "down"; root.querySelector("#rvWhyHint").hidden = b.dataset.v !== "down"; }
     if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w;   // wrong card: condition and deal questions don't apply
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
@@ -2046,6 +2044,11 @@ function saveReview(d, sel, note, done, agreeAI){
     sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
+  if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
+    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, f1 = (d._f0 || +d.fair) / cm0 * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition));
+    const disc1 = f1 > 0 ? (f1 - (+d.total || 0)) / f1 * 100 : 0, need = +((S.ini.deals || {}).default_deal_pct) || 20;
+    sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || (condChanged && disc1 < need)) ? "" : "up";
+  }
   const aiC0 = String(d.ai_condition || "").toUpperCase();
   if (condChanged && !note && sel.condition === aiC0) note = "Agreed with the AI: " + (d.ai_reason || "");
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
@@ -2075,9 +2078,11 @@ function saveReview(d, sel, note, done, agreeAI){
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
   const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now" : "hidden now") : verdict === "good" ? "noted as a good deal" : "",
-    condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule on the next scan" : ""].filter(Boolean).join(" · ");
-  toast("Saved" + (msg ? " - " + msg : "") + ".", 4000);
-  renderDeals(); if (done && done.after) done.after();
+    condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
+  renderDeals();
+  const nd = S.deals.find(x => x.url === d.url);
+  toast("Saved" + (msg ? " - " + msg : "") + (nd && nd._notDeal ? ` · at ${nd.condition} it's worth about ${money(nd.fair)}, so it's not a deal any more - moved to Hidden` : "") + ".", 5000);
+  if (done && done.after) done.after();
   if (bought) setTimeout(() => openBought(d), 150);
 }
 function openReview(d){
@@ -3455,7 +3460,7 @@ function autoLearn(){
   clearTimeout(LEARN.t); learnStatus("Rules: updating in a moment…");
   LEARN.t = setTimeout(async () => {
     LEARN.running = true; LEARN.again = false; learnStatus("Rules: updating…");
-    try{ await GH.runWorkflow("learn"); watchRun("learn", true); }
+    try{ await rawServer("runWorkflow", AUTH.token, "learn"); watchRun("learn", true); }
     catch(e){ LEARN.running = false; learnStatus("Rules: couldn't start the update - " + e.message); }
   }, 20000);
 }
