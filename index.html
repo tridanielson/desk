@@ -1253,6 +1253,15 @@ function langOf(d){
   const hit = LANG_WORDS.find(([, re]) => re.test(d.title || ""));
   return d._lang = hit ? hit[0] : "";
 }
+// clean eBay link: no search-tracking junk, keeps the chosen variation, and nordt=true so an ended listing shows
+// the original page instead of eBay redirecting to "similar items"
+function ebayLink(d){
+  const u = String((d && d.url) || "");
+  if (!/^https:\/\/(www\.)?ebay\.com\//.test(u)) return "#";
+  const m = u.match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/); if (!m) return u;
+  const v = (u.match(/[?&]var=(\d+)/) || [])[1];
+  return `https://www.ebay.com/itm/${m[1]}?nordt=true${v ? "&var=" + v : ""}`;
+}
 const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
   if ((isEnded(d) || (FB.loaded && boughtFor(d))) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now
@@ -1500,7 +1509,7 @@ function renderDeals_(){
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}. You've marked this seller's condition down before.">⬇ seller overstates</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
-      <td><a href="${esc(/^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#")}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
+      <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   wireFB(t, rows);
 }
@@ -1873,7 +1882,7 @@ function reviewStart(d){
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, mode === "queue" ? 6 : 3);
-  const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#", aiC = String(d.ai_condition || "").toUpperCase();
+  const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = reviewStart(d), listed = String(d._c0 || d.condition || "").replace("?", " (not stated)");
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
@@ -2251,7 +2260,7 @@ function renderDealsTiles(){
   const rows = S._dealRows || [], box = $("#dealsTiles");
   if (!rows.length){ box.innerHTML = `<p class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet."}</p>`; return; }
   box.innerHTML = rows.slice(0, 300).map(d => {
-    const url = /^https:\/\/(www\.)?ebay\.com\//.test(d.url) ? d.url : "#";
+    const url = ebayLink(d);
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
