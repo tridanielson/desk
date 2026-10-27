@@ -395,7 +395,7 @@ select option{background:var(--panel);color:var(--ink)}
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + Unsigned</option><option value="hide">Hide Signed</option><option value="only">Signed Only</option></select>
     <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top Picks Only</label>
     <label><input type="checkbox" id="dUSA"> USA Sellers Only</label>
-    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended</label>
+    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended &amp; Bought</label>
     <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     </div>
@@ -1254,7 +1254,7 @@ function langOf(d){
 }
 const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
-  if (isEnded(d) && !($("#dEnded") && $("#dEnded").checked)) return false;
+  if ((isEnded(d) || (FB.loaded && boughtFor(d))) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now
   const lg = $("#dLang") ? $("#dLang").value : "";
   if (lg === "en" && langOf(d)) return false;
   if (lg === "foreign" && !langOf(d)) return false;
