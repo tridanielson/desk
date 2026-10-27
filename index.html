@@ -1305,7 +1305,7 @@ document.addEventListener("click", e => { if (SF_HOVER) return; const a = e.targ
 // colour-coded reason a deal was hidden (ratings, rules, blocked seller, wrong card, damage, AI)
 // ---- reason categories (collection/reasons.csv - edit them under Settings) + who caught it
 const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition / reprint","#6b3fa0"],
-  ["condition","🩹","Condition","#b45309"],["fake","❌","Not authentic","#b3261e"],["lot","📦","Not a single card","#7a5c2e"],["verify","📷","Can't verify","#5f6b7a"],
+  ["condition","🩹","Condition","#b45309"],["fake","❌","Not authentic","#b3261e"],["lot","📦","Not a single card","#7a5c2e"],["stock","🖼️","Stock photo","#4b6584"],["verify","📷","Can't verify","#5f6b7a"],
   ["price","💲","Price","#1f7a4d"],["seller","🚫","Seller","#c2410c"],["prefs","⚙️","Your preferences","#a0136b"],["other","❔","Other","#6f6a5f"]]
   .map(([key, icon, label, color]) => ({key, icon, label, color, keywords: ""}));
 const RS = {list: DEFAULT_REASONS, sha: null};
@@ -1926,7 +1926,8 @@ function saveReview(d, sel, note, done, agreeAI){
   const last = fbLast(d), fbNote = condChanged || agreeAI ? "" : note;
   if (verdict && !(last && last.verdict === verdict && (last.reason || "") === (sel.reason || "") && (last.note || "") === fbNote)){
     FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
-      fault: isWrong(sel.edition) ? (sel.fault || "seller") : (sel.reason === "condition" ? (sel.cfault || "seller") : sel.reason === "price" ? "app" : "")});
+      fault: isWrong(sel.edition) ? (sel.fault || "seller") : sel.reason === "condition" ? (sel.cfault || "seller") : sel.reason === "price" ? "app"
+        : ["stock", "verify", "lot", "language", "seller"].includes(sel.reason) ? "seller" : ""});
     markDirty("feedback");
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
