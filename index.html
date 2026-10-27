@@ -334,7 +334,7 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:06 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:07 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -850,6 +850,7 @@ async function startApp(){
     await loadAll(); $("#signOutBtn").hidden = false;
     const t1 = savedTab();
     switchTab(tabOK(t1) ? t1 : "mine");
+    openDealFromHash();
   }catch(e){
     if (/Please sign in/.test(e.message)) return;
     switchTab("connect"); $("#connStatus").textContent = e.message; $("#updated").textContent = "Not connected";
@@ -1999,6 +2000,7 @@ function reviewHTML(d, mode){
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition)) || 1;
   const nm = (String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || []), vars = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s === nm[2] && (c.f || "nonfoil") === "nonfoil") : [];
   return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · condition <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
+      <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a></div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
       <div>${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
@@ -2024,6 +2026,29 @@ function reviewHTML(d, mode){
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Why? (required if you change the condition) · For an app mistake, say how to tell (e.g. 'Commander Legends is not Legends') · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
     ${condGuideHTML()}`;
 }
+// Troubleshooting: everything about a deal in one block to paste to Claude, plus a link that opens it on the desk
+const itemId = d => (String(d.url || "").match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/) || [])[1] || "";
+function dealDetails(d){
+  const e = DC.map[d.url] || {}, f = (FB.rows || []).filter(r => r.url === d.url).slice(-3), a = AUD.rows[d.url];
+  return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
+    `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
+    `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
+    `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
+    `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
+    `My reviews: ${f.length ? f.map(r => `${r.at} ${r.verdict}${r.reason ? " (" + r.reason + ")" : ""}${r.note ? ' "' + r.note + '"' : ""}`).join(" | ") : "none"}${a ? ` · audit: edition ${a.edition || "?"}, condition ${a.condition || "?"}${a.fault ? ", " + a.fault + "'s mistake" : ""}` : ""}`,
+    `Page version: ${($("#pageVer") || {}).textContent || "?"}`].join("\n");
+}
+document.addEventListener("click", e => { const b = e.target.closest(".rv-copy, [data-copydeal]"); if (!b) return; e.preventDefault();
+  const d = S.deals.find(x => x.url === (b.dataset.copy || b.dataset.copydeal)); if (d) copyText(dealDetails(d), "Copied - paste it into your chat with Claude."); });
+function openDealFromHash(){
+  const m = (location.hash || "").match(/^#deal=(\d{9,})/); if (!m || READONLY) return false;
+  const d = S.deals.find(x => itemId(x) === m[1]);
+  if (!d){ toast(`Deal ${m[1]} isn't in the last few days of logged deals.`, 6000); return true; }
+  switchTab("deals"); const go = () => FB.loaded ? openReview(d) : setTimeout(go, 400); go(); return true;
+}
+window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
