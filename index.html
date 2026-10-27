@@ -933,6 +933,10 @@ async function saveAll(){
   if (AUTOSAVE.busy){ AUTOSAVE.again = true; return; }
   if (!S.dirty.size) return;
   AUTOSAVE.busy = true; const p = $("#pending"); p.hidden = false; p.dataset.state = "saving"; p.textContent = "Saving…";
+  const want = new Set(S.dirty), done = new Set();   // on an error, retry only what was actually waiting to save
+  if (!COL.loaded) S.dirty.delete("collection");      // never write files this page hasn't loaded
+  if (!(SL.upcoming && SL.upcoming.length) && !SL.upSha) S.dirty.delete("upcoming");
+  const ok0 = S.dirty.delete.bind(S.dirty); S.dirty.delete = f => { done.add(f); return ok0(f); };
   try{
     if (S.dirty.has("watchlist")){ S.dirty.delete("watchlist");
       S.watchSha = await putIfChanged("watchlist.csv", toCSV(S.watchCols, S.watch.filter(w => (w.name || "").trim())), S.watchSha, "Update watchlist (Price Desk)"); }
@@ -960,9 +964,12 @@ async function saveAll(){
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
   }catch(e){
-    ["watchlist", "rules", "settings", "collection", "upcoming", "dealcond", "audit", "elsewhere", "feedback"].filter(f => (f !== "dealcond" || DC.loaded) && (f !== "audit" || AUD.loaded) && (f !== "elsewhere" || EW.loaded) && (f !== "feedback" || FB.loaded)).forEach(f => S.dirty.add(f));   // try again next time
-    p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; toast("Couldn't save: " + e.message, 7000);
+    const failed = [...done].filter(f => want.has(f)).pop();   // the file that was saving when it failed
+    [...want].filter(f => f === failed || !done.has(f) || S.dirty.has(f)).forEach(f => S.dirty.add(f));   // try again next time
+    AUTOSAVE.err = e.message;
+    p.dataset.state = "error"; p.textContent = "Couldn't save - tap to retry"; p.title = e.message; toast("Couldn't save: " + e.message, 9000);
   }
+  delete S.dirty.delete;
   AUTOSAVE.busy = false;
   if (AUTOSAVE.again){ AUTOSAVE.again = false; saveAll(); }
 }
@@ -3296,7 +3303,7 @@ async function loadAll(){
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
 }
 $("#saveBtn").addEventListener("click", () => saveAll());
-$("#pending").addEventListener("click", () => { if ($("#pending").dataset.state === "error") saveAll(); });
+$("#pending").addEventListener("click", () => { if ($("#pending").dataset.state === "error"){ if (AUTOSAVE.err) toast("Last error: " + AUTOSAVE.err + " - retrying…", 6000); saveAll(); } });
 // Buttons that use eBay searches or AI credits ask first, with today's numbers
 function costConfirm(title, lines, okLabel){
   return new Promise(res => {
