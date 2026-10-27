@@ -272,7 +272,7 @@ select option{background:var(--panel);color:var(--ink)}
 #nav{gap:0}#nav button{padding:5px 10px;font-size:13px;border-radius:0;border-bottom:2px solid transparent}
 #nav button.on{background:none;color:var(--accent);border-bottom-color:var(--accent)}
 #nav.single{display:none}
-body:not(.ui-ready) #nav button:not([data-tab="mine"]),body:not(.ui-ready) #navGroups button:not([data-group="prices"]){visibility:hidden}
+body:not(.ui-ready) #nav button:not(.pre){display:none}
 .hero{position:relative;height:118px;overflow:hidden;background:#1a140e;color:#fff;display:flex;align-items:flex-end}
 .hero-art{position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity .6s;transform:scale(1.04)}
 .hero-art.in{opacity:1}
@@ -329,13 +329,19 @@ body:not(.ui-ready) #nav button:not([data-tab="mine"]),body:not(.ui-ready) #navG
 </header>
 
 <div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT">Prices</div><div class="hero-s" id="heroS">What your cards are worth today, and where they are heading.</div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
+<script>(function(){try{var G={mine:"prices",all:"prices",detail:"prices",rules:"prices",deals:"deals",audit:"deals",col:"mine",sets:"mine",sl:"mine",guide:"guide",settings:"setup",connect:"setup"};
+var h=(location.hash||"").slice(1),t=G[h]?h:(localStorage.getItem("pd_tab")||"mine"),g=G[t]||"prices";
+document.querySelectorAll("#nav button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" pre";if(b.getAttribute("data-tab")===t)b.className+=" on";else b.className=b.className.replace(/\bon\b/,"");});
+document.querySelectorAll("#navGroups button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" on";});
+var T={prices:["Prices","What your cards are worth today, and where they are heading."],deals:["Deals","Underpriced eBay listings, checked by the scanner and an AI photo check."],mine:["My Cards","Your collection, the sets you are completing, and Secret Lair drops."],guide:["ID & Fake Guide","Spot fakes and proxies, and tell look-alike editions apart."],setup:["Settings","Deal rules, alerts, fees - and connection status."]}[g];
+if(T){document.getElementById("heroT").textContent=T[0];document.getElementById("heroS").textContent=T[1];}}catch(e){}})();</script>
 <main>
 <!-- CONNECT -->
 <section class="tab" id="tab-connect">
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:37 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:40 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
