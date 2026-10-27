@@ -1840,9 +1840,9 @@ function renderServerCode(){
     : behind ? `<b class="stale">⚠ Update available</b> - running <b>${esc(st.running)}</b>, latest is <b>${esc(st.latest)}</b>.`
     : `✓ Up to date (version ${esc(st.running)}).`;
   box.innerHTML = `<p style="margin:6px 0">${status}</p>
-    <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st ? "" : "disabled"}>Update Now</button>
+    <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st && (behind || !st.running) ? "" : "disabled"} title="${st && !behind && st.running ? "Already running the latest version" : ""}">${st && !behind && st.running ? "Up to Date ✓" : "Update Now"}</button>
       <button class="btn ghost" id="srvCopy">Copy Latest Code.gs</button></div>
-    <p class="mut" style="font-size:12px;margin:6px 0 0"><b>Update now</b> replaces the code in Apps Script and redeploys it at the same address - it needs the one-time setup below.
+    <p class="mut" style="font-size:12px;margin:6px 0 0"><b>Update Now</b> replaces the code in Apps Script and redeploys it at the same address - it needs the one-time setup below.
       <b>Copy</b> works without setup: in Apps Script select all, paste, save, then Deploy → Manage deployments → ✏️ → New version → Deploy.</p>
     <details style="margin-top:8px"><summary><b>One-Time Setup for One-Tap Updates</b> (about 10 minutes)</summary>
       <ol style="font-size:13px">
@@ -1857,7 +1857,7 @@ function renderServerCode(){
         <li>Open <b>appsscript.json</b> in the editor and add this line after the first <code>{</code> (keep everything else):
           <pre class="srv-pre">${esc(SCOPES_JSON)},</pre><button class="btn ghost small" id="srvCopyScopes" type="button">Copy This</button></li>
         <li>Save. Pick <b>authorizeUpdates</b> in the function menu → <b>Run</b> → approve the permissions. (Gmail: "Google hasn't verified this app" → Advanced → Go to… - it's your own script.) The log should say <i>Ready</i>.</li>
-        <li>Come back here and tap <b>Update now</b>.</li>
+        <li>Come back here and tap <b>Update Now</b>.</li>
       </ol></details>`;
   $("#srvUpdate").addEventListener("click", updateServerNow);
   $("#srvCopy").addEventListener("click", copyLatestCode);
