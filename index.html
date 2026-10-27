@@ -211,6 +211,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .acct-tbl td{padding:6px 8px}.acct-tbl .btn{padding:4px 8px;font-size:12px}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
 .flag.must{background:#b3261e;color:#fff;font-weight:700}
+.var-pick .btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:4px}.var-pick img{width:62px;border-radius:4px}
 .near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
@@ -333,7 +334,7 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:44 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:50 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -953,8 +954,8 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || ""}))),
-        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault}; }), "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || ""}))),
+        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || ""}; }), "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("feedback")){ S.dirty.delete("feedback");
       FB.sha = await putMerged("collection/deal_feedback.csv", FB.sha, () => toCSV(FB_COLS, FB.rows),
         rows => { const have = new Set(FB.rows.map(r => r.at + "|" + r.url)); FB.rows = rows.filter(r => !have.has(r.at + "|" + r.url)).concat(FB.rows).sort((a, b) => (a.at || "").localeCompare(b.at || "")); }, "Deal reviews (Price Desk)"); }
@@ -1982,10 +1983,11 @@ function reviewStart(d){
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" && !isWrong(cat) && cat !== "condition" ? cat : "",
       bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? "seller" : "", fromAI: true};
   }
-  return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition || ""), condition: c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
+  if (c && c.v) return {edition: "variant", variant: c.v, condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, fault: "", cfault: c.c ? (c.fault || "seller") : ""};
+  return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition === "variant" ? "" : a.edition || ""), condition: c && c.c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
     good: f && f.verdict === "good" ? "up" : f && f.verdict === "bad" ? "down" : a.verdict === "ok" ? "up" : a.verdict === "reject" ? "down" : "",
-    reason: f && f.verdict === "bad" ? (f.reason || "") : "", bought: false,
-    fault: (f && f.fault) || a.fault || "", cfault: c ? (c.fault || "seller") : ""};
+    reason: f && f.verdict === "bad" && !isWrong(f.reason) && f.reason !== "condition" ? (f.reason || "") : "", bought: false,
+    fault: (f && f.fault) || a.fault || "", cfault: c && c.c ? (c.fault || "seller") : ""};
 }
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
@@ -1995,6 +1997,7 @@ function reviewHTML(d, mode){
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition)) || 1;
+  const nm = (String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || []), vars = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s === nm[2] && (c.f || "nonfoil") === "nonfoil") : [];
   return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · condition <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
@@ -2005,7 +2008,9 @@ function reviewHTML(d, mode){
     ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
-    <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"], ["edition", "Wrong Edition / Reprint"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]])}</div>
+    <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition / Reprint"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]]))}</div>
+    ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>Which One Is It?</span><div class="seg var-pick" data-k="variant">${vars.map(v => `<button type="button" class="btn small${s.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.n)} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>#${esc(v.num)} · ${v.p ? money(+v.p) : "no price"}</span></button>`).join("")}</div></div>
+      <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
     <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Whose Mistake?</span>${seg("fault", [["seller", "The Seller's Listing Is Wrong"], ["app", "The App Matched It Wrong"]])}</div>
     <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
     <div id="rvRest"${isWrong(s.edition) ? " hidden" : ""}>
@@ -2023,6 +2028,7 @@ function wireReview(root, d, done){
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
     if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w;   // wrong card: condition and deal questions don't apply
+      const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
       row.hidden = !changed; if (changed && !RV.sel.cfault){ RV.sel.cfault = "seller"; row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== "seller")); } } }
@@ -2039,15 +2045,17 @@ function wireReview(root, d, done){
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
   sel = Object.assign({}, sel);
+  if (sel.edition === "variant" && !sel.variant){ toast("Tap which art / version it really is.", 4000); return; }
   if (isWrong(sel.edition)){
     if (!sel.fault && !agreeAI){ toast("Whose mistake was it - the seller's listing, or the app's match?", 4500); return; }
     sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
-    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, f1 = (d._f0 || +d.fair) / cm0 * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition));
+    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, vv = sel.edition === "variant" && S.byKey.get(sel.variant);
+    const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition));
     const disc1 = f1 > 0 ? (f1 - (+d.total || 0)) / f1 * 100 : 0, need = +((S.ini.deals || {}).default_deal_pct) || 20;
-    sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || (condChanged && disc1 < need)) ? "" : "up";
+    sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || ((condChanged || vv) && disc1 < need)) ? "" : "up";
   }
   const aiC0 = String(d.ai_condition || "").toUpperCase();
   if (condChanged && !note && sel.condition === aiC0) note = "Agreed with the AI: " + (d.ai_reason || "");
@@ -2057,6 +2065,7 @@ function saveReview(d, sel, note, done, agreeAI){
   // 1. rating (hide / block seller / comment -> rule). A condition 'why' stays with the condition, not as a rule.
   const verdict = sel.good === "up" ? "good" : sel.good === "down" ? "bad" : (note && !condChanged && !agreeAI ? "note" : "");
   const last = fbLast(d), fbNote = condChanged || agreeAI ? "" : note;
+  if (last && last.verdict === "bad" && sel.good !== "down") FB.rows.push({at, url: d.url, card: d.card, key: "", seller, verdict: "unhide", reason: "", note: "re-reviewed", title: (d.title || "").slice(0, 150), fault: ""});
   if (verdict && !(last && last.verdict === verdict && (last.reason || "") === (sel.reason || "") && (last.note || "") === fbNote)){
     FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
       fault: isWrong(sel.edition) ? (sel.fault || "seller") : sel.reason === "condition" ? (sel.cfault || "seller") : sel.reason === "price" ? "app"
@@ -2064,9 +2073,10 @@ function saveReview(d, sel, note, done, agreeAI){
     markDirty("feedback");
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
-  if (condChanged) DC.map[d.url] = {c: sel.condition, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: sel.cfault || "seller"};
-  else if (sel.condition === listed && DC.map[d.url]) delete DC.map[d.url];
-  if (DC.loaded && (condChanged || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
+  const v0 = (DC.map[d.url] || {}).v || "", v1 = sel.edition === "variant" ? (sel.variant || "") : "";
+  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : "app"};
+  else if (DC.map[d.url]) delete DC.map[d.url];
+  if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
   if (sel.edition || sel.good || condChanged || COND_LIST.includes(sel.condition)){
     AUD.rows[d.url] = {url: d.url, card: d.card, at, ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(), ai_model: d.ai_model || "",
@@ -2077,8 +2087,8 @@ function saveReview(d, sel, note, done, agreeAI){
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
-  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now" : "hidden now") : verdict === "good" ? "noted as a good deal" : "",
-    condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
+  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now" : "hidden now") : verdict === "good" ? "still a deal" : "",
+    v1 ? `re-priced as #${(S.byKey.get(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
   renderDeals();
   const nd = S.deals.find(x => x.url === d.url);
   toast("Saved" + (msg ? " - " + msg : "") + (nd && nd._notDeal ? ` · at ${nd.condition} it's worth about ${money(nd.fair)}, so it's not a deal any more - moved to Hidden` : "") + ".", 5000);
@@ -2209,10 +2219,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
 });
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
-const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault"];
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant"];
 const DC = {map: {}, sha: null, loaded: false};
 function loadDC(x){
-  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && COND_LIST.includes(r.condition)) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault}; }); }catch(e){}
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && (COND_LIST.includes(r.condition) || r.variant)) DC.map[r.url] = {c: COND_LIST.includes(r.condition) ? r.condition : "", card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || ""}; }); }catch(e){}
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
@@ -2226,10 +2236,12 @@ function condCode(c){
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
   if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; }
-  const o = (DC.map[d.url] || {}).c;
-  if (!o || !d._f0){ d.fair = d._f0 || d.fair; d.discount_pct = d._p0; d.condition = d._c0; d.below_buylist = d._b0; d._adj = false; return; }
-  const fair = d._f0 / condMult(condCode(d._c0)) * condMult(o), tot = +d.total || 0;
-  d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o; d._adj = true;
+  const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? S.byKey.get(e.v) : null;
+  d._var = vc ? vc : null;
+  if ((!o && !vc) || !d._f0){ d.fair = d._f0 || d.fair; d.discount_pct = d._p0; d.condition = d._c0; d.below_buylist = d._b0; d._adj = false; return; }
+  const cNow = o || condCode(d._c0), base = vc && +vc.p ? +vc.p : d._f0 / condMult(condCode(d._c0));   // a different art/version: that printing's price
+  const fair = d._graded ? (vc && +vc.p ? +vc.p : d._f0) : base * condMult(cNow), tot = +d.total || 0;
+  d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o || d._c0; d._adj = true;
   const ck = +d.ck_buylist; d.below_buylist = ck ? (tot > 0 && tot <= ck * condMult(o) ? "True" : "") : d._b0;
 }
 // Your review takes effect right away (the next scan / Apply My Ratings makes it permanent):
@@ -2239,21 +2251,22 @@ function applyMyReview(d){
   Object.assign(d, {hidden: d._h0.hidden, hidden_cat: d._h0.cat, hidden_by: d._h0.by, hidden_detail: d._h0.detail});
   d._notDeal = false;
   if (d.hidden || READONLY) return;
-  const f = FB.loaded ? fbLast(d) : null, o = lastFB(d);
-  if (o && o.verdict === "unhide") return;
-  if (f && f.verdict === "bad"){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
+  const f = FB.loaded ? fbLast(d) : null, o = lastFB(d), unhid = o && o.verdict === "unhide" && (!f || f.at <= o.at);
+  if (f && f.verdict === "bad" && !unhid){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
   const need = +((S.ini.deals || {}).default_deal_pct) || 20;
   if (d._adj && +d.discount_pct < need){
     d._notDeal = true;
-    Object.assign(d, {hidden: `not a deal at ${d.condition}`, hidden_by: "you", hidden_cat: "condition",
-      hidden_detail: `You set the condition to ${d.condition}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
+    Object.assign(d, {hidden: d._var ? `not a deal as #${d._var.num}` : `not a deal at ${d.condition}`, hidden_by: "you", hidden_cat: "condition",
+      hidden_detail: `${d._var ? `It's really #${d._var.num} (${money(+d._var.p)} NM)` : `You set the condition to ${d.condition}`}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
   }
 }
 function setDealCond(url, c, note){
   const d = S.deals.find(x => x.url === url); if (!d) return;
   if (note == null) note = (DC.map[url] || {}).note || "";
-  if (!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "") && !note) delete DC.map[url];
-  else DC.map[url] = {c, card: d.card, at: new Date().toISOString().slice(0, 16), listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "",
+  const keepV = (DC.map[url] || {}).v || "";
+  if ((!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "") && !note) && !keepV) delete DC.map[url];
+  else if (!c || c === condCode(d._c0) && !/\?/.test(d._c0 || "") && !note) DC.map[url].c = "";
+  else DC.map[url] = {v: keepV, c, card: d.card, at: new Date().toISOString().slice(0, 16), listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "",
     seller: String(d.seller || "").split(" (")[0], title: (d.title || "").slice(0, 150), note: String(note || "").replace(/\s+/g, " ").trim().slice(0, 200)};
   if (READONLY) store.set("dealCond", JSON.stringify(DC.map)); else if (DC.loaded) markDirty("dealcond");
   renderDeals();
