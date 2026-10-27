@@ -2072,7 +2072,7 @@ function saveReview(d, sel, note, done, agreeAI){
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
-  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden after the next scan" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden after the next scan" : "hidden after the next scan / Apply My Ratings") : verdict === "good" ? "noted as a good deal" : "",
+  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now" : "hidden now") : verdict === "good" ? "noted as a good deal" : "",
     condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule on the next scan" : ""].filter(Boolean).join(" · ");
   toast("Saved" + (msg ? " - " + msg : "") + ".", 4000);
   renderDeals(); if (done && done.after) done.after();
@@ -2225,6 +2225,23 @@ function applyCond(d){
   d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o; d._adj = true;
   const ck = +d.ck_buylist; d.below_buylist = ck ? (tot > 0 && tot <= ck * condMult(o) ? "True" : "") : d._b0;
 }
+// Your review takes effect right away (the next scan / Apply My Ratings makes it permanent):
+// thumbs down or wrong edition -> hidden; a condition change that leaves it short of your deal % -> hidden as "not a deal".
+function applyMyReview(d){
+  if (!("_h0" in d)) d._h0 = {hidden: d.hidden || "", cat: d.hidden_cat || "", by: d.hidden_by || "", detail: d.hidden_detail || ""};
+  Object.assign(d, {hidden: d._h0.hidden, hidden_cat: d._h0.cat, hidden_by: d._h0.by, hidden_detail: d._h0.detail});
+  d._notDeal = false;
+  if (d.hidden || READONLY) return;
+  const f = FB.loaded ? fbLast(d) : null, o = lastFB(d);
+  if (o && o.verdict === "unhide") return;
+  if (f && f.verdict === "bad"){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
+  const need = +((S.ini.deals || {}).default_deal_pct) || 20;
+  if (d._adj && +d.discount_pct < need){
+    d._notDeal = true;
+    Object.assign(d, {hidden: `not a deal at ${d.condition}`, hidden_by: "you", hidden_cat: "condition",
+      hidden_detail: `You set the condition to ${d.condition}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
+  }
+}
 function setDealCond(url, c, note){
   const d = S.deals.find(x => x.url === url); if (!d) return;
   if (note == null) note = (DC.map[url] || {}).note || "";
@@ -2234,8 +2251,9 @@ function setDealCond(url, c, note){
   if (READONLY) store.set("dealCond", JSON.stringify(DC.map)); else if (DC.loaded) markDirty("dealcond");
   renderDeals();
   const n = S.deals.find(x => x.url === url);
-  if (READONLY || !DC.map[url] || note) toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off` : `${n.card}: back to the listing's condition (${n.condition})`, 4000);
-  else toast(`${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off`, 4000);
+  const gone = n._notDeal ? " - not a deal any more, moved to Hidden" : "";
+  if (READONLY || !DC.map[url] || note) toast(DC.map[url] ? `${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off${gone}` : `${n.card}: back to the listing's condition (${n.condition})`, 5000);
+  else toast(`${n.card}: ${c} → fair ${money(n.fair)}, ${(+n.discount_pct).toFixed(0)}% off${gone}`, 5000);
 }
 function condText(d){
   const c = d._adj ? d.condition : String(d._c0 || d.condition || "");
@@ -2281,7 +2299,7 @@ document.addEventListener("click", e => {
 function renderDeals(){
   S._dealRows = [];
   // tidy every row first so one odd entry can't blank the whole list
-  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair", "ai_condition", "cond_note"]) if (d[k] == null) d[k] = ""; applyCond(d); });
+  S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair", "ai_condition", "cond_note"]) if (d[k] == null) d[k] = ""; applyCond(d); applyMyReview(d); });
   try{ renderDeals_(); renderDealsTiles(); }
   catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY){ loadLearned(); loadNear(); } }
 // ---- what it learned from your comments (data/card_rules.json, written by the 3-hour scan)
