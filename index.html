@@ -343,7 +343,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:12 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:13 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -2037,7 +2037,7 @@ function reviewHTML(d, mode){
     <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
-    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Why? (required if you change the condition) · For an app mistake, say how to tell (e.g. 'Commander Legends is not Legends') · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
+    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
     ${condGuideHTML()}`;
 }
 // Troubleshooting: everything about a deal in one block to paste to Claude, plus a link that opens it on the desk
@@ -2105,12 +2105,15 @@ function saveReview(d, sel, note, done, agreeAI){
   }
   const aiC0 = String(d.ai_condition || "").toUpperCase();
   if (condChanged && !note && sel.condition === aiC0) note = "Agreed with the AI: " + (d.ai_reason || "");
+  const picked = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
+  const autoNote = !!(picked && !note);
+  if (picked && !note) note = `It's ${picked.sn || picked.s} #${picked.num}${picked.yr ? " (" + picked.yr + ")" : ""}`;   // the picture you tapped says it all
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
   if (sel.good === "down" && !sel.reason) sel.reason = condChanged ? "condition" : "other";
   const at = new Date().toISOString().slice(0, 16), seller = String(d.seller || "").split(" (")[0];
   // 1. rating (hide / block seller / comment -> rule). A condition 'why' stays with the condition, not as a rule.
   const verdict = sel.good === "up" ? "good" : sel.good === "down" ? "bad" : (note && !condChanged && !agreeAI ? "note" : "");
-  const last = fbLast(d), fbNote = condChanged || agreeAI ? "" : note;
+  const last = fbLast(d), fbNote = condChanged || agreeAI || (autoNote && sel.edition === "variant") ? "" : note;
   if (last && last.verdict === "bad" && sel.good !== "down") FB.rows.push({at, url: d.url, card: d.card, key: "", seller, verdict: "unhide", reason: "", note: "re-reviewed", title: (d.title || "").slice(0, 150), fault: ""});
   if (verdict && !(last && last.verdict === verdict && (last.reason || "") === (sel.reason || "") && (last.note || "") === fbNote)){
     FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
