@@ -342,7 +342,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:56 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:58 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1432,7 +1432,7 @@ document.addEventListener("click", e => { if (SF_HOVER) return; const a = e.targ
   $("#sfClose").addEventListener("click", closeModal); }, true);
 // colour-coded reason a deal was hidden (ratings, rules, blocked seller, wrong card, damage, AI)
 // ---- reason categories (collection/reasons.csv - edit them under Settings) + who caught it
-const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition / reprint","#6b3fa0"],
+const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition","#6b3fa0"],
   ["condition","🩹","Condition","#b45309"],["fake","❌","Not authentic","#b3261e"],["lot","📦","Not a single card","#7a5c2e"],["stock","🖼️","Stock photo","#4b6584"],["verify","📷","Can't verify","#5f6b7a"],
   ["price","💲","Price","#1f7a4d"],["seller","🚫","Seller","#c2410c"],["prefs","⚙️","Your preferences","#a0136b"],["other","❔","Other","#6f6a5f"]]
   .map(([key, icon, label, color]) => ({key, icon, label, color, keywords: ""}));
