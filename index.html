@@ -1858,6 +1858,13 @@ const WRONG_KEYS = ["edition", "wrongcard", "fake"];   // answered by "Right car
 const isWrong = v => WRONG_KEYS.includes(v);
 function reviewStart(d){
   const f = fbLast(d), a = AUD.rows[d.url] || {}, c = DC.map[d.url];
+  if (!f && !AUD.rows[d.url] && !c && d.ai_verdict){   // not reviewed yet: start from the AI's answers - just fix what it got wrong
+    const aiC = String(d.ai_condition || "").toUpperCase(), cat = d.ai_category || "other";
+    return {edition: d.ai_edition === "wrong" ? (isWrong(cat) ? cat : "edition") : (d.ai_edition === "matches" ? "matches" : ""),
+      condition: d._graded ? "unclear" : (COND_LIST.includes(aiC) ? aiC : condCode(d._c0 || d.condition)),
+      good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" && !isWrong(cat) && cat !== "condition" ? cat : "",
+      bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? "seller" : "", fromAI: true};
+  }
   return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition || ""), condition: c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
     good: f && f.verdict === "good" ? "up" : f && f.verdict === "bad" ? "down" : a.verdict === "ok" ? "up" : a.verdict === "reject" ? "down" : "",
     reason: f && f.verdict === "bad" ? (f.reason || "") : "", bought: false,
@@ -1879,7 +1886,7 @@ function reviewHTML(d, mode){
       <div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}<div class="mut" style="font-size:12px">What it should be${c.sn ? ": " + esc(c.sn) : ""}</div></div>
     </div>
     ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
-      <button class="btn small" id="rvAIok" type="button" style="margin-top:6px">✓ AI Got It Right <span class="mut hide-sm">(Y)</span></button></div>`
+      ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"], ["edition", "Wrong Edition / Reprint"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]])}</div>
     <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Whose Mistake?</span>${seg("fault", [["seller", "The Seller's Listing Is Wrong"], ["app", "The App Matched It Wrong"]])}</div>
@@ -1922,6 +1929,8 @@ function saveReview(d, sel, note, done, agreeAI){
     sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
+  const aiC0 = String(d.ai_condition || "").toUpperCase();
+  if (condChanged && !note && sel.condition === aiC0) note = "Agreed with the AI: " + (d.ai_reason || "");
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
   if (sel.good === "down" && !sel.reason) sel.reason = condChanged ? "condition" : "other";
   const at = new Date().toISOString().slice(0, 16), seller = String(d.seller || "").split(" (")[0];
@@ -2047,7 +2056,7 @@ function renderAudit(){
         <option value="nocheck">Not Checked by AI (Label for Training)</option><option value="done">Already Reviewed</option><option value="all">All AI-Checked</option></select>
       ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
-      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">Keys: Y = AI got it right · ← → = previous / next</span></div></div>
+      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">Keys: Y = save as shown · ← → = previous / next</span></div></div>
     <div id="audItem">${d ? audItemHTML(d) : `<p class="empty">${AUD.filter === "todo" ? "All caught up - every AI-checked deal is reviewed. New ones appear after each scan." : "Nothing here."}</p>`}</div>`;
   $("#audRange").value = AUD.range; $("#audFilter").value = AUD.filter; if ($("#audModel")) $("#audModel").value = AUD.model;
   $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderAudit(); });
@@ -2073,7 +2082,7 @@ function wireAudItem(d, q){
 }
 document.addEventListener("keydown", e => {
   if (!document.querySelector("#tab-audit.on") || /input|textarea|select/i.test((e.target.tagName || "")) || document.querySelector("#colModal.on")) return;
-  if (e.key === "y" || e.key === "Y"){ const b = $("#rvAIok"); if (b){ e.preventDefault(); b.click(); } }
+  if (e.key === "y" || e.key === "Y"){ const b = $("#audSave"); if (b){ e.preventDefault(); b.click(); } }
   if (e.key === "ArrowRight"){ const b = $("#audSkip"); if (b){ e.preventDefault(); b.click(); } }
   if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
 });
