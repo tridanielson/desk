@@ -254,25 +254,62 @@ select option{background:var(--panel);color:var(--ink)}
 .cguide{margin-top:6px;font-size:12px;color:var(--muted)}.cguide summary{cursor:pointer}.cguide ul{margin:6px 0;padding-left:18px}
 @media (max-width:700px){.aud-grid{grid-template-columns:1fr}.aud-stats,.aud-stats.four{grid-template-columns:repeat(2,minmax(0,1fr))}.aud-ref{max-width:180px}.aud-q>span{min-width:100%}}
 .condChip{border:1px dashed currentColor;border-radius:6px;padding:0 5px;cursor:pointer;white-space:nowrap}
+
+/* ---- two-level nav + artwork ---- */
+.brandwrap{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;flex:none}.logo.big{width:56px;height:56px;margin:0 auto 4px;display:block}
+.navs{display:flex;flex-direction:column;gap:4px;min-width:0}
+#navGroups button{font-weight:600;color:var(--ink);opacity:.72;padding:7px 12px;border-radius:999px}
+#navGroups button.on{opacity:1;background:var(--accent);color:var(--accent-ink)}
+#navGroups button[hidden],#nav button.off{display:none!important}
+#nav{gap:0}#nav button{padding:5px 10px;font-size:13px;border-radius:0;border-bottom:2px solid transparent}
+#nav button.on{background:none;color:var(--accent);border-bottom-color:var(--accent)}
+#nav.single{display:none}
+.hero{position:relative;height:118px;overflow:hidden;background:#1a140e;color:#fff;display:flex;align-items:flex-end}
+.hero-art{position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity .6s;transform:scale(1.04)}
+.hero-art.in{opacity:1}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(14,10,6,.92) 0%,rgba(14,10,6,.65) 45%,rgba(14,10,6,.15) 100%)}
+.hero-txt{position:relative;z-index:1;padding:0 24px 14px;max-width:1300px}
+.hero-t{font:600 26px/1.1 Georgia,"Times New Roman",serif;letter-spacing:.3px;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+.hero-s{font-size:13px;opacity:.85;margin-top:4px}
+.hero-cr{position:absolute;z-index:1;right:10px;bottom:6px;font-size:11px;color:rgba(255,255,255,.75);text-decoration:none;text-shadow:0 1px 4px #000}
+.hero-cr:hover{color:#fff;text-decoration:underline}
+.login{overflow:hidden}
+.login-art{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.1);opacity:0;transition:opacity .8s}
+.login-art.in{opacity:1}
+.login-art::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at center,rgba(10,7,4,.35),rgba(10,7,4,.85))}
+.login-box{position:relative;z-index:1;box-shadow:0 18px 60px rgba(0,0,0,.45)}.login-box .brand{text-align:center}
+.login-cr{position:fixed}
+@media (max-width:700px){.logo{width:28px;height:28px}.navs{order:3;width:100%}#navGroups,#nav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}#navGroups button{white-space:nowrap;padding:6px 11px}
+  .hero{height:78px}.hero-t{font-size:20px}.hero-s{display:none}.hero-txt{padding:0 12px 10px}}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">Havoth Price Desk<small id="updated">Not connected</small></div>
-  <nav id="nav">
-    <button data-tab="mine" class="on" title="Cards you picked to watch, with your alert levels">Watchlist</button>
-    <button data-tab="all" title="Every card priced daily: your watchlist plus your auto-track lists">All Prices</button>
-    <button data-tab="detail" title="Price chart and history for one card">Card Chart</button>
-    <button data-tab="deals" title="eBay listings priced below fair value">eBay Deals</button>
-    <button data-tab="audit" class="owner-only" title="Review deals one by one - every review makes the filters and the AI more accurate">Review Queue</button>
-    <button data-tab="sl" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
-    <button data-tab="col" title="What you own, what it is worth, and profit on sales">Collection</button>
-    <button data-tab="sets" title="Sets you are completing and the cards you still need">Sets</button>
-    <button data-tab="guide" title="How to spot fakes and proxies, and tell look-alike editions apart">ID &amp; Fake Guide</button>
-    <button data-tab="rules" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
-    <button data-tab="settings" title="Deal rules, alert defaults, condition values, selling fees">Settings</button>
-    <button data-tab="connect" title="Connection status and a guide to every tab">Setup &amp; Help</button>
+  <div class="brandwrap"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><path d="M20 2 35 10.5v19L20 38 5 29.5v-19z" fill="none" stroke="url(#lg)" stroke-width="2.4"/><path d="M20 7.5 30.5 13.5v13L20 32.5 9.5 26.5v-13z" fill="url(#lg)" opacity=".16"/><path d="M14 12v16M26 12v16M14 20h12" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.3" fill="var(--gold)"/></svg><div class="brand">Havoth Price Desk<small id="updated">Not connected</small></div></div>
+  <div class="navs">
+  <nav id="navGroups" aria-label="Sections">
+    <button data-group="prices">📈 Prices</button>
+    <button data-group="deals">🏷️ Deals</button>
+    <button data-group="mine">🗃️ My Cards</button>
+    <button data-group="guide">🔍 Guide</button>
+    <button data-group="setup">⚙️ Settings</button>
   </nav>
+  <nav id="nav">
+    <button data-tab="mine" data-group="prices" class="on" title="Cards you picked to watch, with your alert levels">Watchlist</button>
+    <button data-tab="all" data-group="prices" title="Every card priced daily: your watchlist plus your auto-track lists">All Prices</button>
+    <button data-tab="detail" data-group="prices" title="Price chart and history for one card">Card Chart</button>
+    <button data-tab="rules" data-group="prices" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
+    <button data-tab="deals" data-group="deals" title="eBay listings priced below fair value">eBay Deals</button>
+    <button data-tab="audit" data-group="deals" class="owner-only" title="Review deals one by one - every review makes the filters and the AI more accurate">Review Queue</button>
+    <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
+    <button data-tab="sets" data-group="mine" title="Sets you are completing and the cards you still need">Sets</button>
+    <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
+    <button data-tab="guide" data-group="guide" title="How to spot fakes and proxies, and tell look-alike editions apart">ID &amp; Fake Guide</button>
+    <button data-tab="settings" data-group="setup" title="Deal rules, alert defaults, condition values, selling fees">Settings</button>
+    <button data-tab="connect" data-group="setup" title="Connection status and a guide to every tab">Setup &amp; Help</button>
+  </nav>
+  </div>
   <div class="grow"></div>
   <span class="chip viewchip">View only</span>
   <span id="pending" class="pending" hidden></span>
@@ -282,6 +319,7 @@ select option{background:var(--panel);color:var(--ink)}
   <button class="btn ghost small" id="signOutBtn" hidden>Sign Out</button>
 </header>
 
+<div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT"></div><div class="hero-s" id="heroS"></div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
 <main>
 <!-- CONNECT -->
 <section class="tab" id="tab-connect">
@@ -533,7 +571,9 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="sh-actions"><button class="btn ghost" id="shChart" type="button">Price Chart</button><button class="btn ghost" id="shRemove" type="button">Remove</button><button class="btn" id="shDone" type="button">Done</button></div>
 </div>
 <div class="login" id="login" hidden>
+  <div class="login-art" id="loginArt"></div><a class="hero-cr login-cr" id="loginCr" target="_blank" rel="noopener"></a>
   <form class="login-box" id="loginForm" autocomplete="on">
+    <svg class="logo big" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><path d="M20 2 35 10.5v19L20 38 5 29.5v-19z" fill="none" stroke="url(#lg2)" stroke-width="2.4"/><path d="M20 7.5 30.5 13.5v13L20 32.5 9.5 26.5v-13z" fill="url(#lg2)" opacity=".16"/><path d="M14 12v16M26 12v16M14 20h12" stroke="url(#lg2)" stroke-width="3.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.3" fill="var(--gold)"/></svg>
     <div class="brand">Havoth Price Desk<small>Card prices &amp; deals</small></div>
     <label for="loginPw" style="font-weight:600">Password</label>
     <input id="loginPw" name="password" type="password" autocomplete="current-password" required>
@@ -3017,8 +3057,71 @@ function renderRuns(){
 $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchTab("connect"); });
 
 // ---------------------------------------------------------------- tabs
+
+// ---------------------------------------------------------------- sections (two-level nav) + artwork
+const GROUPS = {
+  prices: {t: "Prices", s: "What your cards are worth today, and where they are heading."},
+  deals: {t: "Deals", s: "Underpriced eBay listings, checked by the scanner and the AI - and your reviews."},
+  mine: {t: "My Cards", s: "Your collection, the sets you are completing, and Secret Lair drops."},
+  guide: {t: "ID & Fake Guide", s: "Spot fakes and proxies, and tell look-alike editions apart."},
+  setup: {t: "Settings", s: "Deal rules, alerts, fees - and connection status."},
+};
+const tabBtn = t => document.querySelector(`#nav [data-tab="${t}"]`);
+const tabShown = b => b && getComputedStyle(b).display !== "none" && !b.hidden;
+function groupTabs(g){ return [...document.querySelectorAll(`#nav [data-group="${g}"]`)].filter(b => { b.classList.remove("off"); return tabShown(b); }); }
+function renderGroups(tab){
+  const g = (tabBtn(tab) || {}).dataset ? tabBtn(tab).dataset.group : "prices";
+  document.querySelectorAll("#navGroups button").forEach(b => { b.hidden = !groupTabs(b.dataset.group).length; b.classList.toggle("on", b.dataset.group === g); });
+  const vis = groupTabs(g);
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("off", b.dataset.group !== g));
+  $("#nav").classList.toggle("single", vis.length < 2);
+  store.set("pd_tab_" + g, tab);
+  const G = GROUPS[g] || GROUPS.prices; $("#heroT").textContent = G.t; $("#heroS").textContent = G.s;
+  heroArt(g);
+}
+document.querySelectorAll("#navGroups button").forEach(b => b.addEventListener("click", () => {
+  const g = b.dataset.group, vis = groupTabs(g), last = store.get("pd_tab_" + g);
+  const t = vis.some(x => x.dataset.tab === last) ? last : (vis[0] || {}).dataset.tab;
+  if (!t) return;
+  if (t === "detail" && S.selected) showDetail(S.selected); else switchTab(t);
+}));
+// Artwork: the art from one of your own cards (from Scryfall), a different card per section, changing daily.
+const ART = {cache: {}, shown: ""};
+function artPool(){
+  const watch = new Set((S.watch || []).map(w => (w.name || "").toLowerCase()));
+  const all = (S.cards || []).filter(c => c.img && /cards\.scryfall\.io/.test(c.img));
+  const mine = all.filter(c => watch.has((c.n || "").toLowerCase()));
+  const pool = (mine.length >= 5 ? mine : all).slice().sort((a, b) => (+b.p || 0) - (+a.p || 0));
+  const seen = new Set(); return pool.filter(c => !seen.has(c.n) && seen.add(c.n)).slice(0, 40);
+}
+function artFor(c){ return c.img.replace(/\/(small|normal|large)\//, "/art_crop/"); }
+async function artCredit(c, el){
+  const show = a => { if (el.dataset.k !== c.k) return; el.textContent = `${c.n}${a ? " · Art by " + a : ""}`; el.href = c.u || "https://scryfall.com"; };
+  show(""); const id = (c.img.match(/([0-9a-f-]{36})\.jpg/) || [])[1]; if (!id) return;
+  if (ART.cache[id] !== undefined) return show(ART.cache[id]);
+  try{ const j = await (await fetch("https://api.scryfall.com/cards/" + id)).json(); ART.cache[id] = j.artist || ""; show(ART.cache[id]); }catch{ ART.cache[id] = ""; }
+}
+function heroArt(g){
+  const pool = artPool(); if (!pool.length) return;
+  const day = Math.floor(Date.now() / 864e5), gi = Object.keys(GROUPS).indexOf(g);
+  const c = pool[(day * 7 + gi * 3) % pool.length]; if (ART.shown === c.k) return; ART.shown = c.k;
+  const el = $("#heroArt"), url = artFor(c), im = new Image();
+  el.classList.remove("in");
+  im.onload = () => { el.style.backgroundImage = `url("${url}")`; el.classList.add("in"); };
+  im.src = url; const cr = $("#heroCr"); cr.dataset.k = c.k; artCredit(c, cr);
+}
+async function loginArt(){
+  const box = $("#loginArt"); if (!box || box.dataset.done) return; box.dataset.done = "1";
+  try{ const j = await (await fetch("https://api.scryfall.com/cards/random?q=" + encodeURIComponent("is:reserved date<1996 -is:digital -t:land"))).json();
+    const url = (j.image_uris || (j.card_faces || [{}])[0].image_uris || {}).art_crop; if (!url) return;
+    const im = new Image(); im.onload = () => { box.style.backgroundImage = `url("${url}")`; box.classList.add("in"); }; im.src = url;
+    const cr = $("#loginCr"); cr.textContent = `${j.name} · Art by ${j.artist}`; cr.href = j.scryfall_uri; }catch{}
+}
+new MutationObserver(() => { if (!$("#login").hidden) loginArt(); }).observe($("#login"), {attributes: true, attributeFilter: ["hidden"]});
+if (!$("#login").hidden) loginArt();
 function switchTab(name){
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  renderGroups(name);
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + name));
   store.set("pd_tab", name);
   try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
