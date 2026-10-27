@@ -343,7 +343,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 02:00 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:12 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -965,8 +965,8 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || ""}))),
-        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || ""}; }), "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || "", variant_price: v.vp || ""}))),
+        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || ""}; }), "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("feedback")){ S.dirty.delete("feedback");
       FB.sha = await putMerged("collection/deal_feedback.csv", FB.sha, () => toCSV(FB_COLS, FB.rows),
         rows => { const have = new Set(FB.rows.map(r => r.at + "|" + r.url)); FB.rows = rows.filter(r => !have.has(r.at + "|" + r.url)).concat(FB.rows).sort((a, b) => (a.at || "").localeCompare(b.at || "")); }, "Deal reviews (Price Desk)"); }
@@ -1994,7 +1994,7 @@ function reviewStart(d){
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" && !isWrong(cat) && cat !== "condition" ? cat : "",
       bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? (COND_LIST.indexOf(aiC) < COND_LIST.indexOf(condCode(d._c0 || d.condition)) ? "under" : "seller") : "", fromAI: true};
   }
-  if (c && c.v) return {edition: (S.byKey.get(c.v) || {}).s && !String(d.card || "").endsWith("[" + (S.byKey.get(c.v) || {}).s + "]") ? "edition" : "variant", variant: c.v, fault: (f && f.fault) || a.fault || "seller", condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, cfault: c.c ? (c.fault || "seller") : ""};
+  if (c && c.v) return {edition: (printing(c.v, c) || {}).s && !String(d.card || "").endsWith("[" + (printing(c.v, c) || {}).s + "]") ? "edition" : "variant", variant: c.v, fault: (f && f.fault) || a.fault || "seller", condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, cfault: c.c ? (c.fault || "seller") : ""};
   return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition === "variant" ? "" : a.edition || ""), condition: c && c.c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
     good: f && f.verdict === "good" ? "up" : f && f.verdict === "bad" ? "down" : a.verdict === "ok" ? "up" : a.verdict === "reject" ? "down" : "",
     reason: f && f.verdict === "bad" && !isWrong(f.reason) && f.reason !== "condition" ? (f.reason || "") : "", bought: false,
@@ -2026,8 +2026,8 @@ function reviewHTML(d, mode){
     ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>Which One Is It?</span><div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
     <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Who Got the Card Wrong?</span>${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
-    ${others.length ? `<div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}><span>Which Edition Is It Really?</span><div class="seg var-pick" data-k="variant">${others.map(pickBtn).join("")}</div></div>
-      <div class="mut" id="rvEdHint" style="font-size:12px;margin-top:2px"${s.edition === "edition" ? "" : " hidden"}>Optional. Pick it and the deal is re-priced as that printing (NM price shown) - it stays if it's still a deal. Skip it and the listing is hidden.</div>` : ""}
+    <div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}><span>Which Edition Is It Really?</span><div class="seg var-pick" data-k="variant" id="rvEdPick">${others.map(pickBtn).join("") || '<span class="mut" style="font-size:13px">Loading every printing…</span>'}</div></div>
+    <div class="mut" id="rvEdHint" style="font-size:12px;margin-top:2px"${s.edition === "edition" ? "" : " hidden"}>Optional. Pick the printing it really is and the deal is re-priced as that one (NM market price shown) - it stays if it's still a deal. Skip it and the listing is hidden.</div>
     <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
     <div id="rvRest"${isWrong(s.edition) && s.edition !== "edition" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
@@ -2064,13 +2064,14 @@ function openDealFromHash(){
 }
 window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
+  if (RV.sel && RV.sel.edition === "edition") fillEditions(root, d);
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
     const q = sg.closest(".aud-q"); if (q) q.classList.remove("need");
     if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w && b.dataset.v !== "edition";   // wrong card / fake: condition doesn't apply
       if (b.dataset.v !== "variant" && b.dataset.v !== "edition") RV.sel.variant = "";
       if (w && !RV.sel.fault){ RV.sel.fault = "seller"; root.querySelectorAll('#rvFaultRow [data-v]').forEach(x => x.classList.toggle("ghost", x.dataset.v !== "seller")); }
-      const er = root.querySelector("#rvEdRow"); if (er){ er.hidden = b.dataset.v !== "edition"; root.querySelector("#rvEdHint").hidden = b.dataset.v !== "edition"; }
+      const er = root.querySelector("#rvEdRow"); if (er){ er.hidden = b.dataset.v !== "edition"; root.querySelector("#rvEdHint").hidden = b.dataset.v !== "edition"; if (b.dataset.v === "edition") fillEditions(root, d); }
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
@@ -2097,7 +2098,7 @@ function saveReview(d, sel, note, done, agreeAI){
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
-    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, vv = sel.edition === "variant" && S.byKey.get(sel.variant);
+    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, vv = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
     const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition));
     const disc1 = f1 > 0 ? (f1 - (+d.total || 0)) / f1 * 100 : 0, need = +((S.ini.deals || {}).default_deal_pct) || 20;
     sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || ((condChanged || vv) && disc1 < need)) ? "" : "up";
@@ -2119,7 +2120,7 @@ function saveReview(d, sel, note, done, agreeAI){
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
   const v0 = (DC.map[d.url] || {}).v || "", v1 = sel.edition === "variant" || sel.edition === "edition" ? (sel.variant || "") : "";
-  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : sel.edition === "edition" ? (sel.fault || "seller") : "app"};
+  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, vp: v1 && !S.byKey.get(v1) && EXTRA[v1] ? String(EXTRA[v1].p || "") : "", card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : sel.edition === "edition" ? (sel.fault || "seller") : "app"};
   else if (DC.map[d.url]) delete DC.map[d.url];
   if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
@@ -2133,7 +2134,7 @@ function saveReview(d, sel, note, done, agreeAI){
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
   const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? (v1 ? "wrong edition noted" : "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now") : "hidden now") : verdict === "good" ? "still a deal" : "",
-    v1 ? `re-priced as ${(S.byKey.get(v1) || {}).s || ""} #${(S.byKey.get(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
+    v1 ? `re-priced as ${(printing(v1) || {}).s || ""} #${(printing(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
   renderDeals();
   const nd = S.deals.find(x => x.url === d.url);
   toast("Saved" + (msg ? " - " + msg : "") + (nd && nd._notDeal ? ` · at ${nd.condition} it's worth about ${money(nd.fair)}, so it's not a deal any more - moved to Hidden` : "") + ".", 5000);
@@ -2264,10 +2265,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
 });
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
-const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant"];
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant", "variant_price"];
 const DC = {map: {}, sha: null, loaded: false};
 function loadDC(x){
-  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && (COND_LIST.includes(r.condition) || r.variant)) DC.map[r.url] = {c: COND_LIST.includes(r.condition) ? r.condition : "", card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || ""}; }); }catch(e){}
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && (COND_LIST.includes(r.condition) || r.variant)) DC.map[r.url] = {c: COND_LIST.includes(r.condition) ? r.condition : "", card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || ""}; }); }catch(e){}
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
@@ -2285,6 +2286,31 @@ function floorCard(d){
     if (+c.p && (!S._floorBy[k] || +c.p < +S._floorBy[k].p)) S._floorBy[k] = c; }); }
   return S._floorBy[d.card] || null;
 }
+// every printing of a card (Scryfall), for "Which edition is it really?" - tracked ones keep their condition prices
+const PRINTS = {}, EXTRA = {};
+async function printsOf(name){
+  if (PRINTS[name]) return PRINTS[name];
+  const out = []; let url = "/cards/search?" + new URLSearchParams({q: `!"${name}" -is:digital`, unique: "prints", order: "released", dir: "asc"});
+  for (let page = 0; url && page < 4; page++){
+    const j = await sf(url); (j.data || []).forEach(c => {
+      const k = `${c.name}|${String(c.set || "").toUpperCase()}|${c.collector_number}|nonfoil`, pr = c.prices || {};
+      const card = S.byKey.get(k) || {k, n: c.name, s: String(c.set || "").toUpperCase(), sn: c.set_name, num: c.collector_number,
+        p: +(pr.usd || pr.usd_foil || 0) || 0, img: (c.image_uris || (c.card_faces || [{}])[0].image_uris || {}).small || ""};
+      card.sn = card.sn || c.set_name; card.yr = (c.released_at || "").slice(0, 4); EXTRA[k] = card; out.push(card); });
+    url = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : "";
+  }
+  return (PRINTS[name] = out);
+}
+const printing = (key, e) => S.byKey.get(key) || EXTRA[key] || (e && +e.vp ? (([n, s, num]) => ({k: key, n, s, num, p: +e.vp}))(String(key).split("|")) : null);
+async function fillEditions(root, d){
+  const box = root.querySelector("#rvEdPick"); if (!box || box.dataset.done) return; box.dataset.done = "1";
+  const nm = String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || [];
+  try{
+    const all = (await printsOf(nm[1])).filter(c => c.s !== nm[2]);
+    if (!all.length){ box.innerHTML = '<span class="mut" style="font-size:13px">No other printings of this card.</span>'; return; }
+    box.innerHTML = all.map(v => `<button type="button" class="btn small${RV.sel.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.sn || v.s)} ${esc(v.yr || "")} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${esc(v.s)} #${esc(v.num)}${v.yr ? " · " + esc(v.yr) : ""}</span><span>${v.p ? money(+v.p) : "no price"}</span></button>`).join("");
+  }catch(e){ box.innerHTML = `<span class="mut" style="font-size:13px">Couldn't load the printings (${esc(e.message)}).</span>`; }
+}
 function fairAt(d, cond, vc){
   const card = vc || floorCard(d), cp = card && card.cp && +card.cp[cond];
   if (cp && (!+card.p || cp <= +card.p * 1.15)) return {v: cp, src: "tcg"};
@@ -2300,7 +2326,7 @@ function applyCond(d){
   const repriced = !isEnded(d) && !isAuction(d) && pn > 0 && p0 > 0 && Math.abs(pn - p0) >= 0.5;
   const tot = repriced ? Math.round((pn + ship0) * 100) / 100 : d._t0;
   d.total = tot ? tot.toFixed(2) : d.total; d._priceMoved = repriced ? (pn < p0 ? "down" : "up") : "";
-  const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? S.byKey.get(e.v) : null;
+  const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? printing(e.v, e) : null;
   d._var = vc ? vc : null;
   let fair = d._f0; d._fsrc = d.fair_src || "";
   if ((o || vc) && d._f0){
