@@ -342,7 +342,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:46 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:56 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1990,7 +1990,7 @@ function reviewStart(d){
     return {edition: d.ai_edition === "wrong" ? (isWrong(cat) ? cat : "edition") : (d.ai_edition === "matches" ? "matches" : ""),
       condition: d._graded ? "unclear" : (COND_LIST.includes(aiC) ? aiC : condCode(d._c0 || d.condition)),
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" && !isWrong(cat) && cat !== "condition" ? cat : "",
-      bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? "seller" : "", fromAI: true};
+      bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? (COND_LIST.indexOf(aiC) < COND_LIST.indexOf(condCode(d._c0 || d.condition)) ? "under" : "seller") : "", fromAI: true};
   }
   if (c && c.v) return {edition: (S.byKey.get(c.v) || {}).s && !String(d.card || "").endsWith("[" + (S.byKey.get(c.v) || {}).s + "]") ? "edition" : "variant", variant: c.v, fault: (f && f.fault) || a.fault || "seller", condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, cfault: c.c ? (c.fault || "seller") : ""};
   return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition === "variant" ? "" : a.edition || ""), condition: c && c.c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
@@ -2030,7 +2030,7 @@ function reviewHTML(d, mode){
     <div id="rvRest"${isWrong(s.edition) && s.edition !== "edition" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
-        <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["app", "The App Misread the Listing"]])}</div>`}
+        <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
     <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason"><button type="button" class="btn small${s.reason ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
@@ -2072,7 +2072,9 @@ function wireReview(root, d, done){
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
-      row.hidden = !changed; if (changed && !RV.sel.cfault){ RV.sel.cfault = "seller"; row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== "seller")); } } }
+      row.hidden = !changed;
+      if (changed && RV.sel.cfault !== "app"){ const better = COND_LIST.indexOf(b.dataset.v) < COND_LIST.indexOf(condCode(d._c0 || d.condition)); RV.sel.cfault = better ? "under" : "seller";
+        row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.cfault)); } } }
   }));
   const ai = root.querySelector("#rvAIok");
   if (ai) ai.addEventListener("click", () => {
