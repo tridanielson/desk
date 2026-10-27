@@ -214,6 +214,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .var-pick .btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:4px}.var-pick img{width:62px;border-radius:4px}
 .aud-q.need{outline:2px solid var(--down);outline-offset:4px;border-radius:6px}
 #ptr{position:fixed;left:50%;top:0;transform:translate(-50%,-60px);z-index:55;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
+.vin{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--muted);white-space:nowrap;cursor:help}.vin.on{border-color:var(--gold);color:var(--gold)}
 .near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
@@ -343,7 +344,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:46 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1072,6 +1073,10 @@ const SETTINGS = [
   {sec: "conditions", title: "Condition value (fraction of Near Mint price)", fields: [
     ["NM", "Near Mint", "num", 1.00, ""], ["LP", "Lightly Played", "num", 0.85, ""], ["MP", "Moderately Played", "num", 0.70, ""],
     ["HP", "Heavily Played", "num", 0.50, ""], ["DMG", "Damaged", "num", 0.35, ""]]},
+  {sec: "conditions_vintage", title: "Condition value for vintage cards (sets released before the year below)", fields: [
+    ["before_year", "Vintage = Sets Released Before", "num", 1997, "1997 covers Alpha through Mirage / Alliances. Played vintage sells for a much smaller share of NM than modern cards."],
+    ["NM", "Near Mint", "num", 1.00, ""], ["LP", "Lightly Played", "num", 0.70, ""], ["MP", "Moderately Played", "num", 0.55, ""],
+    ["HP", "Heavily Played", "num", 0.40, ""], ["DMG", "Damaged", "num", 0.25, ""]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -1632,7 +1637,7 @@ function renderDeals_(){
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
-      <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
+      <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
@@ -2012,7 +2017,7 @@ function reviewHTML(d, mode){
   const s = RV.sel = reviewStart(d), c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
-  const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition)) || 1;
+  const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition), d) || 1;
   const nm = (String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || []), vars = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s === nm[2] && (c.f || "nonfoil") === "nonfoil") : [];
   const others = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s !== nm[2] && (c.f || "nonfoil") === "nonfoil").sort((a, b) => (+a.p || 0) - (+b.p || 0)).slice(0, 16) : [];
   const pickBtn = v => `<button type="button" class="btn small${s.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.n)} ${esc(v.sn || v.s)} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${v.s !== nm[2] ? esc(v.s) + " " : ""}#${esc(v.num)} · ${v.p ? money(+v.p) : "no price"}</span></button>`;
@@ -2052,7 +2057,7 @@ function dealDetails(d){
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
-    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${(d._adj ? d._fsrc : d.fair_src) === "tcg" ? "market price for that condition" : (d._adj ? d._fsrc : d.fair_src) === "tcg-est" ? "estimated from another condition's market price" : "NM x condition %"}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2103,8 +2108,8 @@ function saveReview(d, sel, note, done, agreeAI){
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
-    const cm0 = condMult(condCode(d._c0 || d.condition)) || 1, vv = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
-    const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition));
+    const cm0 = condMult(condCode(d._c0 || d.condition), d) || 1, vv = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
+    const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition), d);
     const disc1 = f1 > 0 ? (f1 - (+d.total || 0)) / f1 * 100 : 0, need = +((S.ini.deals || {}).default_deal_pct) || 20;
     sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || ((condChanged || vv) && disc1 < need)) ? "" : "up";
   }
@@ -2280,7 +2285,13 @@ function loadDC(x){
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
-const condMult = c => { const v = parseFloat((S.ini.conditions || {})[c]); return v > 0 ? v : DEF_MULT[c]; };
+const DEF_MULT_V = {NM: 1, LP: .70, MP: .55, HP: .40, DMG: .25};
+const vintageYear = () => parseInt((S.ini.conditions_vintage || {}).before_year, 10) || 1997;
+function isVintageDeal(d){   // the card's set release year (dashboard yr), or what the scanner recorded
+  const c = d && floorCard(d); if (c && c.yr) return c.yr < vintageYear();
+  return !!d && d.fair_src === "vintage";
+}
+const condMult = (c, d) => { const vin = d && isVintageDeal(d), v = parseFloat(((vin ? S.ini.conditions_vintage : S.ini.conditions) || {})[c]); return v > 0 ? v : (vin ? DEF_MULT_V : DEF_MULT)[c]; };
 function condCode(c){
   const t = String(c || "").toUpperCase(), m = /\b(NM|LP|MP|HP|DMG)\b/.exec(t);
   if (m) return m[1];
@@ -2320,13 +2331,13 @@ async function fillEditions(root, d){
   }catch(e){ box.innerHTML = `<span class="mut" style="font-size:13px">Couldn't load the printings (${esc(e.message)}).</span>`; }
 }
 function fairAt(d, cond, vc){
-  const card = vc || floorCard(d), cp = (card && card.cp) || {}, order = COND_LIST;
-  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition)) || 1), flat = nm * condMult(cond);
-  if (+cp[cond]) return {v: +cp[cond], src: "tcg"};
-  const known = order.filter(k => +cp[k]), i = order.indexOf(cond);
-  if (!known.length || i < 0) return {v: flat, src: "flat"};
-  const k = known.sort((a, b) => Math.abs(order.indexOf(a) - i) - Math.abs(order.indexOf(b) - i) || order.indexOf(a) - order.indexOf(b))[0];
-  return {v: Math.min(+cp[k] * condMult(cond) / condMult(k), flat), src: "tcg-est"};   // from the nearest known condition, never above NM x %
+  const card = vc || floorCard(d);
+  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition), d) || 1);
+  return {v: nm * condMult(cond, d), src: isVintageDeal(d) ? "vintage" : "standard"};
+}
+function vinTag(d){   // which condition table priced this deal - tap for the math
+  const c = condCode(d.condition), m = condMult(c, d), vin = isVintageDeal(d), nm = (+d.fair || 0) / (m || 1);
+  return ` <span class="vin${vin ? " on" : ""}" title="${esc(`${money(nm)} NM x ${Math.round(m * 100)}% (${vin ? "vintage" : "standard"} ${c}) = ${money(+d.fair)}${vin ? ` - sets released before ${vintageYear()} use the vintage condition values (Settings)` : ""}`)}">${vin ? "vintage %" : "standard %"}</span>`;
 }
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
@@ -2347,7 +2358,7 @@ function applyCond(d){
   } else { d.condition = d._c0; d._adj = false; }
   d.fair = Math.round(fair * 100) / 100;
   d.discount_pct = d._adj || repriced ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
-  const ck = +d.ck_buylist, cm = condMult(condCode(d.condition)) || 1;
+  const ck = +d.ck_buylist, cm = condMult(condCode(d.condition), d) || 1;
   d.below_buylist = d._adj || repriced ? (ck ? (tot > 0 && tot <= ck * cm ? "True" : "") : d._b0) : d._b0;
 }
 // Your review takes effect right away (the next scan / Apply My Ratings makes it permanent):
@@ -2399,7 +2410,7 @@ function openCondPick(d, preset){
   const listed = condCode(d._c0), unstated = /\?/.test(d._c0 || "");
   openModal(`<h3>Condition</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${money(d.total)} · listing says “${esc(d._c0)}”</div>
     <p class="mut" style="font-size:13px">Pick what the photos really show, say why, then tap <b>Save</b>. Fair value and % off recalculate.${COND_LIST.includes(String(d.ai_condition || "").toUpperCase()) ? ` The AI photo check said <b>${esc(d.ai_condition)}</b>.` : ""}</p>
-    <div class="seg" id="cpSeg" style="margin:8px 0">${COND_LIST.map(c => `<button class="btn${c === sel ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(d._f0 / condMult(condCode(d._c0)) * condMult(c))}</button>`).join("")}</div>
+    <div class="seg" id="cpSeg" style="margin:8px 0">${COND_LIST.map(c => `<button class="btn${c === sel ? "" : " ghost"}" data-pick="${c}" type="button">${c} · ${money(fairAt(d, c, d._var).v)}</button>`).join("")}</div>
     <label for="cpNote" style="font-size:13px"><b>Why?</b> (required - e.g. "whitening on back corners", "crease top left". This is what teaches the AI checker.)</label>
     <input id="cpNote" value="${esc((DC.map[d.url] || {}).note || "")}" maxlength="200" placeholder="What did you see in the photos?" style="width:100%">
     ${condGuideHTML()}
@@ -2579,7 +2590,7 @@ function renderDealsTiles(){
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = ebayLink(d);
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
-      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
+      <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
       ${d.cond_note ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span></div>` : ""}
