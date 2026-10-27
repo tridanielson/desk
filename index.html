@@ -917,6 +917,18 @@ async function putIfChanged(path, text, sha, msg){   // skip files that didn't a
   if (AUTOSAVE.last[path] === text) return sha;
   const nsha = await GH.putFile(path, text, sha, msg); AUTOSAVE.last[path] = text; return nsha;
 }
+// Review files can be changed from two places (phone + computer, or Claude). If the copy on GitHub changed since this
+// page loaded, read it again, keep the other side's rows, add ours, and save - instead of failing.
+async function putMerged(path, sha, build, merge, msg){
+  try{ return await putIfChanged(path, build(), sha, msg); }
+  catch(e){
+    if (!/changed on GitHub/i.test(e.message)) throw e;
+    const f = (await GH.readFiles([path]))[path] || {};
+    merge(f.text ? parseCSV(f.text) : []);
+    delete AUTOSAVE.last[path];
+    return await putIfChanged(path, build(), f.sha, msg);
+  }
+}
 async function saveAll(){
   if (AUTOSAVE.busy){ AUTOSAVE.again = true; return; }
   if (!S.dirty.size) return;
@@ -933,13 +945,17 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putIfChanged("collection/deal_condition.csv", toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || ""}))), DC.sha, "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c, card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || ""}))),
+        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault}; }), "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("feedback")){ S.dirty.delete("feedback");
-      FB.sha = await putIfChanged("collection/deal_feedback.csv", toCSV(FB_COLS, FB.rows), FB.sha, "Deal reviews (Price Desk)"); }
+      FB.sha = await putMerged("collection/deal_feedback.csv", FB.sha, () => toCSV(FB_COLS, FB.rows),
+        rows => { const have = new Set(FB.rows.map(r => r.at + "|" + r.url)); FB.rows = rows.filter(r => !have.has(r.at + "|" + r.url)).concat(FB.rows).sort((a, b) => (a.at || "").localeCompare(b.at || "")); }, "Deal reviews (Price Desk)"); }
     if (S.dirty.has("elsewhere")){ S.dirty.delete("elsewhere");
-      EW.sha = await putIfChanged("collection/elsewhere.csv", toCSV(EW_COLS, EW.rows.slice().sort((a, b) => (a.seen_at || "").localeCompare(b.seen_at || ""))), EW.sha, "Deals found elsewhere (Price Desk)"); }
+      EW.sha = await putMerged("collection/elsewhere.csv", EW.sha, () => toCSV(EW_COLS, EW.rows.slice().sort((a, b) => (a.seen_at || "").localeCompare(b.seen_at || ""))),
+        rows => { const have = new Set(EW.rows.map(r => r.item_id)); EW.rows = EW.rows.concat(rows.filter(r => !have.has(r.item_id))); }, "Deals found elsewhere (Price Desk)"); }
     if (S.dirty.has("audit")){ S.dirty.delete("audit");
-      AUD.sha = await putIfChanged("collection/ai_audit.csv", toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))), AUD.sha, "AI audit (Price Desk)"); }
+      AUD.sha = await putMerged("collection/ai_audit.csv", AUD.sha, () => toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
+        rows => rows.forEach(r => { if (r.url && !AUD.rows[r.url]) AUD.rows[r.url] = r; }), "AI audit (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
