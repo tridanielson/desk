@@ -896,7 +896,7 @@ const SETTINGS = [
     ["include_auctions", "Include Auctions", "bool", true, "Only auctions ending soon are alerted."],
     ["auction_hours", "Auction Ending Within (Hours)", "num", 12, ""],
     ["usa_only", "Only Catch USA Sellers", "bool", false, "No = sellers anywhere (they must still ship to the US). Leave on No to see everything and use your preferences instead."],
-    ["min_condition", "Lowest condition to catch", "mincond", "ANY", "TCGplayer condition terms. Leave on Any to see everything."],
+    ["min_condition", "Loud Alerts Only at or Above", "mincond", "ANY", "Cards below this condition are still listed - a beat-up rare card can still be a great buy - they just don't send a loud alert."],
     ["graded_cards", "Graded Cards to Catch", "graded", "both", "Slabs (PSA/BGS/CGC) are compared to the ungraded Near Mint price - an alert means a slab is selling below a raw NM copy."],
     ["min_grade", "Minimum Grade for Graded Cards", "num", 0, "1-10. 0 = any grade."],
     ["ebay_game_filter", "Magic Cards Only (eBay's Game Field)", "bool", true, "Keeps Pokémon, Yu-Gi-Oh and other games out."],
@@ -908,6 +908,7 @@ const SETTINGS = [
     ["min_seller_feedback_score", "Min Seller Feedback Count", "num", 10, ""],
     ["max_alerts_per_run", "Max Deal Notifications per Scan", "num", 10, "Extra deals are grouped into one summary notification."],
     ["signed_cards", "Signed / autographed cards", "signed", "any", "Include them, hide them, or only show signed cards (alerts and the every-minute sniper)."],
+    ["altered_cards", "Altered / Hand-Painted Cards", "signed", "hide", "Hidden by default. Choose Include or Only if you collect alters."],
     ["check_full_listing", "Read the Full Listing Before Alerting", "bool", true, "Catches damage mentioned only in the description (e.g. 'small crease on back'). One extra eBay call per possible deal."],
     ["reprint_margin", "Look-Alike Reprint Warning (x Reprint Price)", "num", 1.5, "Flags a listing priced near its cheap look-alike (e.g. a 'Legends' card priced like Chronicles)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
@@ -1370,6 +1371,9 @@ function qualityHTML(d){
   const pn = +d.price_now, p0 = +d.price || +d.total;
   if (!isEnded(d) && pn && p0 && Math.abs(pn - p0) >= 0.5 && !isAuction(d)) h += `<span class="flag ${pn > p0 ? "sus" : "buy"}" title="The seller changed the price since we found it">price now ${money(pn)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
+  if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
+  if (d.multi === true || d.multi === "yes" || d.multi === "True") h += `<span class="flag" title="This listing has a drop-down of conditions. This deal is for the ${esc(d.condition)} option at its own price - pick that option on eBay.">1 of several conditions</span> `;
+  if (d.below_min) h += `<span class="flag" title="Below your minimum condition (Settings → Loud Alerts Only at or Above). Still listed in case it's worth it - just no loud alert.">below your ${esc(d.below_min)}+ minimum</span> `;
   h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
   h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
