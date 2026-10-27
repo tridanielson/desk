@@ -334,7 +334,7 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:07 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:33 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1487,7 +1487,7 @@ document.addEventListener("click", e => { const f = e.target.closest(".flag[titl
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
   let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
-  const pn = +d.price_now, p0 = +d.price || d._t0 || +d.total;
+  const p0 = +d.price;
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
@@ -1984,7 +1984,7 @@ function reviewStart(d){
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" && !isWrong(cat) && cat !== "condition" ? cat : "",
       bought: false, fault: d.ai_edition === "wrong" ? "seller" : "", cfault: COND_LIST.includes(aiC) && aiC !== condCode(d._c0 || d.condition) ? "seller" : "", fromAI: true};
   }
-  if (c && c.v) return {edition: "variant", variant: c.v, condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, fault: "", cfault: c.c ? (c.fault || "seller") : ""};
+  if (c && c.v) return {edition: (S.byKey.get(c.v) || {}).s && !String(d.card || "").endsWith("[" + (S.byKey.get(c.v) || {}).s + "]") ? "edition" : "variant", variant: c.v, fault: (f && f.fault) || a.fault || "seller", condition: c.c || (a.condition || condCode(d._c0 || d.condition)), good: "", reason: "", bought: false, cfault: c.c ? (c.fault || "seller") : ""};
   return {edition: f && f.verdict === "bad" && isWrong(f.reason) ? f.reason : a.edition === "wrong" ? "edition" : (a.edition === "variant" ? "" : a.edition || ""), condition: c && c.c ? c.c : (a.condition || (d._graded ? "unclear" : condCode(d._c0 || d.condition))),
     good: f && f.verdict === "good" ? "up" : f && f.verdict === "bad" ? "down" : a.verdict === "ok" ? "up" : a.verdict === "reject" ? "down" : "",
     reason: f && f.verdict === "bad" && !isWrong(f.reason) && f.reason !== "condition" ? (f.reason || "") : "", bought: false,
@@ -1999,6 +1999,8 @@ function reviewHTML(d, mode){
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition)) || 1;
   const nm = (String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || []), vars = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s === nm[2] && (c.f || "nonfoil") === "nonfoil") : [];
+  const others = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s !== nm[2] && (c.f || "nonfoil") === "nonfoil").sort((a, b) => (+a.p || 0) - (+b.p || 0)).slice(0, 16) : [];
+  const pickBtn = v => `<button type="button" class="btn small${s.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.n)} ${esc(v.sn || v.s)} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${v.s !== nm[2] ? esc(v.s) + " " : ""}#${esc(v.num)} · ${v.p ? money(+v.p) : "no price"}</span></button>`;
   return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · condition <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
       <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a></div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
@@ -2011,11 +2013,13 @@ function reviewHTML(d, mode){
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition / Reprint"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]]))}</div>
-    ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>Which One Is It?</span><div class="seg var-pick" data-k="variant">${vars.map(v => `<button type="button" class="btn small${s.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.n)} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>#${esc(v.num)} · ${v.p ? money(+v.p) : "no price"}</span></button>`).join("")}</div></div>
+    ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>Which One Is It?</span><div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
     <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Whose Mistake?</span>${seg("fault", [["seller", "The Seller's Listing Is Wrong"], ["app", "The App Matched It Wrong"]])}</div>
+    ${others.length ? `<div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}><span>Which Edition Is It Really?</span><div class="seg var-pick" data-k="variant">${others.map(pickBtn).join("")}</div></div>
+      <div class="mut" id="rvEdHint" style="font-size:12px;margin-top:2px"${s.edition === "edition" ? "" : " hidden"}>Optional. Pick it and the deal is re-priced as that printing (NM price shown) - it stays if it's still a deal. Skip it and the listing is hidden.</div>` : ""}
     <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
-    <div id="rvRest"${isWrong(s.edition) ? " hidden" : ""}>
+    <div id="rvRest"${isWrong(s.edition) && s.edition !== "edition" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Whose Mistake?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["app", "The App Misread the Listing"]])}</div>`}
@@ -2052,7 +2056,9 @@ window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
-    if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w;   // wrong card: condition and deal questions don't apply
+    if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w && b.dataset.v !== "edition";   // wrong card / fake: condition doesn't apply
+      if (b.dataset.v !== "variant" && b.dataset.v !== "edition") RV.sel.variant = "";
+      const er = root.querySelector("#rvEdRow"); if (er){ er.hidden = b.dataset.v !== "edition"; root.querySelector("#rvEdHint").hidden = b.dataset.v !== "edition"; }
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
@@ -2073,7 +2079,7 @@ function saveReview(d, sel, note, done, agreeAI){
   if (sel.edition === "variant" && !sel.variant){ toast("Tap which art / version it really is.", 4000); return; }
   if (isWrong(sel.edition)){
     if (!sel.fault && !agreeAI){ toast("Whose mistake was it - the seller's listing, or the app's match?", 4500); return; }
-    sel.good = "down"; sel.reason = sel.edition; sel.condition = "unclear"; }
+    sel.good = "down"; sel.reason = sel.edition; if (!(sel.edition === "edition" && sel.variant)) sel.condition = "unclear"; }
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && sel.condition !== listed && !d._graded;
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
@@ -2098,8 +2104,8 @@ function saveReview(d, sel, note, done, agreeAI){
     markDirty("feedback");
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
-  const v0 = (DC.map[d.url] || {}).v || "", v1 = sel.edition === "variant" ? (sel.variant || "") : "";
-  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : "app"};
+  const v0 = (DC.map[d.url] || {}).v || "", v1 = sel.edition === "variant" || sel.edition === "edition" ? (sel.variant || "") : "";
+  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : sel.edition === "edition" ? (sel.fault || "seller") : "app"};
   else if (DC.map[d.url]) delete DC.map[d.url];
   if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
@@ -2112,8 +2118,8 @@ function saveReview(d, sel, note, done, agreeAI){
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
-  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now" : "hidden now") : verdict === "good" ? "still a deal" : "",
-    v1 ? `re-priced as #${(S.byKey.get(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
+  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? (v1 ? "wrong edition noted" : "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now") : "hidden now") : verdict === "good" ? "still a deal" : "",
+    v1 ? `re-priced as ${(S.byKey.get(v1) || {}).s || ""} #${(S.byKey.get(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
   renderDeals();
   const nd = S.deals.find(x => x.url === d.url);
   toast("Saved" + (msg ? " - " + msg : "") + (nd && nd._notDeal ? ` · at ${nd.condition} it's worth about ${money(nd.fair)}, so it's not a deal any more - moved to Hidden` : "") + ".", 5000);
@@ -2262,7 +2268,8 @@ function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
   if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; d._t0 = +d.total || 0; }
   // the price now: the seller changed a Buy It Now price since we found it -> use it (shipping stays what it was)
-  const pn = +d.price_now, p0 = +d.price || d._t0, ship0 = +d.price ? Math.max(0, d._t0 - +d.price) : 0;
+  // older log rows don't record the item price apart from shipping - can't tell a price change from shipping there, so leave them alone
+  const pn = +d.price_now, p0 = +d.price, ship0 = p0 ? Math.max(0, d._t0 - p0) : 0;
   const repriced = !isEnded(d) && !isAuction(d) && pn > 0 && p0 > 0 && Math.abs(pn - p0) >= 0.5;
   const tot = repriced ? Math.round((pn + ship0) * 100) / 100 : d._t0;
   d.total = tot ? tot.toFixed(2) : d.total; d._priceMoved = repriced ? (pn < p0 ? "down" : "up") : "";
@@ -2287,12 +2294,12 @@ function applyMyReview(d){
   d._notDeal = false;
   if (d.hidden || READONLY) return;
   const f = FB.loaded ? fbLast(d) : null, o = lastFB(d), unhid = o && o.verdict === "unhide" && (!f || f.at <= o.at);
-  if (f && f.verdict === "bad" && !unhid){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
+  if (f && f.verdict === "bad" && !unhid && !(isWrong(f.reason) && f.reason === "edition" && (DC.map[d.url] || {}).v)){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
   const need = +((S.ini.deals || {}).default_deal_pct) || 20;
   if ((d._adj || d._priceMoved === "up") && +d.discount_pct < need){
     d._notDeal = true;
-    Object.assign(d, {hidden: d._var ? `not a deal as #${d._var.num}` : d._adj ? `not a deal at ${d.condition}` : "price went up - not a deal", hidden_by: "you", hidden_cat: "condition",
-      hidden_detail: `${d._var ? `It's really #${d._var.num} (${money(+d._var.p)} NM)` : d._adj ? `You set the condition to ${d.condition}` : `The seller raised the price to ${money(+d.price_now)}`}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
+    Object.assign(d, {hidden: d._var ? `not a deal as ${d._var.s} #${d._var.num}` : d._adj ? `not a deal at ${d.condition}` : "price went up - not a deal", hidden_by: "you", hidden_cat: "condition",
+      hidden_detail: `${d._var ? `It's really ${d._var.s} #${d._var.num} (${money(+d._var.p)} NM)` : d._adj ? `You set the condition to ${d.condition}` : `The seller raised the price to ${money(+d.price_now)}`}: fair value ${money(d.fair)}, ${+d.discount_pct > 0 ? `only ${Math.round(+d.discount_pct)}% off` : `priced at ${money(+d.total)} - above that`} (a deal needs ${need}%)`});
   }
 }
 function setDealCond(url, c, note){
