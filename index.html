@@ -343,7 +343,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 11:56 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 02:00 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -2031,7 +2031,7 @@ function reviewHTML(d, mode){
     <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
     <div id="rvRest"${isWrong(s.edition) && s.edition !== "edition" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
-      : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(f0 / cm * condMult(x))}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+      : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
     <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason"><button type="button" class="btn small${s.reason ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
@@ -2047,7 +2047,7 @@ function dealDetails(d){
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
-    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._fsrc === "tcg" || (!d._adj && d.fair_src === "tcg") ? "market price for that condition" : "NM x condition %"}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2278,6 +2278,19 @@ function condCode(c){
   if (/NEAR MINT|MINT/.test(t)) return "NM"; if (/LIGHT/.test(t)) return "LP"; if (/MODERATE/.test(t)) return "MP"; if (/HEAV/.test(t)) return "HP"; if (/DAMAG|POOR/.test(t)) return "DMG";
   const u = String((S.ini.deals || {}).unknown_condition || "MP").toUpperCase(); return COND_LIST.includes(u) ? u : "MP";
 }
+// Fair value at a condition: the real market price for that condition (JustTCG, on the dashboard as cp) when we have
+// it, otherwise Near Mint x your condition percentage. Multi-art cards use the cheapest art, like the scanner.
+function floorCard(d){
+  if (!S._floorBy){ S._floorBy = {}; (S.cards || []).forEach(c => { const k = c.n + " [" + c.s + "]" + ((c.f || "nonfoil") === "nonfoil" ? "" : " (" + c.f + ")");
+    if (+c.p && (!S._floorBy[k] || +c.p < +S._floorBy[k].p)) S._floorBy[k] = c; }); }
+  return S._floorBy[d.card] || null;
+}
+function fairAt(d, cond, vc){
+  const card = vc || floorCard(d), cp = card && card.cp && +card.cp[cond];
+  if (cp && (!+card.p || cp <= +card.p * 1.15)) return {v: cp, src: "tcg"};
+  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition)) || 1);
+  return {v: nm * condMult(cond), src: "flat"};
+}
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
   if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; d._t0 = +d.total || 0; }
@@ -2289,10 +2302,10 @@ function applyCond(d){
   d.total = tot ? tot.toFixed(2) : d.total; d._priceMoved = repriced ? (pn < p0 ? "down" : "up") : "";
   const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? S.byKey.get(e.v) : null;
   d._var = vc ? vc : null;
-  let fair = d._f0;
+  let fair = d._f0; d._fsrc = d.fair_src || "";
   if ((o || vc) && d._f0){
-    const cNow = o || condCode(d._c0), base = vc && +vc.p ? +vc.p : d._f0 / condMult(condCode(d._c0));   // a different art/version: that printing's price
-    fair = d._graded ? (vc && +vc.p ? +vc.p : d._f0) : base * condMult(cNow);
+    const cNow = o || condCode(d._c0), f = d._graded ? {v: vc && +vc.p ? +vc.p : d._f0, src: "flat"} : fairAt(d, cNow, vc);   // a different art/version: that printing's price
+    fair = f.v; d._fsrc = f.src;
     d.condition = o || d._c0; d._adj = true;
   } else { d.condition = d._c0; d._adj = false; }
   d.fair = Math.round(fair * 100) / 100;
@@ -3443,7 +3456,7 @@ async function loadAll(){
   $("#updated").textContent = "Loading…"; $("#connStatus").textContent = "Loading from GitHub…";
   const d0 = await GH.load(); GH.branch = d0.branch; GH.repo = d0.repo;
   const d = d0.dashboard ? JSON.parse(d0.dashboard) : {cards: [], updated: ""};
-  S.cards = d.cards || []; S._sfByLabel = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
+  S.cards = d.cards || []; S._sfByLabel = null; S._floorBy = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
   S.watch = d0.watch.text ? parseCSV(d0.watch.text) : []; S.watchSha = d0.watch.sha;
   S.rules = d0.rules.text ? parseCSV(d0.rules.text) : []; S.rulesSha = d0.rules.sha;
   S.ini = parseINI(d0.ini.text); S.iniSha = d0.ini.sha;
