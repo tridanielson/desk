@@ -1883,11 +1883,11 @@ function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, mode === "queue" ? 6 : 3);
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
-  const s = RV.sel = reviewStart(d), listed = String(d._c0 || d.condition || "").replace("?", " (not stated)");
+  const s = RV.sel = reviewStart(d), c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition)) || 1;
-  return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · listed <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
+  return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · condition <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
       <div>${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
@@ -2133,7 +2133,7 @@ function setDealCond(url, c, note){
 }
 function condText(d){
   const c = d._adj ? d.condition : String(d._c0 || d.condition || "");
-  return `<span class="${d._adj ? "cond-adj" : ""}" title="${esc(d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition. Review to change it.` : "From the listing. Review the deal to correct it - fair value and % off recalculate.")}">${esc(c)}</span>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)}</div>` : ""}`;
+  return `<span class="${d._adj ? "cond-adj" : ""}" title="${esc(d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition. Review to change it.` : (/\?$/.test(c) ? `The listing doesn't state a condition, so it's valued as ${c.replace("?", "")} (Settings: If Condition Isn't Stated, Assume). Review to correct it.` : "From the listing. Review the deal to correct it - fair value and % off recalculate."))}">${esc(/\?$/.test(c) ? c.replace("?", "") + " (assumed)" : c)}</span>${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap">listing: ${esc(d._c0)}</div>` : ""}`;
 }
 function condCell(d){
   const cur = condCode(d.condition), tip = d._adj ? `You changed this from the listing's “${d._c0}”. Fair value and % off use your condition.` : `Listing says “${d._c0}”. Change it if the photos show a different condition - fair value and % off recalculate.`;
