@@ -211,6 +211,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .acct-tbl td{padding:6px 8px}.acct-tbl .btn{padding:4px 8px;font-size:12px}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
 .flag.must{background:#b3261e;color:#fff;font-weight:700}
+.near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
@@ -417,6 +418,8 @@ select option{background:var(--panel);color:var(--ink)}
       <li><b>More Filters</b> has everything else. The line next to the deal count shows which filters are on.</li>
     </ol>
   </div>
+  <details class="panel owner-only" id="dNearWrap"><summary><b>🚧 Blocked by Your Rules</b> <span class="mut" style="font-size:13px" id="dNearCount">- deals on price that a rule passed on</span></summary>
+    <div id="dNear" style="margin-top:10px"><p class="mut">Loading…</p></div></details>
   <details class="panel owner-only" id="dLearnWrap"><summary><b>Learning &amp; Scorecards</b> <span class="mut" style="font-size:13px">- rules from your comments, AI teaching, sniper scorecard</span></summary>
     <div id="dLearned" style="margin-top:10px"></div>
     <div id="dElse" style="margin-top:12px"></div>
@@ -2280,9 +2283,53 @@ function renderDeals(){
   // tidy every row first so one odd entry can't blank the whole list
   S.deals.forEach(d => { for (const k of ["found_at", "card", "title", "url", "condition", "type", "location", "discount_pct", "total", "fair", "ai_condition", "cond_note"]) if (d[k] == null) d[k] = ""; applyCond(d); });
   try{ renderDeals_(); renderDealsTiles(); }
-  catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY) loadLearned(); }
+  catch(e){ console.error(e); $("#dealsTable").innerHTML = `<tr><td class="empty">Couldn't show the deals list: ${esc(e.message)}. Tell Claude this message.</td></tr>`; $("#dealsTiles").innerHTML = `<p class="empty">Couldn't show the deals list: ${esc(e.message)}</p>`; } if (!READONLY && !FB.loaded) loadFB(); if (!READONLY){ loadLearned(); loadNear(); } }
 // ---- what it learned from your comments (data/card_rules.json, written by the 3-hour scan)
 const LR = {data: null, loaded: false, open: false};
+// ---------------------------------------------------------------- Blocked by your rules (data/near_misses.json + the sniper's list)
+// Listings of cards you track that look like a deal on price, but a filter or rule passed on them. Lets you see what each rule costs.
+const NEAR = {rows: [], loaded: false, reason: "", days: 7};
+async function loadNear(force){
+  if (READONLY || (NEAR.loaded && !force)) return renderNear(); NEAR.loaded = true;
+  let rows = [];
+  try{ const f = await GH.readFiles(["data/near_misses.json"]); const t = f["data/near_misses.json"].text; rows = t ? (JSON.parse(t).rows || []) : []; }catch(e){}
+  const seen = new Set(rows.map(r => r.url));
+  (((S.sniper || {}).near) || []).forEach(r => { if (!seen.has(r.url)) rows.push(r); });
+  NEAR.rows = rows.sort((a, b) => (b.at || "").localeCompare(a.at || "")); renderNear();
+}
+const nearKey = r => { const t = (r.reason || "").toLowerCase();
+  return /feedback/.test(t) ? "Seller feedback" : /us seller|ships from/.test(t) ? "Location" : /edition|filtered word|different card|title/.test(t) ? "Title filter (edition / word)"
+    : /rule|muted|blocked|requires/.test(t) ? "Your comment rules" : /grade|graded|ungraded/.test(t) ? "Graded filter" : /cheap/.test(t) ? "Too cheap - AI didn't pass it"
+    : /mislabel/.test(t) ? "Seller mislabels editions" : /several conditions/.test(t) ? "Multi-condition listing" : /damage|damaged/.test(t) ? "Damage in description" : "Other"; };
+function renderNear(){
+  const box = $("#dNear"); if (!box || READONLY) return;
+  const cutoff = new Date(Date.now() - NEAR.days * 864e5).toISOString().slice(0, 16), rows = NEAR.rows.filter(r => (r.at || "") >= cutoff);
+  const by = {}; rows.forEach(r => { const k = nearKey(r); (by[k] = by[k] || {n: 0, save: 0}); by[k].n++; by[k].save += Math.max(0, r.fair - r.total); });
+  $("#dNearCount").textContent = rows.length ? `- ${rows.length} in the last ${NEAR.days} days` : "- none this week";
+  const shown = rows.filter(r => !NEAR.reason || nearKey(r) === NEAR.reason).slice(0, 60);
+  const missed = r => FB.rows.some(f => f.verdict === "missed" && f.url === r.url);
+  box.innerHTML = !rows.length ? `<p class="mut" style="margin:0">Nothing yet. After the next scan (and the every-minute sniper), any tracked card priced like a deal that a rule turned away shows up here with the reason.</p>`
+    : `<p class="mut" style="font-size:13px;margin:0 0 8px">Priced like a deal, but a rule passed on it. Most are right to block (fakes, wrong editions). Tap <b>Should've Shown</b> on any that were real deals - that tells Claude which rule to loosen. Values are estimates (condition assumed when not stated).</p>
+      <div class="chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"><button class="btn ghost small${NEAR.reason ? "" : " on"}" data-nr="">All ${rows.length}</button>${Object.entries(by).sort((a, b) => b[1].n - a[1].n).map(([k, v]) =>
+        `<button class="btn ghost small${NEAR.reason === k ? " on" : ""}" data-nr="${esc(k)}">${esc(k)} <b>${v.n}</b></button>`).join("")}</div>
+      <div class="near-list">${shown.map(r => `<div class="near-row">
+        <div class="near-main"><div class="cname">${esc(r.card)} <span class="up" style="font-weight:700">${Math.round(r.pct)}% off</span></div>
+          <div style="font-size:13px">${money(r.total)} · est. fair ${money(r.fair)} <span class="mut">${esc(r.cond || "")}</span> · <a href="${esc(ebayLink({url: r.url}))}" target="_blank" rel="noopener">${esc((r.title || "").slice(0, 60))}</a></div>
+          <div style="font-size:13px;margin-top:2px">🚧 ${esc(r.reason)}</div>
+          <div class="mut" style="font-size:11px">${esc(whenAZ(r.at + (r.at.length === 16 ? "Z" : "")))} · ${r.source === "sniper" ? "⚡ sniper" : "3-hour scan"}${r.seller ? " · " + esc(r.seller) : ""}</div></div>
+        <div>${missed(r) ? '<span class="badge b-on">✓ Noted</span>' : `<button class="btn ghost small" data-nmiss="${esc(r.url)}">Should've Shown</button>`}</div></div>`).join("")}</div>`;
+  box.querySelectorAll("[data-nr]").forEach(b => b.addEventListener("click", () => { NEAR.reason = b.dataset.nr; renderNear(); }));
+  box.querySelectorAll("[data-nmiss]").forEach(b => b.addEventListener("click", () => {
+    const r = NEAR.rows.find(x => x.url === b.dataset.nmiss); if (!r || !FB.loaded) return toast("One moment - still loading your reviews.");
+    openModal(`<h3>Should've Shown: ${esc(r.card)}</h3><p class="mut" style="font-size:13px">Blocked because: <b>${esc(r.reason)}</b></p>
+      <label style="display:grid;gap:4px">Why was it a real deal? (optional)<textarea id="nmNote" rows="2" placeholder="e.g. the seller is fine, 'lot' was just in the description"></textarea></label>
+      <div class="acts"><button class="btn ghost" id="nmNo" type="button">Cancel</button><button class="btn" id="nmYes" type="button">Save</button></div>`);
+    $("#nmNo").addEventListener("click", closeModal);
+    $("#nmYes").addEventListener("click", () => { FB.rows.push({at: new Date().toISOString().slice(0, 16), url: r.url, card: r.card, key: "", seller: r.seller || "", verdict: "missed",
+        reason: nearKey(r), note: ("Blocked: " + r.reason + ($("#nmNote").value.trim() ? " | " + $("#nmNote").value.trim() : "")).slice(0, 300), title: (r.title || "").slice(0, 150), fault: "app"});
+      markDirty("feedback"); closeModal(); renderNear(); toast("Noted - Claude will use this to loosen the rule."); });
+  }));
+}
 async function loadLearned(force){
   if (LR.loaded && !force) return renderLearned(); LR.loaded = true;
   try{ const f = await GH.readFiles(["data/card_rules.json", "data/ai_teach.json"]); LR.data = f["data/card_rules.json"].text ? JSON.parse(f["data/card_rules.json"].text) : null;
