@@ -343,7 +343,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:22 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1336,12 +1336,17 @@ function prefOK(d){
   if (graded && mg){ const m = (d.condition || "").match(/(\d+(?:\.5)?)$/); if (!m || parseFloat(m[1]) < mg) return false; }
   return true;
 }
-function snipe(d){
-  const url = "https://www.ezsniper.com/snapper.php3?url=" + encodeURIComponent(d.url);
-  const amt = (+d.max_bid).toFixed(2);
-  try{ navigator.clipboard && navigator.clipboard.writeText(amt).catch(() => {}); }catch{}
-  window.open(url, "Snapper", "width=520,height=440,scrollbars=yes,resizable=yes");
-  toast(`EZSniper opened - enter max bid $${amt} (copied if your browser allows).`, 7000);
+function snipe(d){   // your EZ sniper list page, with the item number and max bid ready to paste into its Add box
+  const id = itemId(d), amt = (+d.max_bid).toFixed(2), page = "https://www.ezsniper.com/list.php3?page=0";
+  openModal(`<h3>Snipe on EZ sniper</h3><p class="mut" style="font-size:13px;margin-top:0">${esc(d.card)} · ${esc(d.title || "").slice(0, 70)}</p>
+    <div style="display:grid;gap:10px;margin:8px 0">
+      <div class="row" style="justify-content:space-between"><span>eBay item # <b style="font-size:16px">${esc(id)}</b></span><button class="btn ghost small" id="snId" type="button">Copy</button></div>
+      <div class="row" style="justify-content:space-between"><span>Max bid <b style="font-size:16px">$${esc(amt)}</b></span><button class="btn ghost small" id="snAmt" type="button">Copy</button></div></div>
+    <p class="mut" style="font-size:12px">On your EZ sniper list page, paste these into the Add box on the right, pick eBay, and press SNIPE!</p>
+    <div class="acts"><button class="btn ghost" id="snClose" type="button">Close</button><a class="btn" id="snGo" href="${page}" target="_blank" rel="noopener">Open EZ sniper</a></div>`);
+  const cp = (v, what) => { try{ navigator.clipboard.writeText(v).then(() => toast(what + " copied.", 2500), () => toast(v, 6000)); }catch(e){ toast(v, 6000); } };
+  $("#snId").addEventListener("click", () => cp(id, "Item number")); $("#snAmt").addEventListener("click", () => cp(amt, "Max bid"));
+  $("#snClose").addEventListener("click", closeModal); cp(id, "Item number");
 }
 // auctions: the scan stores hours left when found ("3.2h"); work out the real end time
 const isAuction = d => /^auction/i.test(d.type || "");
@@ -2047,7 +2052,7 @@ function dealDetails(d){
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
-    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._fsrc === "tcg" || (!d._adj && d.fair_src === "tcg") ? "market price for that condition" : "NM x condition %"}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${(d._adj ? d._fsrc : d.fair_src) === "tcg" ? "market price for that condition" : (d._adj ? d._fsrc : d.fair_src) === "tcg-est" ? "estimated from another condition's market price" : "NM x condition %"}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2315,10 +2320,13 @@ async function fillEditions(root, d){
   }catch(e){ box.innerHTML = `<span class="mut" style="font-size:13px">Couldn't load the printings (${esc(e.message)}).</span>`; }
 }
 function fairAt(d, cond, vc){
-  const card = vc || floorCard(d), cp = card && card.cp && +card.cp[cond];
-  if (cp && (!+card.p || cp <= +card.p * 1.15)) return {v: cp, src: "tcg"};
-  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition)) || 1);
-  return {v: nm * condMult(cond), src: "flat"};
+  const card = vc || floorCard(d), cp = (card && card.cp) || {}, order = COND_LIST;
+  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition)) || 1), flat = nm * condMult(cond);
+  if (+cp[cond]) return {v: +cp[cond], src: "tcg"};
+  const known = order.filter(k => +cp[k]), i = order.indexOf(cond);
+  if (!known.length || i < 0) return {v: flat, src: "flat"};
+  const k = known.sort((a, b) => Math.abs(order.indexOf(a) - i) - Math.abs(order.indexOf(b) - i) || order.indexOf(a) - order.indexOf(b))[0];
+  return {v: Math.min(+cp[k] * condMult(cond) / condMult(k), flat), src: "tcg-est"};   // from the nearest known condition, never above NM x %
 }
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
