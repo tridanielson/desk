@@ -272,6 +272,7 @@ select option{background:var(--panel);color:var(--ink)}
 #nav{gap:0}#nav button{padding:5px 10px;font-size:13px;border-radius:0;border-bottom:2px solid transparent}
 #nav button.on{background:none;color:var(--accent);border-bottom-color:var(--accent)}
 #nav.single{display:none}
+body:not(.ui-ready) #nav button:not([data-tab="mine"]),body:not(.ui-ready) #navGroups button:not([data-group="prices"]){visibility:hidden}
 .hero{position:relative;height:118px;overflow:hidden;background:#1a140e;color:#fff;display:flex;align-items:flex-end}
 .hero-art{position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity .6s;transform:scale(1.04)}
 .hero-art.in{opacity:1}
@@ -327,14 +328,14 @@ select option{background:var(--panel);color:var(--ink)}
   <button class="btn ghost small" id="signOutBtn" hidden>Sign Out</button>
 </header>
 
-<div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT"></div><div class="hero-s" id="heroS"></div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
+<div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT">Prices</div><div class="hero-s" id="heroS">What your cards are worth today, and where they are heading.</div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
 <main>
 <!-- CONNECT -->
 <section class="tab" id="tab-connect">
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:33 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:37 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -3279,6 +3280,7 @@ function renderGroups(tab){
   const vis = groupTabs(g);
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("off", b.dataset.group !== g));
   $("#nav").classList.toggle("single", vis.length < 2);
+  document.body.classList.add("ui-ready");
   store.set("pd_tab_" + g, tab);
   const G = GROUPS[g] || GROUPS.prices; $("#heroT").textContent = G.t; $("#heroS").textContent = G.s;
   heroArt(g);
