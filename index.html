@@ -210,6 +210,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .join{text-align:center;padding:28px 16px}.join h3{margin:0 0 6px;font:600 20px Georgia,serif}.join p{color:var(--muted);max-width:460px;margin:0 auto 14px}
 .acct-tbl td{padding:6px 8px}.acct-tbl .btn{padding:4px 8px;font-size:12px}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
+.flag.must{background:#b3261e;color:#fff;font-weight:700}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
 .condSel.adj,.condChip.adj{border-color:var(--gold, #b8860b);color:var(--gold, #b8860b);font-weight:600}
@@ -983,6 +984,12 @@ const SETTINGS = [
     ["altered_cards", "Altered / Hand-Painted Cards", "signed", "hide", "Hidden by default. Choose Include or Only if you collect alters."],
     ["check_full_listing", "Read the Full Listing Before Alerting", "bool", true, "Catches damage mentioned only in the description (e.g. 'small crease on back'). One extra eBay call per possible deal."],
     ["reprint_margin", "Look-Alike Reprint Warning (x Reprint Price)", "num", 1.5, "Flags a listing priced near its cheap look-alike (e.g. a 'Legends' card priced like Chronicles)."]]},
+  {sec: "alerts", title: "Phone alerts: MUST BUY deals", fields: [
+    ["must_buy_saving", "MUST BUY: Save at Least ($)", "num", 30, "Only deals this far under fair value (in dollars) count as MUST BUY - they ring loudly."],
+    ["must_buy_pct", "MUST BUY: And at Least This % Off", "num", 35, "Both must be true. Cards with a cheaper look-alike (Unlimited vs Revised, etc.) also need the AI to confirm the edition from the photos."],
+    ["must_buy_auction_minutes", "MUST BUY Auctions: Ending Within (Minutes)", "num", 60, "Auctions only count near the end - before that the bid will still rise."],
+    ["must_buy_rings_overnight", "MUST BUY Rings During Quiet Hours", "bool", true, "The 🔔 mute button still silences everything."],
+    ["other_deals", "All Other Deals", "otherdeals", "off", "Off = Price Desk only, no phone alert. Summary = one quiet list per scan. Each = an alert for every top pick (the old way - lots of notifications)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
     ["quiet_hours", "Quiet Hours On", "bool", true, "Stops alerts from waking you up. The 🔔 button at the top mutes on demand."],
     ["quiet_start", "Quiet from (24h, e.g. 22:00)", "list", "22:00", ""],
@@ -1075,6 +1082,7 @@ function renderSettings_(){
       else if (type === "mincond") input = `<select id="${id}"><option value="ANY">Any Condition</option><option value="HP">Heavily Played or Better</option><option value="MP">Moderately Played or Better</option><option value="LP">Lightly Played or Better</option><option value="NM">Near Mint Only</option></select>`;
       else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option><option value="both">Both</option></select>`;
       else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky Deals Only (Saves Money)</option><option value="all">Every Deal</option></select>`;
+      else if (type === "otherdeals") input = `<select id="${id}"><option value="off">Off - Price Desk Only</option><option value="summary">One Quiet Summary per Scan</option><option value="each">An Alert for Every Top Pick</option></select>`;
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
@@ -1082,7 +1090,7 @@ function renderSettings_(){
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
-      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode") ? val.toLowerCase() : val;
+      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals") ? val.toLowerCase() : val;
       el.addEventListener("change", () => { (S.ini[g.sec] = S.ini[g.sec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
     box.appendChild(panel);
@@ -1578,7 +1586,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}. You've marked this seller's condition down before.">⬇ seller overstates</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}. You've marked this seller's condition down before.">⬇ seller overstates</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2336,6 +2344,7 @@ function renderDealsTiles(){
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
+      ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
       ${d.cond_note ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">⬇ seller overstates</span></div>` : ""}
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
@@ -3090,6 +3099,18 @@ $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchT
 
 // ---------------------------------------------------------------- tabs
 
+// MUST BUY (same rule as the phone alerts: [alerts] must_buy_*)
+const LOOKALIKE_SETS = ["2ED", "LEA", "LEB", "ARN", "ATQ", "LEG", "DRK", "3ED", "CED", "CEI"];
+function isMustBuy(d){
+  const A = S.ini.alerts || {}, save = (+d.fair || 0) - (+d.total || 0), pct = +d.discount_pct || 0;
+  if (d.ai_verdict === "reject" || d.hidden) return false;
+  if (save < (+A.must_buy_saving || 30) || pct < (+A.must_buy_pct || 35)) return false;
+  if (/auction/i.test(d.type || "")){ const m = String(d.ends_in || "").match(/([\d.]+)\s*([dhm])/); const left = m ? +m[1] * ({d: 1440, h: 60, m: 1})[m[2]] : null;
+    if (left == null || left > (+A.must_buy_auction_minutes || 60)) return false; }
+  const set = ((d.card || "").match(/\[([A-Z0-9]+)\]\s*$/) || [])[1] || "";
+  if ((LOOKALIKE_SETS.includes(set) || d.reprint) && !(d.ai_verdict === "ok" && d.ai_edition === "matches")) return false;
+  return true;
+}
 // ---------------------------------------------------------------- sections (two-level nav) + artwork
 const GROUPS = {
   prices: {t: "Prices", s: "What your cards are worth today, and where they are heading."},
