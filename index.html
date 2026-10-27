@@ -334,7 +334,7 @@ select option{background:var(--panel);color:var(--ink)}
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:50 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:06 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1486,8 +1486,8 @@ document.addEventListener("click", e => { const f = e.target.closest(".flag[titl
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
   let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
-  const pn = +d.price_now, p0 = +d.price || +d.total;
-  if (!isEnded(d) && pn && p0 && Math.abs(pn - p0) >= 0.5 && !isAuction(d)) h += `<span class="flag ${pn > p0 ? "sus" : "buy"}" title="The seller changed the price since we found it">price now ${money(pn)}</span> `;
+  const pn = +d.price_now, p0 = +d.price || d._t0 || +d.total;
+  if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
   if (d.multi === true || d.multi === "yes" || d.multi === "True") h += `<span class="flag" title="This listing has a drop-down of conditions. This deal is for the ${esc(d.condition)} option at its own price - pick that option on eBay.">1 of several conditions</span> `;
@@ -2235,14 +2235,24 @@ function condCode(c){
 }
 function applyCond(d){
   if (READONLY && !DC.guest){ DC.guest = true; try{ DC.map = JSON.parse(store.get("dealCond") || "{}"); }catch(e){} }
-  if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; }
+  if (!("_f0" in d)){ d._graded = /psa|bgs|cgc|sgc|beckett|ace|tag|grade/i.test(d.condition || ""); d._f0 = +d.fair || 0; d._p0 = d.discount_pct; d._c0 = d.condition; d._b0 = d.below_buylist; d._t0 = +d.total || 0; }
+  // the price now: the seller changed a Buy It Now price since we found it -> use it (shipping stays what it was)
+  const pn = +d.price_now, p0 = +d.price || d._t0, ship0 = +d.price ? Math.max(0, d._t0 - +d.price) : 0;
+  const repriced = !isEnded(d) && !isAuction(d) && pn > 0 && p0 > 0 && Math.abs(pn - p0) >= 0.5;
+  const tot = repriced ? Math.round((pn + ship0) * 100) / 100 : d._t0;
+  d.total = tot ? tot.toFixed(2) : d.total; d._priceMoved = repriced ? (pn < p0 ? "down" : "up") : "";
   const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? S.byKey.get(e.v) : null;
   d._var = vc ? vc : null;
-  if ((!o && !vc) || !d._f0){ d.fair = d._f0 || d.fair; d.discount_pct = d._p0; d.condition = d._c0; d.below_buylist = d._b0; d._adj = false; return; }
-  const cNow = o || condCode(d._c0), base = vc && +vc.p ? +vc.p : d._f0 / condMult(condCode(d._c0));   // a different art/version: that printing's price
-  const fair = d._graded ? (vc && +vc.p ? +vc.p : d._f0) : base * condMult(cNow), tot = +d.total || 0;
-  d.fair = Math.round(fair * 100) / 100; d.discount_pct = fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0; d.condition = o || d._c0; d._adj = true;
-  const ck = +d.ck_buylist; d.below_buylist = ck ? (tot > 0 && tot <= ck * condMult(o) ? "True" : "") : d._b0;
+  let fair = d._f0;
+  if ((o || vc) && d._f0){
+    const cNow = o || condCode(d._c0), base = vc && +vc.p ? +vc.p : d._f0 / condMult(condCode(d._c0));   // a different art/version: that printing's price
+    fair = d._graded ? (vc && +vc.p ? +vc.p : d._f0) : base * condMult(cNow);
+    d.condition = o || d._c0; d._adj = true;
+  } else { d.condition = d._c0; d._adj = false; }
+  d.fair = Math.round(fair * 100) / 100;
+  d.discount_pct = d._adj || repriced ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
+  const ck = +d.ck_buylist, cm = condMult(condCode(d.condition)) || 1;
+  d.below_buylist = d._adj || repriced ? (ck ? (tot > 0 && tot <= ck * cm ? "True" : "") : d._b0) : d._b0;
 }
 // Your review takes effect right away (the next scan / Apply My Ratings makes it permanent):
 // thumbs down or wrong edition -> hidden; a condition change that leaves it short of your deal % -> hidden as "not a deal".
@@ -2254,10 +2264,10 @@ function applyMyReview(d){
   const f = FB.loaded ? fbLast(d) : null, o = lastFB(d), unhid = o && o.verdict === "unhide" && (!f || f.at <= o.at);
   if (f && f.verdict === "bad" && !unhid){ Object.assign(d, {hidden: "you rated it bad", hidden_by: "you", hidden_cat: f.reason || "other", hidden_detail: `You gave it a thumbs down${f.note ? ': "' + f.note + '"' : ""}`}); return; }
   const need = +((S.ini.deals || {}).default_deal_pct) || 20;
-  if (d._adj && +d.discount_pct < need){
+  if ((d._adj || d._priceMoved === "up") && +d.discount_pct < need){
     d._notDeal = true;
-    Object.assign(d, {hidden: d._var ? `not a deal as #${d._var.num}` : `not a deal at ${d.condition}`, hidden_by: "you", hidden_cat: "condition",
-      hidden_detail: `${d._var ? `It's really #${d._var.num} (${money(+d._var.p)} NM)` : `You set the condition to ${d.condition}`}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
+    Object.assign(d, {hidden: d._var ? `not a deal as #${d._var.num}` : d._adj ? `not a deal at ${d.condition}` : "price went up - not a deal", hidden_by: "you", hidden_cat: "condition",
+      hidden_detail: `${d._var ? `It's really #${d._var.num} (${money(+d._var.p)} NM)` : d._adj ? `You set the condition to ${d.condition}` : `The seller raised the price to ${money(+d.price_now)}`}: fair value ${money(d.fair)}, only ${Math.round(+d.discount_pct)}% off (a deal needs ${need}%)`});
   }
 }
 function setDealCond(url, c, note){
