@@ -213,6 +213,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .flag.must{background:#b3261e;color:#fff;font-weight:700}
 .var-pick .btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:4px}.var-pick img{width:62px;border-radius:4px}
 .aud-q.need{outline:2px solid var(--down);outline-offset:4px;border-radius:6px}
+#ptr{position:fixed;left:50%;top:0;transform:translate(-50%,-60px);z-index:55;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
 .near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
@@ -342,7 +343,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:58 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 11:56 AM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -615,6 +616,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 <div class="modal-bg" id="colModalBg"></div>
 <div class="modal" id="colModal" role="dialog" aria-modal="true"><div id="colModalBody"></div></div>
 <div class="toast" id="toast"></div>
+<div id="ptr" aria-hidden="true">↓ Pull to refresh</div>
 <div id="busy" role="status" aria-live="polite"><div class="busy-bar"></div><div class="busy-msg"><span class="spin"></span><span id="busyMsg"></span></div></div>
 
 <script>
@@ -2422,6 +2424,29 @@ function renderNear(){
       markDirty("feedback"); closeModal(); renderNear(); toast("Noted - Claude will use this to loosen the rule."); });
   }));
 }
+// ---------------------------------------------------------------- refreshing when it's installed on the home screen
+// The iPhone home-screen app has no reload button or pull-to-refresh, so the page adds its own pull-down,
+// and checks every few minutes whether a newer version of the page is out.
+(function(){
+  const app = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+  if (!app) return;
+  const ptr = $("#ptr"); let y0 = null, pulled = 0;
+  const atTop = () => window.scrollY <= 0 && !document.querySelector(".modal.on, .sheet.on, #colModal[style*='block']");
+  document.addEventListener("touchstart", e => { y0 = atTop() && e.touches.length === 1 ? e.touches[0].clientY : null; pulled = 0; }, {passive: true});
+  document.addEventListener("touchmove", e => { if (y0 == null) return; pulled = e.touches[0].clientY - y0;
+    if (pulled > 10){ ptr.style.transform = `translate(-50%, ${Math.min(pulled, 110) - 50}px)`; ptr.textContent = pulled > 90 ? "↻ Release to refresh" : "↓ Pull to refresh"; } }, {passive: true});
+  document.addEventListener("touchend", async () => { if (y0 == null) return; const go = pulled > 90; y0 = null; ptr.style.transform = "translate(-50%,-60px)";
+    if (!go) return; ptr.textContent = "Refreshing…"; ptr.style.transform = "translate(-50%,40px)"; try{ await flushSaves(); }catch(e){} location.reload(); });
+})();
+async function checkPageVersion(){
+  if (document.hidden || !/^https?:/.test(location.protocol) || /script\.google/.test(location.host)) return;
+  try{ const t = await (await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"})).text();
+    const v = (t.match(/id="pageVer">([^<]*)</) || [])[1], mine = ($("#pageVer") || {}).textContent;
+    if (v && mine && v !== mine && !checkPageVersion.told){ checkPageVersion.told = true;
+      toastHTML(`A newer version of the Price Desk is out. <a href="#" id="pvGo">Refresh now</a>`, 15000);
+      const a = $("#pvGo"); if (a) a.addEventListener("click", async e => { e.preventDefault(); try{ await flushSaves(); }catch(x){} location.reload(); }); } }catch(e){}
+}
+setInterval(checkPageVersion, 5 * 6e4); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPageVersion(); });
 async function loadLearned(force){
   if (LR.loaded && !force) return renderLearned(); LR.loaded = true;
   try{ const f = await GH.readFiles(["data/card_rules.json", "data/ai_teach.json"]); LR.data = f["data/card_rules.json"].text ? JSON.parse(f["data/card_rules.json"].text) : null;
