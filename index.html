@@ -201,10 +201,14 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
 @media (max-width:700px){.desk-table{display:none!important}.tiles{display:block}
   input,select,textarea{font-size:16px}
   #allTable+.row,.panel.scroll{overflow-x:visible}}
-body.readonly #saveBtn,body.readonly #runBtn,body.readonly #pending,body.readonly #acBox,body.readonly .star,
+body.readonly #saveBtn,body.readonly #runBtn,body.readonly:not(.user) #pending,body.readonly #acBox,body.readonly .star,
 body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly .owner-only,
-body.readonly #nav [data-tab=col],body.readonly #nav [data-tab=sets],body.readonly #nav [data-tab=deals],body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect]{display:none!important}
-.viewchip{display:none}body.readonly .viewchip{display:inline-block}
+body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+.viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
+.login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
+.join{text-align:center;padding:28px 16px}.join h3{margin:0 0 6px;font:600 20px Georgia,serif}.join p{color:var(--muted);max-width:460px;margin:0 auto 14px}
+.acct-tbl td{padding:6px 8px}.acct-tbl .btn{padding:4px 8px;font-size:12px}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
@@ -316,6 +320,7 @@ select option{background:var(--panel);color:var(--ink)}
   <button class="btn" id="saveBtn" hidden disabled>Save Now</button>
   <button class="btn ghost" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Refresh Now</button>
   <button class="btn ghost small owner-only" id="muteBtn" title="Phone alerts: mute or quiet hours" hidden>🔔</button>
+  <button class="btn ghost small user-only" id="acctBtn" title="Your account">👤 <span id="acctName"></span></button>
   <button class="btn ghost small" id="signOutBtn" hidden>Sign Out</button>
 </header>
 
@@ -335,6 +340,7 @@ select option{background:var(--panel);color:var(--ink)}
       <li>Changing a password signs out everyone who used the old one.</li>
     </ol>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
+    <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <div class="panel" style="margin-top:14px"><b>What each tab does</b>
       <dl class="guide">
@@ -399,7 +405,7 @@ select option{background:var(--panel);color:var(--ink)}
 <section class="tab" id="tab-deals">
   <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay Deals <a href="#" id="dHowShow" class="owner-only" style="font-size:13px;font-weight:400">How This Works</a></h2>
     <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply My Ratings</button><button class="btn small owner-only" id="dScan">Scan eBay Now</button></div></div>
-  <p class="sub">eBay listings under fair value for the cards you track. New ones arrive by themselves - tap <b>Review</b> on any deal to teach it.</p>
+  <p class="sub">eBay listings under fair value for the cards you track. New ones arrive by themselves<span class="owner-only"> - tap <b>Review</b> on any deal to teach it</span>.</p>
   <div class="panel owner-only howto" id="dHow" hidden>
     <div class="row" style="justify-content:space-between"><b>How eBay Deals Works</b><button class="btn ghost small" id="dHowOk" type="button">Got It</button></div>
     <ol>
@@ -575,8 +581,18 @@ select option{background:var(--panel);color:var(--ink)}
   <form class="login-box" id="loginForm" autocomplete="on">
     <svg class="logo big" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><path d="M20 2 35 10.5v19L20 38 5 29.5v-19z" fill="none" stroke="url(#lg2)" stroke-width="2.4"/><path d="M20 7.5 30.5 13.5v13L20 32.5 9.5 26.5v-13z" fill="url(#lg2)" opacity=".16"/><path d="M14 12v16M26 12v16M14 20h12" stroke="url(#lg2)" stroke-width="3.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.3" fill="var(--gold)"/></svg>
     <div class="brand">Havoth Price Desk<small>Card prices &amp; deals</small></div>
-    <label for="loginPw" style="font-weight:600">Password</label>
+    <div class="login-tabs" role="tablist"><button type="button" class="on" data-lm="in">Sign In</button><button type="button" data-lm="up">Create Account</button></div>
+    <div id="lmUp" hidden style="display:grid;gap:10px">
+      <label for="loginInv">Invite Code</label><input id="loginInv" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <label for="loginUser" id="loginUserL">Username <span class="mut" style="font-weight:400" id="loginUserOpt">(leave blank for the shared password)</span></label>
+    <input id="loginUser" name="username" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <label for="loginPw">Password</label>
     <input id="loginPw" name="password" type="password" autocomplete="current-password" required>
+    <div id="lmUp2" hidden style="display:grid;gap:10px">
+      <label for="loginPw2">Password Again</label><input id="loginPw2" type="password" autocomplete="new-password">
+      <p class="hint">Your account gets its own Collection and Sets - private to you. No email needed. If you forget your password, ask Havoth Cards to reset it.</p>
+    </div>
     <button class="btn" type="submit" id="loginBtn">Sign In</button>
     <p class="status" id="loginMsg" role="alert" style="min-height:18px;margin:0"></p>
   </form>
@@ -799,7 +815,7 @@ new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = se
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
 const BUSY_TEXT = {loadAll: "Loading prices and deals… (the first load can take 10-20 seconds)", loadSecretLair: "Loading Secret Lair…",
-  readFiles: "Loading…", saveFile: "Saving to GitHub…", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: ""};
+  readFiles: "Loading…", saveFile: "Saving to GitHub…", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…"};
 function busy(on, fn){
   if (on){ BUSY.n++; BUSY.labels.push(fn); } else { BUSY.n = Math.max(0, BUSY.n - 1); const i = BUSY.labels.indexOf(fn); if (i >= 0) BUSY.labels.splice(i, 1); }
   clearTimeout(BUSY.t);
@@ -820,7 +836,7 @@ async function server(fn, ...args){
 function showLogin(msg){ $("#login").hidden = false; $("#loginMsg").textContent = msg || ""; setTimeout(() => $("#loginPw").focus(), 50); }
 function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBtn").hidden = true; }
 const savedTab = () => { const h = (location.hash || "").slice(1); return (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; };
-const tabOK = t => !["detail", "connect"].concat(READONLY ? ["deals", "settings", "col", "sets"] : []).includes(t) && document.getElementById("tab-" + t);
+const tabOK = t => !["detail", "connect"].concat(READONLY ? ["settings"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
   try{
     const t0 = savedTab();
@@ -833,10 +849,24 @@ async function startApp(){
     switchTab("connect"); $("#connStatus").textContent = e.message; $("#updated").textContent = "Not connected";
   }
 }
+let LOGIN_MODE = "in";
+function setLoginMode(m){
+  LOGIN_MODE = m; const up = m === "up";
+  document.querySelectorAll("[data-lm]").forEach(b => b.classList.toggle("on", b.dataset.lm === m));
+  $("#lmUp").hidden = $("#lmUp2").hidden = !up; $("#loginUserOpt").hidden = up; $("#loginUser").required = up;
+  $("#loginPw").autocomplete = up ? "new-password" : "current-password"; $("#loginPw2").required = up;
+  $("#loginBtn").textContent = up ? "Create Account" : "Sign In"; $("#loginMsg").textContent = "";
+  setTimeout(() => (up ? $("#loginInv") : $("#loginPw")).focus(), 30);
+}
+document.querySelectorAll("[data-lm]").forEach(b => b.addEventListener("click", () => setLoginMode(b.dataset.lm)));
 $("#loginForm").addEventListener("submit", async e => {
-  e.preventDefault(); const btn = $("#loginBtn"); btn.disabled = true; $("#loginMsg").textContent = "Signing in…";
+  e.preventDefault(); const btn = $("#loginBtn");
+  if (LOGIN_MODE === "up" && $("#loginPw").value !== $("#loginPw2").value){ $("#loginMsg").textContent = "The two passwords don't match."; return; }
+  btn.disabled = true; $("#loginMsg").textContent = LOGIN_MODE === "up" ? "Creating your account…" : "Signing in…";
   try{
-    const r = await rawServer("login", $("#loginPw").value, AUTH.device);
+    const r = LOGIN_MODE === "up" ? await rawServer("signUp", $("#loginInv").value, $("#loginUser").value, $("#loginPw").value, AUTH.device)
+                                  : await rawServer("login", $("#loginPw").value, AUTH.device, $("#loginUser").value);
+    $("#loginPw2").value = ""; $("#loginInv").value = ""; if (LOGIN_MODE === "up"){ setLoginMode("in"); toast(`Welcome, ${r.name}! Your Collection and Sets are ready.`, 6000); }
     AUTH.token = r.token; store.set("pd_session", r.token); $("#loginPw").value = ""; $("#login").hidden = true; $("#loginMsg").textContent = "";
     await startApp();
   }catch(err){ $("#loginMsg").textContent = err.message; $("#loginPw").select(); }
@@ -844,7 +874,8 @@ $("#loginForm").addEventListener("submit", async e => {
 });
 $("#signOutBtn").addEventListener("click", () => {
   if (S.dirty.size){ toast("Saving your changes first…"); flushSaves(); return; }
-  signOutLocal(); READONLY = false; document.body.classList.remove("readonly");
+  signOutLocal(); READONLY = false; ROLE = ""; document.body.classList.remove("readonly", "user", "nodeals");
+  COL.loaded = false; COL.inv = []; COL.sales = []; COL.goals = []; COL.data = null; COL.rec = []; renderCOL();
   S.cards = []; S.byKey = new Map(); S.watch = []; S.rules = []; S.deals = []; S.ini = {};
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
   $("#updated").textContent = "Signed out"; $("#runBtn").disabled = true; showLogin("Signed out.");
@@ -865,7 +896,8 @@ const S = {runs: {},
   deals: [],
   dirty: new Set(), selected: null,
 };
-let READONLY = false;
+let READONLY = false, ROLE = "";   // ROLE: owner | user (an account - own Collection & Sets) | viewer (shared guest password)
+const MYCOL = () => ROLE === "owner" || ROLE === "user";
 function lockIfReadonly(){
   if (!READONLY) return;
   document.querySelectorAll("#mineTable input, #mineTable select, #rulesTable input, #rulesTable select, #settingsForm input, #settingsForm select, #settingsForm textarea")
@@ -2567,7 +2599,7 @@ const COL = {goals: [], goalsSha: null, loaded: false, loading: false, error: ""
 const todayAZ = () => new Date().toLocaleDateString("en-CA", {timeZone: "America/Phoenix"});
 const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 async function loadCOL(force){
-  if (READONLY || (COL.loaded && !force) || COL.loading){ if (COL.loaded) renderCOL(); return; }
+  if (!MYCOL() || (COL.loaded && !force) || COL.loading){ if (COL.loaded || !MYCOL()) renderCOL(); return; }
   COL.loading = true; COL.error = ""; renderCOL();
   try{
     const f = await GH.readFiles(["data/collection.json", "collection/inventory.csv", "collection/sales.csv", "collection/sl_received.csv", "collection/sets.csv"]);
@@ -2644,7 +2676,7 @@ function colSales(){
 }
 function renderCOL(){
   const box = $("#colBody"); if (!box) return;
-  if (READONLY){ box.innerHTML = '<p class="empty">Not available.</p>'; return; }
+  if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
   if (COL.loading && !COL.loaded){ box.innerHTML = '<p class="empty">Loading your collection…</p>'; return; }
   if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try Again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
   const items = colItems(), sales = colSales();
@@ -2889,17 +2921,17 @@ function goalProgress(g){
   return {rows, need, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
           unpriced: need.filter(r => r.price == null).length, owned: rows.filter(r => r.have).reduce((t, r) => t + (r.price || 0), 0)};
 }
-async function loadSETS(){ if (READONLY) return; if (!COL.loaded) await loadCOL(); renderSETS(); }
+async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
 function renderSETS(){
   const box = $("#setsBody"); if (!box) return;
-  if (READONLY){ box.innerHTML = '<p class="empty">Not available.</p>'; return; }
+  if (!MYCOL()){ box.innerHTML = joinHTML("sets"); wireJoin(box); return; }
   if (!COL.loaded){ box.innerHTML = COL.error ? `<p class="empty">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p>` : '<p class="empty">Loading…</p>'; return; }
   const goals = COL.goals.filter(g => g.set);
   goals.forEach(loadSetCards);
   if (SETS.open && goals.some(g => goalKey(g) === SETS.open)) return renderSetDetail(goals.find(g => goalKey(g) === SETS.open));
   SETS.open = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
-    <p class="sub" style="margin:0">Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.</p></div>
+    <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
     <button class="btn small" id="setAdd">+ Add a Set</button></div>`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
@@ -3061,7 +3093,7 @@ $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchT
 // ---------------------------------------------------------------- sections (two-level nav) + artwork
 const GROUPS = {
   prices: {t: "Prices", s: "What your cards are worth today, and where they are heading."},
-  deals: {t: "Deals", s: "Underpriced eBay listings, checked by the scanner and the AI - and your reviews."},
+  deals: {t: "Deals", s: "Underpriced eBay listings, checked by the scanner and an AI photo check."},
   mine: {t: "My Cards", s: "Your collection, the sets you are completing, and Secret Lair drops."},
   guide: {t: "ID & Fake Guide", s: "Spot fakes and proxies, and tell look-alike editions apart."},
   setup: {t: "Settings", s: "Deal rules, alerts, fees - and connection status."},
@@ -3119,6 +3151,67 @@ async function loginArt(){
 }
 new MutationObserver(() => { if (!$("#login").hidden) loginArt(); }).observe($("#login"), {attributes: true, attributeFilter: ["hidden"]});
 if (!$("#login").hidden) loginArt();
+
+// ---------------------------------------------------------------- accounts
+function joinHTML(what){
+  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : "Track Your Own Collection"}</h3>
+    <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
+    It's private to your account - nobody else sees it, and you see nobody else's.</p>
+    <div class="row" style="justify-content:center"><button class="btn" data-join="up">Create Account</button><button class="btn ghost" data-join="in">Sign In</button></div>
+    <p style="font-size:12px;margin:12px auto 0">You need an invite code from Havoth Cards to create an account.</p></div>`;
+}
+function wireJoin(box){
+  box.querySelectorAll("[data-join]").forEach(b => b.addEventListener("click", () => {
+    if (S.dirty.size) flushSaves(); signOutLocal(); READONLY = false; ROLE = ""; document.body.classList.remove("readonly", "user", "nodeals");
+    showLogin(""); setLoginMode(b.dataset.join); if (b.dataset.join === "in") setTimeout(() => $("#loginUser").focus(), 40);
+  }));
+}
+$("#acctBtn").addEventListener("click", () => {
+  openModal(`<h3>👤 ${esc($("#acctName").textContent)}</h3><p class="mut" style="font-size:13px;margin-top:0">Your Collection and Sets are private to this account.</p>
+    <div style="display:grid;gap:8px"><label>Current Password<input id="cpOld" type="password" autocomplete="current-password" style="width:100%"></label>
+    <label>New Password<input id="cpNew" type="password" autocomplete="new-password" style="width:100%"></label>
+    <label>New Password Again<input id="cpNew2" type="password" autocomplete="new-password" style="width:100%"></label></div>
+    <div class="acts"><button class="btn ghost" id="cpCancel" type="button">Close</button><button class="btn" id="cpOk" type="button">Change Password</button></div>`);
+  $("#cpCancel").addEventListener("click", closeModal);
+  $("#cpOk").addEventListener("click", async () => {
+    if ($("#cpNew").value !== $("#cpNew2").value) return toast("The new passwords don't match.");
+    try{ const r = await server("changePassword", $("#cpOld").value, $("#cpNew").value); AUTH.token = r.token; store.set("pd_session", r.token); closeModal(); toast("Password changed. Other devices are signed out."); }
+    catch(e){ toast(e.message, 6000); }
+  });
+});
+const ACC = {info: null};
+async function loadAccounts(){
+  const box = $("#acctBody"); if (!box || READONLY) return;
+  try{ ACC.info = await server("accountsInfo"); }catch(e){ box.innerHTML = `<p class="mut">${/Unknown request/.test(e.message) ? "Update the server code first (above), then reload." : esc(e.message)}</p>`; return; }
+  renderAccounts();
+}
+function renderAccounts(){
+  const box = $("#acctBody"), a = ACC.info; if (!box || !a) return;
+  box.innerHTML = `<p class="mut" style="font-size:13px;margin:6px 0 10px">Friends and beta testers make their own account with your invite code. Each account gets its own private Collection and Sets, and sees prices, Secret Lair, the guide${a.dealsPublic ? " and eBay Deals" : ""}. They never see your collection, settings, reviews or alerts. The shared guest password still works for a quick look.</p>
+    <div class="row" style="align-items:flex-end;gap:10px">
+      <label style="display:grid;gap:4px;font-weight:600">Invite Code<input id="accInv" value="${esc(a.invite)}" placeholder="blank = sign-ups closed" style="min-width:200px"></label>
+      <button class="btn small" id="accInvSave">Save Code</button><button class="btn ghost small" id="accInvGen">Make a New Code</button></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:14px 0 4px;font-weight:600"><input type="checkbox" id="accDeals" ${a.dealsPublic ? "checked" : ""}> Show eBay Deals to Guests &amp; Accounts</label>
+    <p class="mut" style="font-size:12px;margin:0 0 12px">Off = only you see the Deals tab. They see deals live, the same moment you do.</p>
+    <b>Accounts (${a.users.length})</b>
+    ${a.users.length ? `<div class="scroll"><table class="acct-tbl"><thead><tr><th>Username</th><th>Joined</th><th>Last Sign-In</th><th></th></tr></thead><tbody>${a.users.map(u => `<tr><td><b>${esc(u.name)}</b></td><td>${esc((u.created || "").slice(0, 10))}</td><td>${esc((u.last || "").slice(0, 10))}</td>
+      <td style="white-space:nowrap"><button class="btn ghost" data-areset="${esc(u.name)}">Reset Password</button> <button class="btn ghost" data-arm="${esc(u.name)}">Remove</button></td></tr>`).join("")}</tbody></table></div>`
+      : `<p class="mut" style="font-size:13px">No accounts yet. Share the invite code and the site address.</p>`}`;
+  const set = async (o, msg) => { try{ ACC.info = await server("accountsSet", o); renderAccounts(); toast(msg); }catch(e){ toast(e.message, 6000); } };
+  $("#accInvSave").addEventListener("click", () => set({invite: $("#accInv").value}, $("#accInv").value.trim() ? "Invite code saved." : "Sign-ups closed."));
+  $("#accInvGen").addEventListener("click", () => { const w = ["mox", "lotus", "djinn", "bolt", "tutor", "sol", "dual", "ruby", "pearl", "jet"]; const c = w[Math.floor(Math.random() * w.length)] + "-" + Math.random().toString(36).slice(2, 7);
+    set({invite: c}, "New invite code saved - the old one no longer works."); });
+  $("#accDeals").addEventListener("change", e => set({dealsPublic: e.target.checked}, e.target.checked ? "Guests and accounts can see eBay Deals." : "eBay Deals are now yours only."));
+  box.querySelectorAll("[data-areset]").forEach(b => b.addEventListener("click", async () => {
+    try{ const r = await server("accountReset", b.dataset.areset);
+      openModal(`<h3>New Password for ${esc(r.name)}</h3><p>Send them this temporary password. They can change it from the 👤 button after signing in.</p><p style="font:600 20px monospace;text-align:center;user-select:all">${esc(r.password)}</p><div class="acts"><button class="btn" id="arOk" type="button">Done</button></div>`);
+      $("#arOk").addEventListener("click", closeModal); }catch(e){ toast(e.message, 6000); } }));
+  box.querySelectorAll("[data-arm]").forEach(b => b.addEventListener("click", () => {
+    openModal(`<h3>Remove ${esc(b.dataset.arm)}?</h3><p>They won't be able to sign in. Their saved collection stays in your repo (under users/) in case you need it.</p><div class="acts"><button class="btn ghost" id="armNo" type="button">Cancel</button><button class="btn" id="armYes" type="button">Remove</button></div>`);
+    $("#armNo").addEventListener("click", closeModal);
+    $("#armYes").addEventListener("click", async () => { closeModal(); try{ ACC.info = await server("accountRemove", b.dataset.arm); renderAccounts(); toast("Account removed."); }catch(e){ toast(e.message, 6000); } });
+  }));
+}
 function switchTab(name){
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   renderGroups(name);
@@ -3127,6 +3220,7 @@ function switchTab(name){
   try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
   if (name === "sl" && typeof loadSL === "function"){ loadSL(); if (!READONLY) loadCOL(); }
   if (name === "col" && typeof loadCOL === "function") loadCOL();
+  if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "audit" && !READONLY) renderAudit();
   if (name === "guide") renderGuide();
@@ -3147,7 +3241,11 @@ async function loadAll(){
   S.loadedOnce = true;
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
-  READONLY = !d0.canEdit; document.body.classList.toggle("readonly", READONLY);
+  READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : "viewer");
+  document.body.classList.toggle("readonly", READONLY); document.body.classList.toggle("user", ROLE === "user");
+  document.body.classList.toggle("nodeals", !d0.canEdit && !d0.dealsPublic);
+  $("#acctName").textContent = d0.name || "";
+  if (ROLE !== "owner"){ COL.loaded = false; }
   if (!READONLY) setTimeout(checkServerCode, 1500);
   if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
   else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
