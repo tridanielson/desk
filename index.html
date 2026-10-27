@@ -406,7 +406,7 @@ select option{background:var(--panel);color:var(--ink)}
 <!-- DEALS -->
 <section class="tab" id="tab-deals">
   <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay Deals <a href="#" id="dHowShow" class="owner-only" style="font-size:13px;font-weight:400">How This Works</a></h2>
-    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><button class="btn ghost small owner-only" id="dApply" title="Re-check the deals already found against your ratings and comments - no eBay searches">Apply My Ratings</button><button class="btn small owner-only" id="dScan">Scan eBay Now</button></div></div>
+    <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><span class="status owner-only" id="dLearnSt" title="Your reviews update the rules, re-judge every logged deal and update the sniper automatically - about a minute after you save. No eBay searches."></span><button class="btn small owner-only" id="dScan">Scan eBay Now</button></div></div>
   <p class="sub">eBay listings under fair value for the cards you track. New ones arrive by themselves<span class="owner-only"> - tap <b>Review</b> on any deal to teach it</span>.</p>
   <div class="panel owner-only howto" id="dHow" hidden>
     <div class="row" style="justify-content:space-between"><b>How eBay Deals Works</b><button class="btn ghost small" id="dHowOk" type="button">Got It</button></div>
@@ -966,6 +966,7 @@ async function saveAll(){
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
+    if (["feedback", "audit", "dealcond"].some(f => done.has(f) && want.has(f))) autoLearn();
   }catch(e){
     const failed = [...done].filter(f => want.has(f)).pop();   // the file that was saving when it failed
     [...want].filter(f => f === failed || !done.has(f) || S.dirty.has(f)).forEach(f => S.dirty.add(f));   // try again next time
@@ -3395,8 +3396,32 @@ $("#runBtn").addEventListener("click", async () => {
 });
 // start a run, then poll run_status.json until that part finishes and reload the page's data
 let WATCH = null;
-async function watchRun(part){
-  if (WATCH) clearInterval(WATCH);
+async function watchLearn(){   // the automatic rules update after a review: quiet, and re-renders deals without a full reload
+  const before = (S.runs.learn || {}).at || "", started = Date.now();
+  const tick = async () => {
+    if (Date.now() - started > 15 * 6e4){ clearInterval(LEARN.w); learnStatus("Rules: still updating on GitHub"); return learnDone(); }
+    try{
+      const f = await GH.readFiles(["data/run_status.json"]); const r = JSON.parse(f["data/run_status.json"].text || "{}");
+      if (!r.learn || r.learn.at === before) return;
+      clearInterval(LEARN.w); S.runs = r;
+      let fresh = null;
+      try{ const g = await GH.readFiles(["data/deals_log.csv"]); fresh = g["data/deals_log.csv"].text ? parseCSV(g["data/deals_log.csv"].text) : null; }catch(e){}
+      let newly = 0;
+      if (fresh){ const by = new Map(fresh.map(d => [d.url, d]));   // take the re-judged hidden fields, keep everything else on screen
+        S.deals.forEach(d => { const n = by.get(d.url); if (!n) return; if (!(d._h0 || {}).hidden && n.hidden && !d.hidden) newly++;
+          d._h0 = {hidden: n.hidden || "", cat: n.hidden_cat || "", by: n.hidden_by || "", detail: n.hidden_detail || ""}; });
+        LR.loaded = false; renderDeals(); }
+      else { await flushSaves(); await loadAll(); }
+      learnStatus(`Rules updated ${new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})} · sniper has them`);
+      if (newly) toast(`Your rules re-judged the deals: ${newly} more hidden. The sniper is using them now.`, 6000);
+      learnDone();
+    }catch(e){}
+  };
+  clearInterval(LEARN.w); LEARN.w = setInterval(tick, 20000); setTimeout(tick, 45000);
+}
+async function watchRun(part, quiet){
+  if (WATCH && !quiet) clearInterval(WATCH);
+  if (part === "learn" && quiet) return watchLearn();
   const before = (S.runs[part] || {}).at || "", started = Date.now(), msg = $("#dScanMsg");
   const tick = async () => {
     const mins = Math.round((Date.now() - started) / 6e4);
@@ -3418,16 +3443,24 @@ async function watchRun(part){
   };
   WATCH = setInterval(tick, 30000); tick();
 }
-$("#dApply").addEventListener("click", async () => {
-  const pend = FB.rows.filter(r => (r.note || "").trim()).length - (((LR.data || {}).done) || []).length;
-  if (!await costConfirm("Apply your ratings now?", ["<b>No eBay searches.</b> Re-checks deals already found against your ratings and rules.",
-    pend > 0 ? `AI: Claude reads your <b>${pend} new comment${pend > 1 ? "s" : ""}</b> to turn them into rules - a fraction of a cent.` : "No new comments, so no AI cost."], "Apply")) return;
-  await flushSaves();
-  const b = $("#dApply"); b.disabled = true;
-  try{ await GH.runWorkflow("learn"); toast("Applying your ratings - about 1 minute. No eBay searches are used.", 6000); watchRun("learn"); }
-  catch(e){ toast(e.message, 7000); }
-  setTimeout(() => { b.disabled = false; }, 30000);
-});
+// Your reviews take effect everywhere on their own: ~20 s after a review saves, GitHub re-reads all your reviews, turns new
+// comments into rules, re-judges every logged deal and rebuilds the sniper's rulebook (no eBay searches; one run at a time).
+const LEARN = {t: null, running: false, again: false};
+function learnStatus(txt){ const el = $("#dLearnSt"); if (el) el.textContent = txt || ""; }
+function autoLearn(){
+  if (READONLY) return;
+  if (LEARN.running){ LEARN.again = true; learnStatus("Rules: will update again after this run"); return; }
+  clearTimeout(LEARN.t); learnStatus("Rules: updating in a moment…");
+  LEARN.t = setTimeout(async () => {
+    LEARN.running = true; LEARN.again = false; learnStatus("Rules: updating…");
+    try{ await GH.runWorkflow("learn"); watchRun("learn", true); }
+    catch(e){ LEARN.running = false; learnStatus("Rules: couldn't start the update - " + e.message); }
+  }, 20000);
+}
+function learnDone(){
+  LEARN.running = false;
+  if (LEARN.again){ LEARN.again = false; autoLearn(); }
+}
 $("#dScan").addEventListener("click", async () => {
   const d = (S.runs || {}).deals || {};
   if (!await costConfirm("Scan eBay now?", ["Optional - the full scan runs every 3 hours and the sniper checks new listings every minute.",
