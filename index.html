@@ -356,7 +356,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:02 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:41 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -1727,6 +1727,18 @@ function dealCompare(a, b){
   const f = DEAL_KEYS[DSORT.k]; if (!f) return 0;
   const x = f(a), y = f(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * DSORT.dir;
 }
+// one row per eBay listing: the sniper and the 3-hour scan can both find the same one (with different link
+// endings). Keep the scan's row (it gets re-checked and reviewed), note when it was first found.
+function dedupeDeals(list){
+  const keep = new Map(), out = [], t = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at || "") ? d.found_at : (d.found_at || "") + "Z") || 0;
+  list.forEach(d => { const k = itemId(d) || d.url; const o = keep.get(k);
+    if (!o){ keep.set(k, d); out.push(d); return; }
+    const better = (o.source === "sniper" && d.source !== "sniper") || ((o.source === "sniper") === (d.source === "sniper") && t(d) > t(o));
+    const first = t(o) <= t(d) ? o : d, w = better ? d : o;
+    w.first_found = first.found_at; if (first.source === "sniper") w.first_by = "sniper";
+    if (better){ out[out.indexOf(o)] = d; keep.set(k, d); } });
+  return out;
+}
 const setOf = d => (/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "";
 const SETNAMES = () => { const names = {LEA: "Alpha", LEB: "Beta", "2ED": "Unlimited", "3ED": "Revised", ARN: "Arabian Nights", ATQ: "Antiquities", LEG: "Legends", DRK: "The Dark", FEM: "Fallen Empires", CHR: "Chronicles", "4ED": "Fourth Edition", ICE: "Ice Age", HML: "Homelands", ALL: "Alliances", MIR: "Mirage", VIS: "Visions", WTH: "Weatherlight", TMP: "Tempest", STH: "Stronghold", EXO: "Exodus", USG: "Urza's Saga", ULG: "Urza's Legacy", UDS: "Urza's Destiny", CED: "Collectors' Edition", CEI: "Intl. Collectors' Edition"};
   S.cards.forEach(c => { if (c.s && c.sn) names[c.s] = c.sn; }); return names; };
@@ -2224,7 +2236,7 @@ const itemId = d => (String(d.url || "").match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/)
 function dealDetails(d){
   const e = DC.map[d.url] || {}, f = (FB.rows || []).filter(r => r.url === d.url).slice(-3), a = AUD.rows[d.url];
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
-    `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
+    `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"}${d.first_found && d.first_found !== d.found_at ? ` (first found ${d.first_found}${d.first_by ? " by the sniper" : ""})` : ""} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
     snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - valued at the ungraded Near Mint price, no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
@@ -2709,11 +2721,12 @@ async function pollLive(force){
 }
 function mergeLive(r){
   if (!r || r.off) return;
-  const by = new Map(S.deals.map(d => [d.url, d])), added = [];
-  if (r.deals) parseCSV(r.deals).forEach(n => { const d = by.get(n.url);
-    if (!d){ by.set(n.url, n); added.push(n); return; }
+  const by = new Map(), added = []; S.deals.forEach(d => { by.set(d.url, d); const i = itemId(d); if (i) by.set(i, d); });
+  const known = x => by.get(x.url) || by.get(itemId(x));
+  if (r.deals) parseCSV(r.deals).forEach(n => { const d = known(n);
+    if (!d){ by.set(n.url, n); if (itemId(n)) by.set(itemId(n), n); added.push(n); return; }
     ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
-  if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!by.has(x.url)){ by.set(x.url, x); added.push(x); } }); }
+  if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!known(x)){ by.set(x.url, x); if (itemId(x)) by.set(itemId(x), x); added.push(x); } }); }
   if (r.pricesAt){ if (S._pricesAt && r.pricesAt !== S._pricesAt) PRICES_NEW = true; S._pricesAt = r.pricesAt; }
   if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; loadAll().catch(() => {}); return; }   // fresh prices: quiet full reload of the data (no page reload)
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
@@ -3778,7 +3791,8 @@ async function loadAll(){
   S.deals = d0.deals ? parseCSV(d0.deals) : [];
   S.loadedOnce = true;
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
-  if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
+  if (S.sniper && S.sniper.log) S.deals = S.sniper.log.concat(S.deals);
+  S.deals = dedupeDeals(S.deals);
   if (GONE.loaded) applyGone();
   markNewSinceLastVisit();
   READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : "viewer");
