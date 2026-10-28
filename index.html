@@ -179,6 +179,8 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 @media (prefers-reduced-motion:reduce){#busy .busy-bar,#busy .spin{animation:none}}
 th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:3px}
 .tiles{display:none}
+.phone-only{display:none}
+@media (max-width:700px){select.phone-only{display:inline-block}}
 button,a,.tile{-webkit-tap-highlight-color:transparent}
 .tile{display:flex;gap:12px;align-items:center;width:100%;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;text-decoration:none}
 .tile:last-child{border-bottom:0}
@@ -217,7 +219,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .flag.must{background:#b3261e;color:#fff;font-weight:700}
 .var-pick .btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:4px}.var-pick img{width:62px;border-radius:4px}
 .aud-q.need{outline:2px solid var(--down);outline-offset:4px;border-radius:6px}
-#ptr{position:fixed;left:50%;top:0;transform:translate(-50%,-60px);z-index:55;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
+#ptr{position:fixed;left:50%;top:env(safe-area-inset-top,0px);transform:translate(-50%,-60px);z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
 .vin{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--muted);white-space:nowrap;cursor:help}.vin.on{border-color:var(--gold);color:var(--gold)}
 details.sgroup{margin-bottom:12px}details.sgroup>summary{cursor:pointer;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:15px;list-style-position:inside}details.sgroup[open]>summary{margin-bottom:10px}details.sgroup>.panel{margin-left:10px}
 .near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
@@ -348,7 +350,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 09:08 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 02:38 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -401,6 +403,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
       <option value="buy">Strong Buylist (CK 65%+ of Market)</option>
       <option value="vol">Most Volatile</option>
     </select>
+    <select id="allSortSel" class="phone-only" aria-label="Sort by"><option value="p|-1">Sort: Highest Price</option><option value="p|1">Sort: Lowest Price</option><option value="c7|-1">Sort: 7-Day Gain</option><option value="c7|1">Sort: 7-Day Drop</option><option value="c30|-1">Sort: 30-Day Gain</option><option value="c30|1">Sort: 30-Day Drop</option><option value="c1y|-1">Sort: 1-Year Gain</option><option value="ck|-1">Sort: Highest Buylist</option><option value="v1y|-1">Sort: Most Volatile</option><option value="n|1">Sort: Card A-Z</option></select>
     <span class="status" id="allCount"></span>
   </div>
   <div class="panel scroll"><div class="tiles" id="allTiles"></div><table id="allTable" class="desk-table"></table><div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="allMore" hidden>Show More</button></div></div>
@@ -437,6 +440,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">All</option></select> Days</label>
     <label>Min % Off <input id="dMin" class="num" type="number" value="0"></label>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
+    <select id="dSortSel" class="phone-only" aria-label="Sort by"><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option><option value="sniped">🎯 My Snipes</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
@@ -1604,7 +1608,7 @@ function qualityHTML(d){
   h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
   h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
-  if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden)) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
+  if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden) && !(d.ai_verdict === "warn" && reviewedByMe(d))) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ AI checked" : d.ai_verdict === "warn" ? "⚠ AI: check it" : "✕ AI rejected"}</span> `;
   if (d.damage) h += `<span class="flag sus" title="Listing mentions '${esc(d.damage)}' - valued as Damaged">${esc(d.damage)}</span> `;
   if (d.reprint) h += `<span class="flag sus" title="Priced like the ${esc(d.reprint)} reprint - check the photos (border, corners)">possible ${esc(d.reprint)}?</span> `;
   return h;
@@ -1726,7 +1730,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${d._new ? '<span class="flag must" style="background:#1f7a3a" title="Just showed up - no refresh needed">NEW</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${d._new ? '<span class="flag must" style="background:#1f7a3a" title="Just showed up - no refresh needed">NEW</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2084,6 +2088,7 @@ document.addEventListener("click", e => { const a = e.target.closest(".guide-toc
 //   collection/deal_feedback.csv (hides it, blocks sellers, comments become rules), collection/deal_condition.csv (re-prices
 //   it, teaches the AI your grading), collection/ai_audit.csv (AI accuracy + examples), and the training data.
 const fbLast = d => FB.rows.filter(r => r.url === d.url && ["good", "bad", "note"].includes(r.verdict)).slice(-1)[0];
+const reviewedByMe = d => !READONLY && FB.loaded && !!reviewedState(d);   // you've looked at it: the "⚠ check" warnings are done
 function reviewedState(d){
   const f = fbLast(d), a = AUD.rows[d.url], c = DC.map[d.url];
   if (!f && !a && !c) return null;
@@ -2617,14 +2622,13 @@ function renderNear(){
 // The iPhone home-screen app has no reload button or pull-to-refresh, so the page adds its own pull-down,
 // and checks every few minutes whether a newer version of the page is out.
 (function(){
-  const app = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-  if (!app) return;
+  if (!("ontouchstart" in window)) return;   // works in the home-screen app and in Safari
   const ptr = $("#ptr"); let y0 = null, pulled = 0;
-  const atTop = () => window.scrollY <= 0 && !document.querySelector(".modal.on, .sheet.on, #colModal[style*='block']");
+  const atTop = () => Math.max(window.scrollY, (document.scrollingElement || document.documentElement).scrollTop) <= 2 && !document.querySelector(".modal.on, .sheet.on, #colModal[style*='block']");
   document.addEventListener("touchstart", e => { y0 = atTop() && e.touches.length === 1 ? e.touches[0].clientY : null; pulled = 0; }, {passive: true});
   document.addEventListener("touchmove", e => { if (y0 == null) return; pulled = e.touches[0].clientY - y0;
-    if (pulled > 10){ ptr.style.transform = `translate(-50%, ${Math.min(pulled, 110) - 50}px)`; ptr.textContent = pulled > 90 ? "↻ Release to refresh" : "↓ Pull to refresh"; } }, {passive: true});
-  document.addEventListener("touchend", async () => { if (y0 == null) return; const go = pulled > 90; y0 = null; ptr.style.transform = "translate(-50%,-60px)";
+    if (pulled > 10){ ptr.style.transform = `translate(-50%, ${Math.min(pulled, 110) - 50}px)`; ptr.textContent = pulled > 70 ? "↻ Release to refresh" : "↓ Pull to refresh"; } }, {passive: true});
+  document.addEventListener("touchend", async () => { if (y0 == null) return; const go = pulled > 70; y0 = null; ptr.style.transform = "translate(-50%,-60px)";
     if (!go) return; ptr.textContent = "Refreshing…"; ptr.style.transform = "translate(-50%,40px)"; try{ await flushSaves(); }catch(e){} location.reload(); });
 })();
 async function checkPageVersion(){
@@ -2645,6 +2649,13 @@ async function softReload(){
   try{ sessionStorage.setItem("pd_scroll", String(scrollY)); }catch(e){}
   location.reload();
 }
+// coming back to the app after a while (iPhone keeps it frozen in the background): load the latest by itself
+let HIDDEN_AT = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){ HIDDEN_AT = Date.now(); return; }
+  if (HIDDEN_AT && Date.now() - HIDDEN_AT > 10 * 6e4 && S.loadedOnce && !busyNow()) loadAll().catch(() => {});
+  HIDDEN_AT = 0; });
+window.addEventListener("pageshow", e => { if (e.persisted && S.loadedOnce && !busyNow()) loadAll().catch(() => {}); });
 setInterval(softReload, 15000); document.addEventListener("visibilitychange", () => { if (document.hidden) softReload(); });
 try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y) window.addEventListener("load", () => setTimeout(() => scrollTo(0, y), 600)); }catch(e){}
 // ---- new deals show up on their own: about once a minute (while the page is open and visible) ask for the sniper's latest
@@ -2788,7 +2799,7 @@ function renderDealsTiles(){
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
-      ${d.cond_note ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span></div>` : ""}
+      ${d.cond_note && !reviewedByMe(d) ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span></div>` : ""}
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
       ${+d.max_bid ? `<div class="t-chips">${snipeBtnHTML(d, true)}</div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${reviewBtnHTML(d, true) ? `<div class="t-chips">${reviewBtnHTML(d, true)}</div>` : ""}</div>
@@ -3741,6 +3752,9 @@ function costConfirm(title, lines, okLabel){
 }
 const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$/i.test(A.enabled || "yes");
   return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
+// phones have no column titles to tap - these drop-downs do the same sorting
+$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; renderDeals(); });
+$("#allSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); allSort = {k, dir: +dir}; renderAll(); });
 $("#runBtn").addEventListener("click", async () => {
   const d = (S.runs || {}).deals || {};
   if (!await costConfirm("Run a scan now?", ["Optional - this happens on its own every morning (prices) and every 3 hours (deals).",
