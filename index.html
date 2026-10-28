@@ -221,6 +221,8 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .acct-tbl td{padding:6px 8px}.acct-tbl .btn{padding:4px 8px;font-size:12px}
 @media (max-width:700px){header{padding:10px 12px;gap:8px}main{padding:14px 12px 60px}.hide-sm{display:none}nav{order:3;width:100%;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}nav button{white-space:nowrap}.brand{font-size:16px}.btn{padding:7px 10px}.chartbox{height:260px}.detail-head img{width:64px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}#mineTable td:nth-child(2),#allTable td:nth-child(3){min-width:150px}}
 .flag.must{background:#b3261e;color:#fff;font-weight:700}
+.flag.must.newtag{background:#1f7a3a;cursor:pointer}
+.flash{animation:flashRow 2.5s ease-out}@keyframes flashRow{0%,40%{background:rgba(31,122,58,.22)}100%{background:transparent}}
 .var-pick .btn{display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:4px}.var-pick img{width:62px;border-radius:4px}
 .aud-q.need{outline:2px solid var(--down);outline-offset:4px;border-radius:6px}
 #ptr{position:fixed;left:50%;top:env(safe-area-inset-top,0px);transform:translate(-50%,-60px);z-index:70;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
@@ -354,7 +356,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 07:08 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:02 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -1605,7 +1607,7 @@ function buylistText(d){
   return `Below Card Kingdom's cash buylist: Card Kingdom pays about ${adj ? money(adj) : "more"} for a copy in this condition${ck ? ` (${money(ck)} Near Mint)` : ""}, and this costs ${money(d.total)} with shipping - you could resell it to them right away for a profit.`;
 }
 // tap any tag (phones can't hover) to read what it means
-document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]") || f.matches(".btn")) return;
+document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]") || f.matches(".btn, [data-seen]")) return;
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
   let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
@@ -1760,13 +1762,13 @@ function renderDeals_(){
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
-    .sort((a, b) => dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
+    .sort((a, b) => (isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${d._new ? '<span class="flag must" style="background:#1f7a3a" title="Just showed up - no refresh needed">NEW</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2156,7 +2158,7 @@ function reviewBtnHTML0(d, tile){
   const icons = st.wrongEd ? (st.fault === "app" ? "✕ App Mismatch" : "✕ Seller Mislabeled") : (st.good === "good" ? "👍" : st.good === "bad" ? "👎" : "") + (st.cond ? " " + st.cond : "");
   return `${bought}<${tag} class="btn ghost small rv done" data-review="${esc(d.url)}" title="You reviewed this - tap to change">✓ ${esc(icons.trim() || "Reviewed")}</${end}>`;
 }
-document.addEventListener("click", e => { const b = e.target.closest("[data-review]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+document.addEventListener("click", e => { const b = e.target.closest("[data-review]"); if (!b) return; e.preventDefault(); e.stopPropagation(); seenDeal(b.dataset.review);
   const d = S.deals.find(x => x.url === b.dataset.review); if (d) openReview(d); }, true);
 
 const RV = {sel: null};
@@ -2715,13 +2717,35 @@ function mergeLive(r){
   if (r.pricesAt){ if (S._pricesAt && r.pricesAt !== S._pricesAt) PRICES_NEW = true; S._pricesAt = r.pricesAt; }
   if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; loadAll().catch(() => {}); return; }   // fresh prices: quiet full reload of the data (no page reload)
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
-  added.forEach(d => d._new = true); if (GONE.loaded) applyGone();
+  added.forEach(d => markNew(d)); if (GONE.loaded) applyGone();
   if (added.length) S.deals = added.concat(S.deals);
   renderDeals();
   const shown = added.filter(d => (S._dealRows || []).includes(d));
-  if (shown.length) toast(`🆕 ${shown.length === 1 ? "New deal: " + shown[0].card + " - " + (+shown[0].discount_pct).toFixed(0) + "% off" : shown.length + " new deals - " + shown.slice(0, 3).map(d => d.card.split(" [")[0]).join(", ")}${shown.length > 3 ? "…" : ""}`, 7000);
+  if (shown.length){ toastHTML(`🆕 ${esc(shown.length === 1 ? "New deal: " + shown[0].card + " - " + (+shown[0].discount_pct).toFixed(0) + "% off" : shown.length + " new deals - " + shown.slice(0, 3).map(d => d.card.split(" [")[0]).join(", ") + (shown.length > 3 ? "…" : ""))} <a href="#" id="newGo">Show</a>`, 9000);
+    const a = $("#newGo"); if (a) a.addEventListener("click", e => { e.preventDefault(); showNewDeals(); }); }
   if (shown.length) tabAlert(shown.length, shown.length === 1 ? shown[0].card.split(" [")[0] + " " + (+shown[0].discount_pct).toFixed(0) + "% off" : "new deals");
 }
+// ---- NEW deals: anything that showed up while the page was open, or since your last visit. They sit at the top of the
+// list (whatever the sort) with a green NEW tag until you tap the deal, review it, or tap the tag's ✕. Kept for a day.
+const NEWD = (() => { try{ const o = JSON.parse(store.get("pd_newdeals") || "{}"), cut = Date.now() - 86400000; Object.keys(o).forEach(k => { if (o[k] < cut) delete o[k]; }); return o; }catch(e){ return {}; } })();
+const LAST_SEEN = +store.get("pd_lastseen") || 0;
+const saveNew = () => store.set("pd_newdeals", JSON.stringify(NEWD));
+const isNewDeal = d => !!NEWD[d.url];
+function markNew(d){ if (!NEWD[d.url]){ NEWD[d.url] = Date.now(); saveNew(); } }
+function seenDeal(url){ if (NEWD[url]){ delete NEWD[url]; saveNew(); return true; } return false; }
+function markNewSinceLastVisit(){   // deals found after you last had the page open
+  if (!LAST_SEEN) return; let n = 0;
+  S.deals.forEach(d => { const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z"); if (t > LAST_SEEN && !NEWD[d.url] && t > Date.now() - 86400000){ NEWD[d.url] = Date.now(); n++; } });
+  if (n) saveNew();
+}
+const stampSeen = () => store.set("pd_lastseen", String(Date.now()));
+document.addEventListener("visibilitychange", () => { if (document.hidden) stampSeen(); }); window.addEventListener("pagehide", stampSeen);
+function showNewDeals(){ switchTab("deals"); setTimeout(() => { const el = document.querySelector(".newtag"); if (!el) return toast("It doesn't match your current filters.");
+  const card = el.closest("tr, .tile"); card.scrollIntoView({block: "center", behavior: "smooth"}); card.classList.add("flash"); setTimeout(() => card.classList.remove("flash"), 2500); }, 150); }
+document.addEventListener("click", e => {
+  const x = e.target.closest("[data-seen]"); if (x){ e.preventDefault(); e.stopPropagation(); seenDeal(x.dataset.seen); renderDeals(); return; }
+  const t = e.target.closest("#dealsTiles .tile, #dealsTable tr"); if (!t) return;   // tapping / opening a deal counts as seeing it
+  const u = (t.querySelector("[data-seen]") || {}).dataset; if (u && u.seen && seenDeal(u.seen)) setTimeout(renderDeals, 400); }, true);
 // ---- browser tab warning while you're looking at something else: "(2) 🆕 Sinkhole 38% off" flashing in the tab + a red count on the icon
 const TABA = {n: 0, base: "Havoth Price Desk", flip: null, href: null, img: null};
 const tabAway = () => document.hidden || !document.hasFocus();
@@ -2831,7 +2855,7 @@ function renderDealsTiles(){
   if (!rows.length){ box.innerHTML = `<p class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet."}</p>`; return; }
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = ebayLink(d);
-    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${d._new ? '<span class="flag must" style="background:#1f7a3a">NEW</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
+    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${isNewDeal(d) ? '<span class="flag must newtag" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
@@ -3756,6 +3780,7 @@ async function loadAll(){
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
   if (GONE.loaded) applyGone();
+  markNewSinceLastVisit();
   READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : "viewer");
   document.body.classList.toggle("readonly", READONLY); document.body.classList.toggle("user", ROLE === "user");
   document.body.classList.toggle("nodeals", !d0.canEdit && !d0.dealsPublic);
