@@ -350,7 +350,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 02:38 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 02:49 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3753,7 +3753,11 @@ function costConfirm(title, lines, okLabel){
 const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$/i.test(A.enabled || "yes");
   return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
 // phones have no column titles to tap - these drop-downs do the same sorting
-$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; renderDeals(); });
+$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; store.set("pd_dsort_phone", e.target.value || "new"); renderDeals(); });
+if (matchMedia("(max-width:700px)").matches){   // phones: Biggest % Off first unless you picked another sort
+  const v0 = store.get("pd_dsort_phone"), v = !v0 ? "% Off|-1" : v0 === "new" ? "" : v0;
+  if ([...$("#dSortSel").options].some(o => o.value === v)){ $("#dSortSel").value = v; const [k, dir] = v.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; }
+}
 $("#allSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); allSort = {k, dir: +dir}; renderAll(); });
 $("#runBtn").addEventListener("click", async () => {
   const d = (S.runs || {}).deals || {};
