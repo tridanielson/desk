@@ -345,7 +345,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:12 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:26 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1388,17 +1388,13 @@ function prefOK(d){
   if (graded && mg){ const m = (d.condition || "").match(/(\d+(?:\.5)?)$/); if (!m || parseFloat(m[1]) < mg) return false; }
   return true;
 }
-function snipe(d){   // your EZ sniper list page, with the item number and max bid ready to paste into its Add box
-  const id = itemId(d), amt = (+d.max_bid).toFixed(2), page = "https://www.ezsniper.com/list.php3?page=0";
-  openModal(`<h3>Snipe on EZ sniper</h3><p class="mut" style="font-size:13px;margin-top:0">${esc(d.card)} · ${esc(d.title || "").slice(0, 70)}</p>
-    <div style="display:grid;gap:10px;margin:8px 0">
-      <div class="row" style="justify-content:space-between"><span>eBay item # <b style="font-size:16px">${esc(id)}</b></span><button class="btn ghost small" id="snId" type="button">Copy</button></div>
-      <div class="row" style="justify-content:space-between"><span>Max bid <b style="font-size:16px">$${esc(amt)}</b></span><button class="btn ghost small" id="snAmt" type="button">Copy</button></div></div>
-    <p class="mut" style="font-size:12px">On your EZ sniper list page, paste these into the Add box on the right, pick eBay, and press SNIPE!</p>
-    <div class="acts"><button class="btn ghost" id="snClose" type="button">Close</button><a class="btn" id="snGo" href="${page}" target="_blank" rel="noopener">Open EZ sniper</a></div>`);
-  const cp = (v, what) => { try{ navigator.clipboard.writeText(v).then(() => toast(what + " copied.", 2500), () => toast(v, 6000)); }catch(e){ toast(v, 6000); } };
-  $("#snId").addEventListener("click", () => cp(id, "Item number")); $("#snAmt").addEventListener("click", () => cp(amt, "Max bid"));
-  $("#snClose").addEventListener("click", closeModal); cp(id, "Item number");
+function snipe(d){   // EZ sniper's Snapper: opens with the item number and eBay already filled in - you add the max bid (copied for you)
+  const id = itemId(d), amt = (+d.max_bid).toFixed(2);
+  const url = "https://www.ezsniper.com/snapper.php3?url=" + encodeURIComponent("https://www.ebay.com/itm/" + id);
+  try{ navigator.clipboard && navigator.clipboard.writeText(amt).catch(() => {}); }catch(e){}
+  const w = window.open(url, "Snapper", "width=520,height=420,resizable=yes,scrollbars=yes");
+  if (!w) location.href = url;   // pop-ups blocked: open it here instead
+  toast(`EZ sniper: item ${id} is filled in. Max bid $${amt} is copied - paste it into Max Bid and press Snipe!`, 9000);
 }
 // auctions: the scan stores hours left when found ("3.2h"); work out the real end time
 const isAuction = d => /^auction/i.test(d.type || "");
