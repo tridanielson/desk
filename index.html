@@ -349,7 +349,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:45 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:04 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1732,7 +1732,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${d._new ? '<span class="flag must" style="background:#1f7a3a" title="Just showed up - no refresh needed">NEW</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2606,6 +2606,32 @@ async function checkPageVersion(){
       toastHTML(`A newer version of the Price Desk is out. <a href="#" id="pvGo">Refresh now</a>`, 15000);
       const a = $("#pvGo"); if (a) a.addEventListener("click", async e => { e.preventDefault(); try{ await flushSaves(); }catch(x){} location.reload(); }); } }catch(e){}
 }
+// ---- new deals show up on their own: about once a minute (while the page is open and visible) ask for the sniper's latest
+// finds, plus the 3-hour scan's list when a newer scan has finished. No reload, nothing you're doing gets reset.
+const LIVE = {busy: false, off: false, last: 0};
+async function pollLive(force){
+  if (LIVE.busy || LIVE.off || document.hidden || !S.loadedOnce || !AUTH.token || document.body.classList.contains("nodeals")) return;
+  if (!force && Date.now() - LIVE.last < 55000) return;
+  LIVE.busy = true; LIVE.last = Date.now();
+  try{ mergeLive(await rawServer("liveDeals", AUTH.token, S._dealsAt || "")); }
+  catch(e){ if (/^UPDATE|Unknown request|liveDeals|is not a function|not defined/i.test(e.message || "")) LIVE.off = true; }   // server not updated yet: stay quiet
+  LIVE.busy = false;
+}
+function mergeLive(r){
+  if (!r || r.off) return;
+  const by = new Map(S.deals.map(d => [d.url, d])), added = [];
+  if (r.deals) parseCSV(r.deals).forEach(n => { const d = by.get(n.url);
+    if (!d){ by.set(n.url, n); added.push(n); return; }
+    ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
+  if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!by.has(x.url)){ by.set(x.url, x); added.push(x); } }); }
+  if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
+  added.forEach(d => d._new = true);
+  if (added.length) S.deals = added.concat(S.deals);
+  renderDeals();
+  const shown = added.filter(d => (S._dealRows || []).includes(d));
+  if (shown.length) toast(`🆕 ${shown.length === 1 ? "New deal: " + shown[0].card + " - " + (+shown[0].discount_pct).toFixed(0) + "% off" : shown.length + " new deals - " + shown.slice(0, 3).map(d => d.card.split(" [")[0]).join(", ")}${shown.length > 3 ? "…" : ""}`, 7000);
+}
+setInterval(() => pollLive(), 15000); document.addEventListener("visibilitychange", () => { if (!document.hidden) pollLive(true); });
 setInterval(checkPageVersion, 5 * 6e4); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPageVersion(); });
 async function loadLearned(force){
   if (LR.loaded && !force) return renderLearned(); LR.loaded = true;
@@ -2688,7 +2714,7 @@ function renderDealsTiles(){
   if (!rows.length){ box.innerHTML = `<p class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet."}</p>`; return; }
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = ebayLink(d);
-    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
+    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${d._new ? '<span class="flag must" style="background:#1f7a3a">NEW</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
