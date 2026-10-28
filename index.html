@@ -44,6 +44,9 @@ nav button.on{background:var(--soft);color:var(--ink);font-weight:600}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.small{padding:5px 9px;font-size:12px}
+.ends-pulse{animation:endsPulse 1s ease-in-out infinite}
+@keyframes endsPulse{50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.ends-pulse{animation:none;text-decoration:underline}}
 .btn.sniped{background:#1f7a3a;color:#fff;border-color:#1f7a3a}
 .pending{background:var(--gold);color:#1a1307;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:600}
 .pending[data-state=saved]{background:color-mix(in srgb,var(--up) 22%,transparent);color:var(--up)}.pending[data-state=error]{background:var(--down);color:#fff;cursor:pointer}
@@ -346,7 +349,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:52 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:02 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1423,20 +1426,28 @@ function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "�
 const isAuction = d => /^auction/i.test(d.type || "");
 function endAt(d){
   if (!isAuction(d)) return null; if (d._end !== undefined) return d._end;
+  const x = d.ends_at ? Date.parse(d.ends_at) : NaN; if (!isNaN(x)) return d._end = x;   // eBay's exact end time (newer scans)
   const h = parseFloat(d.ends_in), t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
   return d._end = isNaN(h) || isNaN(t) ? null : t + h * 3600000;
 }
+const exactEnd = d => !!(d.ends_at && !isNaN(Date.parse(d.ends_at)));
 function endsText(d){
   const e = endAt(d); if (e == null) return d.ends_in ? "ends " + d.ends_in : "";
-  const m = Math.round((e - Date.now()) / 60000);
-  if (m <= 0) return "ended";
-  return "ends in " + (m < 60 ? m + "m" : m < 1440 ? Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m" : Math.floor(m / 1440) + "d " + Math.floor(m % 1440 / 60) + "h");
+  const ms = e - Date.now(), m = Math.round(ms / 60000);
+  if (ms <= 0 || (!exactEnd(d) && m <= 0)) return "ended";
+  if (ms < 600000) return exactEnd(d) ? "ends in " + Math.floor(ms / 60000) + ":" + String(Math.floor(ms / 1000) % 60).padStart(2, "0") : "ends in ~" + Math.max(1, m) + "m";   // under 10 min: seconds, if we know the exact end
+  return "ends in " + (exactEnd(d) ? "" : "~") + (m < 60 ? m + "m" : m < 1440 ? Math.floor(m / 60) + "h " + String(m % 60).padStart(2, "0") + "m" : Math.floor(m / 1440) + "d " + Math.floor(m % 1440 / 60) + "h");
 }
 const endsHTML = d => { const e = endAt(d), t = endsText(d); if (!t) return "";
-  const soon = e != null && e - Date.now() > 0 && e - Date.now() < 3600000;
-  return `<span data-end="${esc(d.url)}" class="${t === "ended" ? "mut" : soon ? "down" : ""}" style="${soon ? "font-weight:600" : ""}"${e ? ` title="Ends ${esc(whenAZ(new Date(e).toISOString()))}"` : ""}>${esc(t)}</span>`; };
-setInterval(() => { if (!document.querySelector("#tab-deals.on")) return;
-  document.querySelectorAll("[data-end]").forEach(el => { const d = S.deals.find(x => x.url === el.dataset.end); if (d) el.textContent = endsText(d); }); }, 60000);
+  const left = e == null ? null : e - Date.now(), soon = left != null && left > 0 && left < 3600000;
+  return `<span data-end="${esc(d.url)}" class="${endsClass(d, t, left)}" style="${soon ? "font-weight:600" : ""}"${e ? ` title="Ends ${esc(whenAZ(new Date(e).toISOString()))}${exactEnd(d) ? "" : " (estimated - within a few minutes)"}"` : ""}>${esc(t)}</span>`; };
+const endsClass = (d, t, left) => t === "ended" ? "mut" : left != null && left > 0 && left < 3600000 ? "down" + (left < 120000 && exactEnd(d) ? " ends-pulse" : "") : "";
+let ENDS_LAST = 0;
+setInterval(() => { if (document.hidden || !document.querySelector("#tab-deals.on")) return;   // ticks every second only while something is under 10 min; otherwise once a minute
+  const now = Date.now(), els = document.querySelectorAll("[data-end]"); let fast = false, ds = [];
+  els.forEach(el => { const d = S.deals.find(x => x.url === el.dataset.end); ds.push(d); const e = d && endAt(d); if (e && exactEnd(d) && e - now < 610000 && e - now > -2000) fast = true; });
+  if (!fast && now - ENDS_LAST < 60000) return; ENDS_LAST = now;
+  els.forEach((el, i) => { const d = ds[i]; if (!d) return; const t = endsText(d), e = endAt(d); if (el.textContent !== t) el.textContent = t; const c = endsClass(d, t, e == null ? null : e - now); if (el.className !== c){ el.className = c; el.style.fontWeight = /down/.test(c) ? "600" : ""; } }); }, 1000);
 // language: the listing's item details (Language) when we read the full listing, otherwise words in the title
 const LANG_WORDS = [["Japanese", /\b(japanese|japan|jpn|jp)\b/i], ["German", /\b(german|deutsch|ger)\b/i], ["French", /\b(french|fran[cç]ais|fra)\b/i],
   ["Italian", /\b(italian|italiano|ita)\b/i], ["Spanish", /\b(spanish|espa[nñ]ol|spa)\b/i], ["Portuguese", /\b(portuguese|portugu[eê]s|por)\b/i],
@@ -2123,7 +2134,7 @@ const itemId = d => (String(d.url || "").match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/)
 function dealDetails(d){
   const e = DC.map[d.url] || {}, f = (FB.rows || []).filter(r => r.url === d.url).slice(-3), a = AUD.rows[d.url];
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
-    `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
+    `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
     snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - valued at the ungraded Near Mint price, no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
