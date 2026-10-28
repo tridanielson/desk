@@ -44,6 +44,7 @@ nav button.on{background:var(--soft);color:var(--ink);font-weight:600}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn:disabled{opacity:.45;cursor:default}
 .btn.small{padding:5px 9px;font-size:12px}
+.btn.sniped{background:#1f7a3a;color:#fff;border-color:#1f7a3a}
 .pending{background:var(--gold);color:#1a1307;border-radius:10px;padding:2px 8px;font-size:12px;font-weight:600}
 .pending[data-state=saved]{background:color-mix(in srgb,var(--up) 22%,transparent);color:var(--up)}.pending[data-state=error]{background:var(--down);color:#fff;cursor:pointer}
 main{max-width:1280px;margin:0 auto;padding:20px 24px 60px}
@@ -345,7 +346,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:43 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:52 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -442,7 +443,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <label>Last <select id="dDays"><option>1</option><option>3</option><option selected>7</option><option>30</option><option value="9999">All</option></select> Days</label>
     <label>Min % Off <input id="dMin" class="num" type="number" value="0"></label>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
-    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option></select>
+    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option><option value="sniped">🎯 My Snipes</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
@@ -975,6 +976,9 @@ async function saveAll(){
     if (S.dirty.has("elsewhere")){ S.dirty.delete("elsewhere");
       EW.sha = await putMerged("collection/elsewhere.csv", EW.sha, () => toCSV(EW_COLS, EW.rows.slice().sort((a, b) => (a.seen_at || "").localeCompare(b.seen_at || ""))),
         rows => { const have = new Set(EW.rows.map(r => r.item_id)); EW.rows = EW.rows.concat(rows.filter(r => !have.has(r.item_id))); }, "Deals found elsewhere (Price Desk)"); }
+    if (S.dirty.has("snipes")){ S.dirty.delete("snipes");
+      SN.sha = await putMerged("collection/snipes.csv", SN.sha, () => toCSV(SN_COLS, Object.values(SN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
+        rows => rows.forEach(r => { if (r.item_id && !SN.rows[r.item_id]) SN.rows[r.item_id] = r; }), "Snipes set (Price Desk)"); }
     if (S.dirty.has("audit")){ S.dirty.delete("audit");
       AUD.sha = await putMerged("collection/ai_audit.csv", AUD.sha, () => toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.url && !AUD.rows[r.url]) AUD.rows[r.url] = r; }), "AI audit (Price Desk)"); }
@@ -1394,7 +1398,26 @@ function snipe(d){   // EZ sniper's Snapper: opens with the item number and eBay
   try{ navigator.clipboard && navigator.clipboard.writeText(amt).catch(() => {}); }catch(e){}
   const w = window.open(url, "Snapper", "width=520,height=420,resizable=yes,scrollbars=yes");
   if (!w) location.href = url;   // pop-ups blocked: open it here instead
-  toast(`EZ sniper: item ${id} is filled in. Max bid $${amt} is copied - paste it into Max Bid and press Snipe!`, 9000);
+  setSnipe(d, amt);
+  toast(`EZ sniper: item ${id} is filled in. Max bid $${amt} is copied - paste it into Max Bid and press Snipe! Marked 🎯 on the deal (tap ✕ if you didn't set it).`, 10000);
+}
+// ---- 🎯 snipes you've set (collection/snipes.csv for the owner, so every device sees them; this browser for accounts/guests)
+const SN_COLS = ["item_id", "url", "card", "max_bid", "at"];
+const SN = {rows: {}, sha: null, loaded: false, local: false};
+function loadSN(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) SN.rows[r.item_id] = r; }); }catch(e){} SN.sha = x ? x.sha : null; SN.loaded = true; }
+function snLocal(){ if (SN.local || ROLE === "owner") return; SN.local = true; try{ Object.assign(SN.rows, JSON.parse(store.get("pd_snipes") || "{}")); }catch(e){} }
+const snipeOf = d => { snLocal(); return SN.rows[itemId(d)] || null; };
+function setSnipe(d, amt){
+  const id = itemId(d); if (!id) return;
+  if (amt == null) delete SN.rows[id]; else SN.rows[id] = {item_id: id, url: "https://www.ebay.com/itm/" + id, card: d.card || "", max_bid: String(amt), at: new Date().toISOString().slice(0, 16)};
+  if (ROLE === "owner"){ if (SN.loaded) markDirty("snipes"); } else store.set("pd_snipes", JSON.stringify(SN.rows));
+  renderDeals();
+}
+function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "🎯 Snipe Set ≤ $X" + ✕ to clear
+  if (!+d.max_bid) return "";
+  const s = snipeOf(d), tag = tile ? "span" : "button", role = tile ? ' role="button"' : "";
+  if (!s) return `<${tag} class="btn small"${role} data-snipe="${esc(d.url)}"${tile ? "" : ' style="margin-top:4px"'}>Snipe ≤ ${money(d.max_bid)}</${tag}>`;
+  return `<${tag} class="btn small sniped"${role} data-snipe="${esc(d.url)}" title="You set a snipe on ${esc(whenAZ(s.at + "Z"))}. Tap to open EZ sniper again."${tile ? "" : ' style="margin-top:4px"'}>🎯 Snipe Set ≤ ${money(s.max_bid)}</${tag}><${tag} class="btn small ghost"${role} data-unsnipe="${esc(d.url)}" title="Remove the 🎯 mark" style="margin-left:4px${tile ? "" : ";margin-top:4px"}">✕</${tag}>`;
 }
 // auctions: the scan stores hours left when found ("3.2h"); work out the real end time
 const isAuction = d => /^auction/i.test(d.type || "");
@@ -1444,6 +1467,7 @@ function dealExtraOK(d){
   const ty = $("#dType") ? $("#dType").value : "";
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
   if (ty === "bin" && isAuction(d)) return false;
+  if (ty === "sniped" && !snipeOf(d)) return false;
   if ($("#dPref").checked && !prefOK(d)) return false;
   if ($("#dUSA").checked && (d.location || "") !== "US") return false;
   const g = $("#dGraded").value; if (g === "raw" && isGraded(d)) return false; if (g === "graded" && !isGraded(d)) return false;
@@ -1546,7 +1570,7 @@ function buylistText(d){
   return `Below Card Kingdom's cash buylist: Card Kingdom pays about ${adj ? money(adj) : "more"} for a copy in this condition${ck ? ` (${money(ck)} Near Mint)` : ""}, and this costs ${money(d.total)} with shipping - you could resell it to them right away for a profit.`;
 }
 // tap any tag (phones can't hover) to read what it means
-document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]")) return;
+document.addEventListener("click", e => { const f = e.target.closest(".flag[title], .t-chips [title]"); if (!f || f.closest("[data-why]") || f.matches(".btn")) return;
   if (matchMedia("(hover: none)").matches){ e.preventDefault(); e.stopPropagation(); toast(f.title, 9000); } }, true);
 function qualityHTML(d){
   let h = isEnded(d) ? `<span class="flag sus" title="This listing has ended or sold${d.status_at ? " (checked " + esc(dealWhen({found_at: d.status_at})) + ")" : ""}. The link may open a 'similar items' page.">ended / sold</span> ` : "";
@@ -1572,7 +1596,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
@@ -1673,7 +1697,7 @@ function renderDeals_(){
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
-    .sort((a, b) => dealCompare(a, b) || (!DSORT.k && $("#dType") && $("#dType").value === "auction" ? endAt(a) - endAt(b) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
+    .sort((a, b) => dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
@@ -1682,8 +1706,9 @@ function renderDeals_(){
       <td><div class="cname">${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
-      <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div><button class="btn small" data-snipe="${esc(d.url)}" style="margin-top:4px">Snipe ≤ ${money(d.max_bid)}</button></div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
+      <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
+  t.querySelectorAll("[data-unsnipe]").forEach(b => b.addEventListener("click", () => setSnipe(rows.find(x => x.url === b.dataset.unsnipe), null)));
   wireFB(t, rows);
 }
 const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded", "#dLang"];
@@ -2099,13 +2124,14 @@ function dealDetails(d){
   const e = DC.map[d.url] || {}, f = (FB.rows || []).filter(r => r.url === d.url).slice(-3), a = AUD.rows[d.url];
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
+    snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - valued at the ungraded Near Mint price, no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
     `My reviews: ${f.length ? f.map(r => `${r.at} ${r.verdict}${r.reason ? " (" + r.reason + ")" : ""}${r.note ? ' "' + r.note + '"' : ""}`).join(" | ") : "none"}${a ? ` · audit: edition ${a.edition || "?"}, condition ${a.condition || "?"}${a.fault ? ", " + a.fault + "'s mistake" : ""}` : ""}`,
-    `Page version: ${($("#pageVer") || {}).textContent || "?"}`].join("\n");
+    `Page version: ${($("#pageVer") || {}).textContent || "?"}`].filter(x => x !== "").join("\n");
 }
 document.addEventListener("click", e => { const b = e.target.closest(".rv-copy, [data-copydeal]"); if (!b) return; e.preventDefault();
   const d = S.deals.find(x => x.url === (b.dataset.copy || b.dataset.copydeal)); if (d) copyText(dealDetails(d), "Copied - paste it into your chat with Claude."); });
@@ -2639,11 +2665,12 @@ function renderDealsTiles(){
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
       ${d.cond_note ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span></div>` : ""}
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
-      ${+d.max_bid ? `<div class="t-chips"><span class="btn small" role="button" data-snipe="${esc(d.url)}">Snipe ≤ ${money(d.max_bid)}</span></div>` : ""}
+      ${+d.max_bid ? `<div class="t-chips">${snipeBtnHTML(d, true)}</div>` : ""}
       ${qualityHTML(d) ? `<div class="t-chips">${qualityHTML(d)}</div>` : ""}${reviewBtnHTML(d, true) ? `<div class="t-chips">${reviewBtnHTML(d, true)}</div>` : ""}</div>
       <div class="t-right"><div class="t-big"${+d.discount_pct < 0 ? ' style="color:var(--down, #b03a2e)"' : ""}>${(+d.discount_pct).toFixed(0)}%</div><div class="t-sub">${+d.discount_pct < 0 ? "over" : "off"}</div></div></a>`;
   }).join("");
   box.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); snipe(rows.find(x => x.url === b.dataset.snipe)); }));
+  box.querySelectorAll("[data-unsnipe]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); setSnipe(rows.find(x => x.url === b.dataset.unsnipe), null); }));
   box.querySelectorAll("[data-sf]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); window.open(b.dataset.sf, "_blank", "noopener"); }));
   wireFB(box, rows);
 }
