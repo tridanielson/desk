@@ -330,7 +330,6 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
   <span class="chip viewchip">View only</span>
   <span id="pending" class="pending" hidden></span>
   <button class="btn" id="saveBtn" hidden disabled>Save Now</button>
-  <button class="btn ghost" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Refresh Now</button>
   <button class="btn ghost small owner-only" id="muteBtn" title="Phone alerts: mute or quiet hours" hidden>🔔</button>
   <button class="btn ghost small user-only" id="acctBtn" title="Your account">👤 <span id="acctName"></span></button>
   <button class="btn ghost small" id="signOutBtn" hidden>Sign Out</button>
@@ -349,9 +348,9 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 09:01 PM</b></p>
-    <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
-    <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 09:08 PM</b></p>
+    <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
+      <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <details class="panel" style="margin-top:14px"><summary><b>What Each Tab Does &amp; Words Used</b></summary>
@@ -1941,7 +1940,8 @@ async function checkServerCode(){
   catch(e){ SRV.st = null; SRV.err = /Unknown request|UPDATE/i.test(e.message) ? "old" : e.message; }
   renderServerCode();
   const behind = SRV.st && SRV.st.latest && SRV.st.latest !== SRV.st.running;
-  if ((behind || SRV.err === "old") && !SRV.toldBehind){ SRV.toldBehind = true;
+  if (behind && !SRV.autoTried){ SRV.autoTried = true; return updateServerNow(true); }   // updates itself - no button to tap
+  if ((SRV.err === "old" || SRV.autoFailed) && !SRV.toldBehind){ SRV.toldBehind = true;
     toastHTML(`Server code update available. <a href="#" id="srvGo">Update it</a>`, 8000);
     const a = $("#srvGo"); if (a) a.addEventListener("click", e => { e.preventDefault(); switchTab("connect"); setTimeout(() => { const el = $("#srvBody").closest(".panel"), head = document.querySelector("header");
       window.scrollTo({top: el.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 12, behavior: "smooth"}); }, 120); }); }
@@ -1951,10 +1951,13 @@ function renderServerCode(){
   const st = SRV.st, behind = st && st.latest && st.latest !== st.running;
   const status = SRV.err === "old" ? `<b class="stale">⚠ Your Apps Script code is older than this update checker.</b> Paste the latest Code.gs once more by hand (use the button below, or the file Claude sent). After that, updates are one tap.`
     : SRV.err ? `<span class="stale">Couldn't check: ${esc(SRV.err)}</span>`
+    : SRV.updating ? "Updating itself to the latest version…"
+    : SRV.autoFailed ? `<b class="stale">⚠ Couldn't update itself:</b> ${esc(SRV.autoFailed)}`
     : !st ? "Checking…"
     : behind ? `<b class="stale">⚠ Update available</b> - running <b>${esc(st.running)}</b>, latest is <b>${esc(st.latest)}</b>.`
-    : `✓ Up to date (version ${esc(st.running)}).`;
-  box.innerHTML = `<p style="margin:6px 0">${status}</p>
+    : `✓ Up to date (version ${esc(st.running)}). It updates itself.`;
+  const manual = SRV.err === "old" || SRV.autoFailed || (behind && !SRV.updating);
+  box.innerHTML = `<p style="margin:6px 0">${status}</p>` + (!manual ? "" : `
     <div class="row"><button class="btn${behind ? "" : " ghost"}" id="srvUpdate" ${st && (behind || !st.running) ? "" : "disabled"} title="${st && !behind && st.running ? "Already running the latest version" : ""}">${st && !behind && st.running ? "Up to Date ✓" : "Update Now"}</button>
       <button class="btn ghost" id="srvCopy">Copy Latest Code.gs</button></div>
     <p class="mut" style="font-size:12px;margin:6px 0 0"><b>Update Now</b> replaces the code in Apps Script and redeploys it at the same address - it needs the one-time setup below.
@@ -1973,7 +1976,8 @@ function renderServerCode(){
           <pre class="srv-pre">${esc(SCOPES_JSON)},</pre><button class="btn ghost small" id="srvCopyScopes" type="button">Copy This</button></li>
         <li>Save. Pick <b>authorizeUpdates</b> in the function menu → <b>Run</b> → approve the permissions. (Gmail: "Google hasn't verified this app" → Advanced → Go to… - it's your own script.) The log should say <i>Ready</i>.</li>
         <li>Come back here and tap <b>Update Now</b>.</li>
-      </ol></details>`;
+      </ol></details>`);
+  if (!manual) return;
   $("#srvUpdate").addEventListener("click", updateServerNow);
   $("#srvCopy").addEventListener("click", copyLatestCode);
   $("#srvCopyScopes").addEventListener("click", () => copyText(SCOPES_JSON + ",", "Copied - paste it after the first { in appsscript.json."));
@@ -1993,8 +1997,9 @@ async function copyLatestCode(){
   catch(e){ toast(/Unknown request|UPDATE/i.test(e.message) ? "Your Apps Script is too old for this button - paste the Code.gs file Claude sent one more time." : "Couldn't get it: " + e.message, 8000); }
   b.disabled = false; b.textContent = "Copy Latest Code.gs";
 }
-async function updateServerNow(){
+async function updateServerNow(auto){
   const st = SRV.st || {};
+  if (auto === true) return autoUpdateServer();
   if (!(await costConfirm("Update the server code?", [`Replaces the Apps Script code with the latest version${st.latest ? " (" + st.latest + ")" : ""} and redeploys it at the same address.`, "No eBay searches or AI credits. Takes about 10 seconds."], "Update"))) return;
   const b = $("#srvUpdate"); b.disabled = true; b.textContent = "Updating…";
   try{ const r = await server("updateServer");
@@ -2007,6 +2012,17 @@ async function updateServerNow(){
     }
     toast("Saved, but Google is still switching over. Refresh in a minute - it should say Up to date (no need to tap Update again).", 10000); b.disabled = false; b.textContent = "Update Now"; }
   catch(e){ b.disabled = false; b.textContent = "Update Now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
+}
+async function autoUpdateServer(){   // quiet: the page updates the Apps Script code by itself when a newer version is out
+  SRV.updating = true; renderServerCode();
+  try{ const r = await rawServer("updateServer", AUTH.token);
+    if (!r.already) for (let i = 0; i < 20; i++){
+      await new Promise(res => setTimeout(res, 3000));
+      try{ const st = await rawServer("codeStatus", AUTH.token); if (st.running === r.version){ SRV.st = st; break; } }catch(e){}
+    }
+    SRV.updating = false; SRV.autoFailed = false; SRV.st = await rawServer("codeStatus", AUTH.token).catch(() => SRV.st); renderServerCode();
+    LIVE.off = false;   // new server features (like live deals) can start now
+  }catch(e){ SRV.updating = false; SRV.autoFailed = e.message || "failed"; renderServerCode(); checkServerCode(); }
 }
 // ---------------------------------------------------------------- ID & Fake Guide (education tab)
 const sfImgNamed = (name, set) => `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&set=${set}&format=image&version=normal`;
@@ -2615,13 +2631,25 @@ async function checkPageVersion(){
   if (document.hidden || !/^https?:/.test(location.protocol) || /script\.google/.test(location.host)) return;
   try{ const t = await (await fetch(location.pathname + "?v=" + Date.now(), {cache: "no-store"})).text();
     const v = (t.match(/id="pageVer">([^<]*)</) || [])[1], mine = ($("#pageVer") || {}).textContent;
-    if (v && mine && v !== mine && !checkPageVersion.told){ checkPageVersion.told = true;
-      toastHTML(`A newer version of the Price Desk is out. <a href="#" id="pvGo">Refresh now</a>`, 15000);
-      const a = $("#pvGo"); if (a) a.addEventListener("click", async e => { e.preventDefault(); try{ await flushSaves(); }catch(x){} location.reload(); }); } }catch(e){}
+    if (v && mine && v !== mine){ PV.newer = true; softReload(); } }catch(e){}
 }
+// a newer page (or new data) is waiting: reload by itself when it won't interrupt you - right away if the tab is in
+// the background, otherwise once you've been idle a minute with nothing open or unsaved
+const PV = {newer: false, lastInput: Date.now()};
+["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { PV.lastInput = Date.now(); }, {passive: true, capture: true}));
+const busyNow = () => S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open]") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
+async function softReload(){
+  if (!PV.newer || busyNow()) return;
+  if (!document.hidden && Date.now() - PV.lastInput < 60000) return;
+  PV.newer = false; try{ await flushSaves(); }catch(e){}
+  try{ sessionStorage.setItem("pd_scroll", String(scrollY)); }catch(e){}
+  location.reload();
+}
+setInterval(softReload, 15000); document.addEventListener("visibilitychange", () => { if (document.hidden) softReload(); });
+try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y) window.addEventListener("load", () => setTimeout(() => scrollTo(0, y), 600)); }catch(e){}
 // ---- new deals show up on their own: about once a minute (while the page is open and visible) ask for the sniper's latest
 // finds, plus the 3-hour scan's list when a newer scan has finished. No reload, nothing you're doing gets reset.
-const LIVE = {busy: false, off: false, last: 0};
+const LIVE = {busy: false, off: false, last: 0}; let PRICES_NEW = false;
 async function pollLive(force){
   if (LIVE.busy || LIVE.off || !S.loadedOnce || !AUTH.token || document.body.classList.contains("nodeals")) return;
   if (!force && Date.now() - LIVE.last < 55000) return;
@@ -2637,6 +2665,8 @@ function mergeLive(r){
     if (!d){ by.set(n.url, n); added.push(n); return; }
     ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
   if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!by.has(x.url)){ by.set(x.url, x); added.push(x); } }); }
+  if (r.pricesAt){ if (S._pricesAt && r.pricesAt !== S._pricesAt) PRICES_NEW = true; S._pricesAt = r.pricesAt; }
+  if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; loadAll().catch(() => {}); return; }   // fresh prices: quiet full reload of the data (no page reload)
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
   added.forEach(d => d._new = true); if (GONE.loaded) applyGone();
   if (added.length) S.deals = added.concat(S.deals);
@@ -2841,7 +2871,7 @@ function renderSL(){
   const up = D.filter(d => d.status === "upcoming").sort((a, b) => (a.on_sale_at || "9999").localeCompare(b.on_sale_at || "9999"));
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Secret Lair</h2>
     <p class="sub" style="margin:0">${SL.data ? `Updated ${esc(azFmt(SL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ · ${D.length} drops · times in Arizona time` : "No Secret Lair data yet - it appears after the next update run."}</p></div>
-    <div class="row"><button class="btn ghost small owner-only" id="slEditBtn">${SL.editing ? "Close editor" : "Edit upcoming dates"}</button><button class="btn ghost small" id="slReload">Refresh</button></div></div>`;
+    <div class="row"><button class="btn ghost small owner-only" id="slEditBtn">${SL.editing ? "Close editor" : "Edit upcoming dates"}</button></div></div>`;
   if (SL.editing) L += slEditorHTML();
   if (SL.orders && !READONLY) L += slOrdersHTML();
   L += `<h3 style="margin:18px 0 10px;font-size:16px">Upcoming</h3>`;
@@ -2856,7 +2886,6 @@ function renderSL(){
   box.innerHTML = L;
   $("#slStatus").value = SL.status; $("#slSort").value = SL.sort;
   box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", () => { SL.detail = el.dataset.sl; renderSL(); window.scrollTo(0, 0); }));
-  $("#slReload").addEventListener("click", () => loadSL(true));
   $("#slEditBtn").addEventListener("click", () => { SL.editing = !SL.editing; renderSL(); });
   $("#slQ").addEventListener("input", e => { SL.q = e.target.value; SL.limit = 120; renderSLList(); });
   $("#slStatus").addEventListener("input", e => { SL.status = e.target.value; SL.limit = 120; renderSLList(); });
@@ -3005,7 +3034,7 @@ function slEditorHTML(){
     ${SL.upcoming.map((r, i) => `<tr><td><input data-i="${i}" data-f="name" value="${esc(r.name)}" style="min-width:200px"></td><td><input data-i="${i}" data-f="on_sale_date" type="date" value="${esc(r.on_sale_date)}"></td>
       <td><input data-i="${i}" data-f="on_sale_time" value="${esc(r.on_sale_time)}" placeholder="9:00 AM" style="width:90px"></td><td><input data-i="${i}" data-f="notes" value="${esc(r.notes)}"></td>
       <td><input data-i="${i}" data-f="link" value="${esc(r.link)}" placeholder="https://"></td><td><input data-i="${i}" data-f="image" value="${esc(r.image || "")}" placeholder="image address (optional)"></td><td><button class="btn ghost small" data-del-up="${i}">Delete</button></td></tr>`).join("")}
-    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add Drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Refresh Now). Teaser pictures from the store's Coming Soon section are picked up by themselves; add one under Picture for drops only teased on X (right-click the image → Copy image address).</span></div></div>`;
+    </tbody></table></div><div class="row" style="margin-top:10px"><button class="btn ghost small" id="slAddUp">+ Add Drop</button><span class="mut" style="font-size:12px">Saved automatically. The list updates after the next run (or Run a Scan Now in Setup & Help). Teaser pictures from the store's Coming Soon section are picked up by themselves; add one under Picture for drops only teased on X (right-click the image → Copy image address).</span></div></div>`;
 }
 function wireSLEditor(){
   document.querySelectorAll(".sl-edit input[data-i]").forEach(el => el.addEventListener("change", () => { SL.upcoming[+el.dataset.i][el.dataset.f] = el.value.trim(); markDirty("upcoming"); }));
@@ -3110,8 +3139,8 @@ function renderCOL(){
   const pend = items.filter(i => i.pending).length;
   const srcs = [...new Set(items.map(i => i.source))].sort();
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
-      <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run (or tap Refresh now).` : ""}</p></div>
-      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label><button class="btn ghost small" id="colReload">Refresh</button></div></div>
+      <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run (or Run a Scan Now in Setup & Help).` : ""}</p></div>
+      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       ${stat("Held", `${sum(held, i => i.left)} items`, `${held.length} rows`)}
       ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you still have")}
@@ -3146,7 +3175,6 @@ function renderCOL(){
   $("#colStatus").value = COL.status; $("#colSrc").value = COL.src; $("#colKind").value = COL.kind;
   [["#colQ", "q"], ["#colSrc", "src"], ["#colStatus", "status"], ["#colKind", "kind"]].forEach(([sel, k]) => $(sel).addEventListener("input", e => { COL[k] = e.target.value; COL.limit = 150; renderCOLList(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
-  $("#colReload").addEventListener("click", () => { if (S.dirty.has("collection")) return toast("Save your changes first."); loadCOL(true); });
   $("#colSalesToggle").addEventListener("click", () => { COL.showSales = !COL.showSales; renderCOL(); });
   $("#colAdd").addEventListener("click", () => openColEdit(null));
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
@@ -3300,7 +3328,7 @@ function importCSV(file){
         acquired: todayAZ(), source: src, status: "owned", list_price: "", notes: "", scryfall_id: pick(r, "scryfallid"), kind: "card", ref: ""});
       n++;
     }
-    markDirty("collection"); renderCOL(); toast(`Imported ${n} rows from ${file.name}. They get prices on the next morning run (or tap Refresh now).`, 6000);
+    markDirty("collection"); renderCOL(); toast(`Imported ${n} rows from ${file.name}. They get prices on the next morning run (or Run a Scan Now in Setup & Help).`, 6000);
   };
   rd.readAsText(file);
 }
@@ -3507,7 +3535,7 @@ function renderRuns(){
       const nxt = k === "prices" ? nextRun("prices") : nextRun("deals");
       return `<tr><td><b>${RUN_NAMES[k]}</b></td><td class="${isStale(k) ? "stale" : ""}">${x ? `${isStale(k) ? "⚠ " : ""}${esc(whenAZ(x.at))} <span class="mut">(${esc(ago(x.at))})</span>` : '<span class="mut">after the next run</span>'}</td>
         <td class="hide-sm mut">${esc(det)}</td><td>${esc(whenAZ(nxt))}</td></tr>`; }).join("") + `</tbody></table>
-    <p class="mut" style="font-size:12px;margin:8px 0 0">The eBay sniper runs inside your Google Apps Script and checks brand-new Buy It Now listings every minute. Prices update once a day (around 7:15 AM). eBay deals and Secret Lair check every 3 hours. Collection values refresh on every run, so they pick up Secret Lair values every 3 hours and card prices daily. GitHub often starts scheduled runs 10-60 minutes late. ⚠ means it's overdue - check the Actions tab on GitHub, or tap <b>Refresh now</b>.</p>`;
+    <p class="mut" style="font-size:12px;margin:8px 0 0">The eBay sniper runs inside your Google Apps Script and checks brand-new Buy It Now listings every minute. Prices update once a day (around 7:15 AM). eBay deals and Secret Lair check every 3 hours. Collection values refresh on every run, so they pick up Secret Lair values every 3 hours and card prices daily. GitHub often starts scheduled runs 10-60 minutes late. ⚠ means it's overdue - check the Actions tab on GitHub, or tap <b>Run a Scan Now</b> below.</p>`;
 }
 $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchTab("connect"); });
 
@@ -3649,14 +3677,16 @@ function renderAccounts(){
     $("#armYes").addEventListener("click", async () => { closeModal(); try{ ACC.info = await server("accountRemove", b.dataset.arm); renderAccounts(); toast("Account removed."); }catch(e){ toast(e.message, 6000); } });
   }));
 }
+const TABLOAD = {};
 function switchTab(name){
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   renderGroups(name);
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + name));
   store.set("pd_tab", name);
   try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
-  if (name === "sl" && typeof loadSL === "function"){ loadSL(); if (!READONLY) loadCOL(); }
-  if (name === "col" && typeof loadCOL === "function") loadCOL();
+  const stale = k => Date.now() - (TABLOAD[k] || Date.now()) > 15 * 6e4;   // reopened after a while: quietly fetch fresh data (no Refresh buttons)
+  if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!READONLY) loadCOL(); }
+  if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); }
   if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "audit" && !READONLY) renderAudit();
@@ -3713,11 +3743,11 @@ const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$
   return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
 $("#runBtn").addEventListener("click", async () => {
   const d = (S.runs || {}).deals || {};
-  if (!await costConfirm("Refresh prices and deals now?", ["Optional - this happens on its own every morning (prices) and every 3 hours (deals).",
-    `eBay: about <b>${d.searches || 300} searches</b> for the deal scan, plus a few full-listing checks.`, aiNote(), "Prices from Scryfall are free. Takes about 5 minutes."], "Refresh now")) return;
+  if (!await costConfirm("Run a scan now?", ["Optional - this happens on its own every morning (prices) and every 3 hours (deals).",
+    `eBay: about <b>${d.searches || 300} searches</b> for the deal scan, plus a few full-listing checks.`, aiNote(), "Prices from Scryfall are free. Takes about 5 minutes."], "Run It")) return;
   await flushSaves();
   const b = $("#runBtn"); b.disabled = true;
-  try{ await GH.runWorkflow(); toast("Refresh started. This page updates itself when it's done (about 5 minutes).", 6000); watchRun("prices"); }
+  try{ await GH.runWorkflow(); toast("Scan started. This page updates itself when it's done (about 5 minutes).", 6000); watchRun("prices"); }
   catch(e){ toast(e.message, 7000); }
   b.disabled = false;
 });
@@ -3798,12 +3828,6 @@ $("#dScan").addEventListener("click", async () => {
   try{ await GH.runWorkflow("deals"); toast("eBay scan started. New deals show up here in about 3-5 minutes.", 6000); watchRun("deals"); }
   catch(e){ toast(e.message, 7000); }
   setTimeout(() => { b.disabled = false; }, 60000);
-});
-$("#reloadBtn").addEventListener("click", async () => {
-  if (S.dirty.size) await flushSaves();
-  $("#connMsg").textContent = "Loading…";
-  try{ await loadAll(); $("#connMsg").textContent = "Up to date."; }
-  catch(e){ $("#connMsg").textContent = ""; $("#connStatus").textContent = e.message; }
 });
 window.addEventListener("beforeunload", e => { if (S.dirty.size){ e.preventDefault(); e.returnValue = ""; } });
 
