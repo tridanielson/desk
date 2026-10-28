@@ -349,7 +349,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:16 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:56 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -979,6 +979,9 @@ async function saveAll(){
     if (S.dirty.has("elsewhere")){ S.dirty.delete("elsewhere");
       EW.sha = await putMerged("collection/elsewhere.csv", EW.sha, () => toCSV(EW_COLS, EW.rows.slice().sort((a, b) => (a.seen_at || "").localeCompare(b.seen_at || ""))),
         rows => { const have = new Set(EW.rows.map(r => r.item_id)); EW.rows = EW.rows.concat(rows.filter(r => !have.has(r.item_id))); }, "Deals found elsewhere (Price Desk)"); }
+    if (S.dirty.has("gone")){ S.dirty.delete("gone");   // deletions (↩ Not Sold) win over the copy on GitHub: rebuild from what's on screen
+      GONE.sha = await putMerged("collection/gone.csv", GONE.sha, () => toCSV(GONE_COLS, Object.values(GONE.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
+        rows => rows.forEach(r => { if (r.item_id && !GONE.rows[r.item_id] && !(S.deals.find(d => itemId(d) === r.item_id) || {})._unGone) GONE.rows[r.item_id] = r; }), "Marked sold / gone (Price Desk)"); }
     if (S.dirty.has("snipes")){ S.dirty.delete("snipes");
       SN.sha = await putMerged("collection/snipes.csv", SN.sha, () => toCSV(SN_COLS, Object.values(SN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.item_id && !SN.rows[r.item_id]) SN.rows[r.item_id] = r; }), "Snipes set (Price Desk)"); }
@@ -1623,7 +1626,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
@@ -2078,7 +2081,25 @@ function reviewedState(d){
   if (!f && !a && !c) return null;
   return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
-function reviewBtnHTML(d, tile){
+function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + goneBtnHTML(d, tile) : r; }
+// ---- "Sold / Gone": a Buy It Now you can see has sold - hide it now; the scan marks it ended without spending an eBay check (collection/gone.csv)
+const GONE_COLS = ["item_id", "url", "card", "at"];
+const GONE = {rows: {}, sha: null, loaded: false};
+function loadGONE(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) GONE.rows[r.item_id] = r; }); }catch(e){} GONE.sha = x ? x.sha : null; GONE.loaded = true; applyGone(); }
+function applyGone(){ S.deals.forEach(d => { if (GONE.rows[itemId(d)] && d.status !== "ended"){ d._preGone = d.status || "live"; d.status = "ended"; d._gone = true; } else if (GONE.rows[itemId(d)]) d._gone = true; }); }
+function goneBtnHTML(d, tile){
+  if (READONLY || !GONE.loaded || isAuction(d)) return "";
+  const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
+  if (d._gone) return ` <${tag} class="btn ghost small" data-gone="undo" data-u="${esc(d.url)}" title="You marked this sold / gone - tap if it's actually still for sale">↩ Not Sold</${end}>`;
+  if (d.status === "ended") return "";
+  return ` <${tag} class="btn ghost small" data-gone="yes" data-u="${esc(d.url)}" title="It's sold or gone on eBay - hide it now (saves an eBay check too)">Sold / Gone</${end}>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-gone]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.u); if (!d) return; const id = itemId(d); if (!id) return;
+  if (b.dataset.gone === "yes"){ GONE.rows[id] = {item_id: id, url: "https://www.ebay.com/itm/" + id, card: d.card || "", at: new Date().toISOString().slice(0, 16)}; d._preGone = d.status || "live"; d.status = "ended"; d._gone = true; toast(`${d.card}: marked sold / gone and hidden. To undo: More Filters → Include Ended & Bought → ↩ Not Sold.`, 5000); }
+  else { delete GONE.rows[id]; d.status = d._preGone || "live"; delete d._gone; d._unGone = true; toast("Back on your list.", 3000); }
+  markDirty("gone"); renderDeals(); });
+function reviewBtnHTML0(d, tile){
   if (READONLY || !FB.loaded) return "";
   const st = reviewedState(d), tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
   const bought = boughtFor(d) ? `<span class="badge b-on" title="You bought this - it's in Collection as Ordered">🛒 BOUGHT</span> ` : "";
@@ -2625,7 +2646,7 @@ function mergeLive(r){
     ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
   if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!by.has(x.url)){ by.set(x.url, x); added.push(x); } }); }
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
-  added.forEach(d => d._new = true);
+  added.forEach(d => d._new = true); if (GONE.loaded) applyGone();
   if (added.length) S.deals = added.concat(S.deals);
   renderDeals();
   const shown = added.filter(d => (S._dealRows || []).includes(d));
@@ -3665,6 +3686,7 @@ async function loadAll(){
   S.loadedOnce = true;
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.filter(x => !S.deals.some(d => d.url === x.url)).concat(S.deals);
+  if (GONE.loaded) applyGone();
   READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : "viewer");
   document.body.classList.toggle("readonly", READONLY); document.body.classList.toggle("user", ROLE === "user");
   document.body.classList.toggle("nodeals", !d0.canEdit && !d0.dealsPublic);
