@@ -356,7 +356,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:41 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:47 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -1024,7 +1024,7 @@ const SETTINGS = [
     ["auction_hours", "Auction Ending Within (Hours)", "num", 12, ""],
     ["usa_only", "Only Catch USA Sellers", "bool", false, "No = sellers anywhere (they must still ship to the US). Leave on No to see everything and use your preferences instead."],
     ["min_condition", "Loud Alerts Only at or Above", "mincond", "ANY", "Cards below this condition are still listed - a beat-up rare card can still be a great buy - they just don't send a loud alert."],
-    ["graded_cards", "Graded Cards to Catch", "graded", "both", "Slabs (PSA/BGS/CGC) are compared to the ungraded Near Mint price - an alert means a slab is selling below a raw NM copy."],
+    ["graded_cards", "Graded Cards to Catch", "graded", "both", "Slabs (PSA/BGS/CGC) are valued like a raw card in the condition their grade matches - see Condition Value - Graded Slabs."],
     ["min_grade", "Minimum Grade for Graded Cards", "num", 0, "1-10. 0 = any grade."],
     ["ebay_game_filter", "Magic Cards Only (eBay's Game Field)", "bool", true, "Keeps Pokémon, Yu-Gi-Oh and other games out."],
     ["skip_suspicious", "Skip Suspiciously Cheap Listings", "bool", true, "These are almost always proxies, fakes or the wrong card."],
@@ -1090,6 +1090,10 @@ const SETTINGS = [
     ["before_year", "Vintage = Sets Released Before", "num", 1997, "1997 covers Alpha through Mirage / Alliances. Played vintage sells for a much smaller share of NM than modern cards."],
     ["NM", "Near Mint", "num", 1.00, ""], ["LP", "Lightly Played", "num", 0.70, ""], ["MP", "Moderately Played", "num", 0.55, ""],
     ["HP", "Heavily Played", "num", 0.40, ""], ["DMG", "Damaged", "num", 0.25, ""]]},
+  {sec: "graded_conditions", title: "Graded slabs: which raw condition each grade counts as", fields: [
+    ["NM", "Counts as Near Mint From Grade", "num", 8, "A slab is valued like a raw card in the condition its grade matches (there's no graded price data). 8 and up = NM."],
+    ["LP", "Lightly Played From Grade", "num", 7, ""], ["MP", "Moderately Played From Grade", "num", 5, "e.g. a CGC 5.5 counts as MP."],
+    ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -1101,6 +1105,7 @@ const SETTINGS_LAYOUT = [
     {title: "Deal Basics", f: [["deals", "default_deal_pct"], ["deals", "min_market_value"], ["deals", "unknown_condition"], ["deals", "default_shipping"], ["deals", "include_auctions"], ["deals", "auction_hours"]]},
     {title: "Condition Value - Standard (Fraction of Near Mint)", f: [["conditions", "NM"], ["conditions", "LP"], ["conditions", "MP"], ["conditions", "HP"], ["conditions", "DMG"]]},
     {title: "Condition Value - Vintage", f: [["conditions_vintage", "before_year"], ["conditions_vintage", "NM"], ["conditions_vintage", "LP"], ["conditions_vintage", "MP"], ["conditions_vintage", "HP"], ["conditions_vintage", "DMG"]]},
+    {title: "Condition Value - Graded Slabs", f: [["graded_conditions", "NM"], ["graded_conditions", "LP"], ["graded_conditions", "MP"], ["graded_conditions", "HP"], ["graded_conditions", "unknown"]]},
     {title: "What to Catch", f: [["deals", "usa_only"], ["deals", "min_condition"], ["deals", "graded_cards"], ["deals", "min_grade"], ["deals", "signed_cards"], ["deals", "altered_cards"], ["deals", "skip_suspicious"], ["deals", "suspicious_below_pct"], ["deals", "reprint_margin"]]},
     {title: "Sellers", f: [["deals", "min_seller_feedback_pct"], ["deals", "min_seller_feedback_score"]]},
     {title: "Listing Filters", f: [["filters", "exclude_words"], ["filters", "exclude_languages"], ["filters", "exclude_games"], ["deals", "ebay_game_filter"], ["deals", "check_full_listing"]]}]},
@@ -2239,7 +2244,7 @@ function dealDetails(d){
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"}${d.first_found && d.first_found !== d.found_at ? ` (first found ${d.first_found}${d.first_by ? " by the sniper" : ""})` : ""} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
     snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
-    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - valued at the ungraded Near Mint price, no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - counts as raw " + gradeCondOf(d._c0 || d.condition) + ", no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2474,6 +2479,13 @@ function isVintageDeal(d){   // the card's set release year (dashboard yr), or w
   return !!d && d.fair_src === "vintage";
 }
 const condMult = (c, d) => { const vin = d && isVintageDeal(d), v = parseFloat(((vin ? S.ini.conditions_vintage : S.ini.conditions) || {})[c]); return v > 0 ? v : (vin ? DEF_MULT_V : DEF_MULT)[c]; };
+function gradeCondOf(label){   // "CGC 5.5" -> "MP" ([graded_conditions])
+  const G = S.ini.graded_conditions || {}, m = String(label || "").match(/(10|[1-9](?:\.5)?)\s*$/);
+  if (!m) return String(G.unknown || "MP").toUpperCase();
+  const g = +m[1], lim = {NM: 8, LP: 7, MP: 5, HP: 3};
+  for (const c of ["NM", "LP", "MP", "HP"]) if (g >= (parseFloat(G[c]) || lim[c])) return c;
+  return "DMG";
+}
 function condCode(c){
   const t = String(c || "").toUpperCase(), m = /\b(NM|LP|MP|HP|DMG)\b/.exec(t);
   if (m) return m[1];
@@ -2518,7 +2530,8 @@ function fairAt(d, cond, vc){
   return {v: nm * condMult(cond, d), src: isVintageDeal(d) ? "vintage" : "standard"};
 }
 function vinTag(d){   // which condition table priced this deal - tap for the math
-  if (d._graded) return ` <span class="vin" title="${esc(`Graded slab: valued at the ungraded Near Mint price (${money(+d.fair)}). There's no graded price data, so a high grade can be worth more than this.`)}">graded = NM</span>`;
+  if (d._graded){ const gc = gradeCondOf(d._c0 || d.condition), m = condMult(gc, d), vin = isVintageDeal(d);
+    return ` <span class="vin${vin ? " on" : ""}" title="${esc(`Graded slab ${d._c0 || d.condition} counts as raw ${gc} (Settings → Condition Value - Graded Slabs): ${money((+d.fair || 0) / (m || 1))} NM x ${Math.round(m * 100)}% (${vin ? "vintage" : "standard"} ${gc}) = ${money(+d.fair)}. No graded price data, so a top grade can sell for more.`)}">graded = ${gc}</span>`; }
   const c = condCode(d.condition), m = condMult(c, d), vin = isVintageDeal(d), nm = (+d.fair || 0) / (m || 1);
   return ` <span class="vin${vin ? " on" : ""}" title="${esc(`${money(nm)} NM x ${Math.round(m * 100)}% (${vin ? "vintage" : "standard"} ${c}) = ${money(+d.fair)}${vin ? ` - sets released before ${vintageYear()} use the vintage condition values (Settings)` : ""}`)}">${vin ? "vintage %" : "standard %"}</span>`;
 }
@@ -2535,12 +2548,15 @@ function applyCond(d){
   d._var = vc ? vc : null;
   let fair = d._f0; d._fsrc = d.fair_src || "";
   if ((o || vc) && d._f0){
-    const cNow = o || condCode(d._c0), f = d._graded ? {v: vc && +vc.p ? +vc.p : d._f0, src: "flat"} : fairAt(d, cNow, vc);   // a different art/version: that printing's price
+    const cNow = o || condCode(d._c0), f = d._graded ? fairAt(d, gradeCondOf(d._c0), vc) : fairAt(d, cNow, vc);   // a different art/version: that printing's price
     fair = f.v; d._fsrc = f.src;
     d.condition = o || d._c0; d._adj = true;
-  } else { d.condition = d._c0; d._adj = false; }
+  } else if (d._graded && d._f0){   // slabs: value by grade (also fixes older rows priced at the NM price)
+    const card = floorCard(d), f = card && +card.p ? card.p * condMult(gradeCondOf(d._c0), d) : d._f0;
+    d.condition = d._c0; d._adj = false; if (Math.abs(f - d._f0) > 0.5){ fair = f; d._regrade = true; } }
+  else { d.condition = d._c0; d._adj = false; }
   d.fair = Math.round(fair * 100) / 100;
-  d.discount_pct = d._adj || repriced ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
+  d.discount_pct = d._adj || repriced || d._regrade ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
   const ck = +d.ck_buylist, cm = condMult(condCode(d.condition), d) || 1;
   d.below_buylist = d._adj || repriced ? (ck ? (tot > 0 && tot <= ck * cm ? "True" : "") : d._b0) : d._b0;
 }
