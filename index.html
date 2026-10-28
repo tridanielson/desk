@@ -180,6 +180,21 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:3px}
 .tiles{display:none}
 .phone-only{display:none}
+.mk-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
+.mk-th{position:relative;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--panel);cursor:pointer;width:64px;height:64px;overflow:hidden}
+.mk-th img{width:100%;height:100%;object-fit:cover;display:block}.mk-th.on{outline:2px solid var(--gold)}
+.mk-th b{position:absolute;top:2px;right:2px;background:#d32f2f;color:#fff;border-radius:999px;font-size:11px;min-width:18px;height:18px;line-height:18px;text-align:center}
+#mkView{position:fixed;inset:0;z-index:90;background:#111;display:flex;flex-direction:column;color:#fff;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+#mkView .mk-top{display:flex;gap:8px;align-items:center;padding:10px 12px}#mkView .grow{flex:1}
+#mkView .mk-tags{display:flex;gap:6px;overflow-x:auto;padding:0 12px 8px}#mkView .btn.ghost{color:#fff;border-color:#666;background:transparent}#mkView .btn.ghost:disabled{opacity:.4}
+#mkView .mk-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px}
+.mk-wrap{position:relative;display:inline-block;touch-action:none;user-select:none;-webkit-user-select:none;max-width:100%;max-height:100%}
+.mk-wrap img{display:block;max-width:calc(100vw - 12px);max-height:calc(100vh - 190px);object-fit:contain;pointer-events:none}
+.mk-box{position:absolute;border:2px solid #ff3b30;background:rgba(255,59,48,.15);box-sizing:border-box}
+.mk-box span{position:absolute;left:0;top:-20px;background:#ff3b30;color:#fff;font-size:11px;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.mk-box button{position:absolute;right:-12px;top:-12px;width:24px;height:24px;border-radius:999px;border:0;background:#fff;color:#000;font-size:13px;cursor:pointer}
+.mk-ghost{border-style:dashed}
+#mkView .mk-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
 .msel{position:relative;display:inline-block}.msel .btn.on{border-color:var(--gold);font-weight:600}
 .msel-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px}
 .msel-pop label{display:flex;gap:8px;align-items:center;padding:7px 4px;font-size:14px;cursor:pointer}.msel-pop label .mut{margin-left:auto;font-size:12px}
@@ -356,7 +371,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:47 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:54 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -973,8 +988,8 @@ async function saveAll(){
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
       COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
-      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || "", variant_price: v.vp || ""}))),
-        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || ""}; }), "Adjust deal conditions (Price Desk)"); }
+      DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || "", variant_price: v.vp || "", marks: v.m || ""}))),
+        rows => rows.forEach(r => { if (r.url && !DC.map[r.url]) DC.map[r.url] = {c: r.condition, card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || "", m: r.marks || ""}; }), "Adjust deal conditions (Price Desk)"); }
     if (S.dirty.has("feedback")){ S.dirty.delete("feedback");
       FB.sha = await putMerged("collection/deal_feedback.csv", FB.sha, () => toCSV(FB_COLS, FB.rows),
         rows => { const have = new Set(FB.rows.map(r => r.at + "|" + r.url)); FB.rows = rows.filter(r => !have.has(r.at + "|" + r.url)).concat(FB.rows).sort((a, b) => (a.at || "").localeCompare(b.at || "")); }, "Deal reviews (Price Desk)"); }
@@ -1094,6 +1109,8 @@ const SETTINGS = [
     ["NM", "Counts as Near Mint From Grade", "num", 8, "A slab is valued like a raw card in the condition its grade matches (there's no graded price data). 8 and up = NM."],
     ["LP", "Lightly Played From Grade", "num", 7, ""], ["MP", "Moderately Played From Grade", "num", 5, "e.g. a CGC 5.5 counts as MP."],
     ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
+  {sec: "review", title: "Reviewing deals", fields: [
+    ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -1118,6 +1135,7 @@ const SETTINGS_LAYOUT = [
     {title: "Sniper", f: [["sniper", "enabled"], ["sniper", "min_listing_price"], ["sniper", "min_market_value"], ["sniper", "max_pages"], ["sniper", "item_details_per_day"], ["sniper", "max_alerts_per_sweep"]]}]},
   {group: "AI Photo Check", note: "Claude looks at the photos and description of possible deals before they alert.", panels: [
     {title: "When It Checks", f: [["ai", "enabled"], ["ai", "review_mode"], ["ai", "max_reviews_per_day"], ["ai", "min_fair_value"], ["ai", "risky_discount_pct"], ["ai", "always_review_over"]]},
+    {title: "Marking Damage on Photos", f: [["review", "photo_fetches_per_day"]]},
     {title: "Models & Cost", f: [["ai", "model"], ["ai", "cheap_model"], ["ai", "cheap_below"]]},
     {title: "Learning From You", f: [["ai", "teach_examples"], ["ai", "overstate_after"], ["ai", "upside_checks_per_day"], ["ai", "upside_min_value"]]}]},
   {group: "Scan Size & eBay Usage", note: "How much the 3-hour scan covers. More cards = more of your 5,000 daily eBay calls.", panels: [
@@ -2229,6 +2247,7 @@ function reviewHTML(d, mode){
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
+    <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
     <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason"><button type="button" class="btn small${s.reason ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
@@ -2261,6 +2280,8 @@ function openDealFromHash(){
 }
 window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
+  MK.d = d; MK.marks = (() => { try{ return JSON.parse((DC.map[d.url] || {}).m || "[]"); }catch(e){ return []; } })(); MK.imgs = null;
+  if (root.querySelector("#rvMarkRow:not([hidden])")) markPhotos(root, d);
   if (RV.sel && RV.sel.edition === "edition") fillEditions(root, d);
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
@@ -2272,7 +2293,7 @@ function wireReview(root, d, done){
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
-      row.hidden = !changed;
+      row.hidden = !changed; const mr = root.querySelector("#rvMarkRow"); if (mr){ mr.hidden = !changed; if (changed) markPhotos(root, d); }
       if (changed && RV.sel.cfault !== "app"){ const better = COND_LIST.indexOf(b.dataset.v) < COND_LIST.indexOf(condCode(d._c0 || d.condition)); RV.sel.cfault = better ? "under" : "seller";
         row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.cfault)); } } }
   }));
@@ -2284,6 +2305,57 @@ function wireReview(root, d, done){
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" ? cat : "", bought: false};
     saveReview(d, sel, "Agree with the AI: " + (d.ai_reason || ""), done, true);
   });
+}
+// ---- "Show me where": when you change a deal's condition, draw boxes on the listing photos around the damage.
+// The boxes (with a tag each) save with your review in deal_condition.csv and teach the AI photo check what you look for.
+const MK = {d: null, marks: [], imgs: null, cur: 0, tag: "Whitening", hist: []};
+const MK_TAGS = ["Whitening", "Corner", "Edge", "Scratch", "Crease", "Dent", "Print Line", "Stain", "Other"];
+const markSummary = ms => { const n = {}; ms.forEach(m => n[m.t] = (n[m.t] || 0) + 1); return Object.entries(n).map(([t, k]) => (k > 1 ? k + " x " : "") + t.toLowerCase()).join(", "); };
+async function markPhotos(root, d){
+  const box = root.querySelector("#rvMarks"); if (!box) return;
+  if (!MK.imgs){
+    MK.imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\//.test(u));
+    if (!MK.imgs.length && itemId(d)){
+      box.innerHTML = '<span class="mut" style="font-size:13px">Loading photos from eBay…</span>';
+      try{ const r = await rawServer("listingPhotos", AUTH.token, itemId(d), +((S.ini.review || {}).photo_fetches_per_day) || 25);
+        MK.imgs = r.images || [];
+        if (r.capped){ box.innerHTML = `<span class="mut" style="font-size:13px">Today's photo limit (${r.cap}) is used up - change it in Settings → AI Photo Check. Type the why in the note instead.</span>`; return; }
+        if (MK.imgs.length) d.images = MK.imgs.join(" ");
+      }catch(e){ MK.imgs = []; box.innerHTML = `<span class="mut" style="font-size:13px">${/UPDATE|Unknown/.test(e.message) ? "Photos need the latest server code - it updates itself in a minute." : "Couldn't load the photos: " + esc(e.message)}</span>`; return; }
+    }
+  }
+  if (!MK.imgs.length){ box.innerHTML = '<span class="mut" style="font-size:13px">No photos (the listing may have ended). Type the why in the note instead.</span>'; return; }
+  box.innerHTML = MK.imgs.map((u, i) => { const n = MK.marks.filter(m => m.i === i).length;
+    return `<button type="button" class="mk-th" data-mk="${i}" title="Tap to mark the damage on this photo"><img src="${esc(u.replace(/s-l\d+\./, "s-l300."))}" alt="" loading="lazy">${n ? `<b>${n}</b>` : ""}</button>`; }).join("")
+    + `<div class="mut mk-sum" style="font-size:12px;width:100%">${MK.marks.length ? "Marked: " + esc(markSummary(MK.marks)) + " - that's your why (a note is optional)" : "Optional: tap a photo and drag boxes around the wear - then you don't need to type why."}</div>`;
+  box.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", () => openMarker(+b.dataset.mk, () => markPhotos(root, d))));
+}
+function openMarker(i, onClose){
+  MK.cur = i; MK.hist = [];
+  let v = $("#mkView"); if (!v){ v = document.createElement("div"); v.id = "mkView"; document.body.appendChild(v); }
+  const draw = () => {
+    v.innerHTML = `<div class="mk-top"><b>Drag a box around each problem</b><span class="grow"></span><button class="btn ghost small" id="mkUndo" type="button"${MK.hist.length ? "" : " disabled"}>↶ Undo</button><button class="btn small" id="mkDone" type="button">Done</button></div>
+      <div class="mk-tags">${MK_TAGS.map(t => `<button type="button" class="btn small${MK.tag === t ? "" : " ghost"}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
+      <div class="mk-stage"><div class="mk-wrap" id="mkWrap"><img id="mkImg" src="${esc(MK.imgs[MK.cur])}" alt="" draggable="false">${MK.marks.filter(m => m.i === MK.cur).map(m => `<div class="mk-box" style="left:${m.x * 100}%;top:${m.y * 100}%;width:${m.w * 100}%;height:${m.h * 100}%"><span>${esc(m.t)}</span><button type="button" data-del="${MK.marks.indexOf(m)}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
+      ${MK.imgs.length > 1 ? `<div class="mk-thumbs">${MK.imgs.map((u, k) => `<button type="button" class="mk-th${k === MK.cur ? " on" : ""}" data-go="${k}"><img src="${esc(u.replace(/s-l\d+\./, "s-l140."))}" alt="">${MK.marks.filter(m => m.i === k).length ? `<b>${MK.marks.filter(m => m.i === k).length}</b>` : ""}</button>`).join("")}</div>` : ""}`;
+    v.querySelector("#mkDone").addEventListener("click", () => { v.remove(); onClose && onClose(); });
+    v.querySelector("#mkUndo").addEventListener("click", () => { const h = MK.hist.pop(); if (h) MK.marks = h; draw(); });
+    v.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => { MK.tag = b.dataset.tag; draw(); }));
+    v.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { MK.cur = +b.dataset.go; draw(); }));
+    v.querySelectorAll("[data-del]").forEach(b => b.addEventListener("pointerdown", e => { e.stopPropagation(); MK.hist.push(MK.marks.slice()); MK.marks.splice(+b.dataset.del, 1); draw(); }));
+    const wrap = v.querySelector("#mkWrap"); let st = null, ghost = null;
+    const pt = e => { const r = wrap.getBoundingClientRect(); return {x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))}; };
+    wrap.addEventListener("pointerdown", e => { if (e.target.closest("[data-del]")) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); st = pt(e);
+      ghost = document.createElement("div"); ghost.className = "mk-box mk-ghost"; wrap.appendChild(ghost); });
+    wrap.addEventListener("pointermove", e => { if (!st) return; const p = pt(e);
+      Object.assign(ghost.style, {left: Math.min(st.x, p.x) * 100 + "%", top: Math.min(st.y, p.y) * 100 + "%", width: Math.abs(p.x - st.x) * 100 + "%", height: Math.abs(p.y - st.y) * 100 + "%"}); });
+    const end = e => { if (!st) return; const p = pt(e), b = {x: Math.min(st.x, p.x), y: Math.min(st.y, p.y), w: Math.abs(p.x - st.x), h: Math.abs(p.y - st.y)}; st = null;
+      if (b.w > 0.02 && b.h > 0.02){ MK.hist.push(MK.marks.slice()); const r3 = n => Math.round(n * 1000) / 1000;
+        MK.marks.push({i: MK.cur, u: MK.imgs[MK.cur], x: r3(b.x), y: r3(b.y), w: r3(b.w), h: r3(b.h), t: MK.tag}); }
+      draw(); };
+    wrap.addEventListener("pointerup", end); wrap.addEventListener("pointercancel", () => { st = null; draw(); });
+  };
+  draw();
 }
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
@@ -2305,6 +2377,7 @@ function saveReview(d, sel, note, done, agreeAI){
   const picked = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
   const autoNote = !!(picked && !note);
   if (picked && !note) note = `It's ${picked.sn || picked.s} #${picked.num}${picked.yr ? " (" + picked.yr + ")" : ""}`;   // the picture you tapped says it all
+  if (condChanged && !note && MK.marks.length) note = "Marked on the photos: " + markSummary(MK.marks);   // the boxes are the why
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches the AI.", 4500); }
   if (sel.good === "down" && !sel.reason) sel.reason = condChanged ? "condition" : "other";
   const at = new Date().toISOString().slice(0, 16), seller = String(d.seller || "").split(" (")[0];
@@ -2320,7 +2393,7 @@ function saveReview(d, sel, note, done, agreeAI){
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
   const v0 = (DC.map[d.url] || {}).v || "", v1 = sel.edition === "variant" || sel.edition === "edition" ? (sel.variant || "") : "";
-  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, vp: v1 && !S.byKey.get(v1) && EXTRA[v1] ? String(EXTRA[v1].p || "") : "", card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : sel.edition === "edition" ? (sel.fault || "seller") : "app"};
+  if (condChanged || v1) DC.map[d.url] = {c: condChanged ? sel.condition : "", v: v1, vp: v1 && !S.byKey.get(v1) && EXTRA[v1] ? String(EXTRA[v1].p || "") : "", card: d.card, at, listed: String(d._c0 || "").replace("?", ""), ai: d.ai_condition || "", seller, title: (d.title || "").slice(0, 150), note: note || (DC.map[d.url] || {}).note || "", fault: condChanged ? (sel.cfault || "seller") : sel.edition === "edition" ? (sel.fault || "seller") : "app", m: condChanged && MK.marks.length ? JSON.stringify(MK.marks) : ""};
   else if (DC.map[d.url]) delete DC.map[d.url];
   if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
@@ -2465,10 +2538,10 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
 });
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
-const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant", "variant_price"];
+const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant", "variant_price", "marks"];
 const DC = {map: {}, sha: null, loaded: false};
 function loadDC(x){
-  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && (COND_LIST.includes(r.condition) || r.variant)) DC.map[r.url] = {c: COND_LIST.includes(r.condition) ? r.condition : "", card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || ""}; }); }catch(e){}
+  try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url && (COND_LIST.includes(r.condition) || r.variant)) DC.map[r.url] = {c: COND_LIST.includes(r.condition) ? r.condition : "", card: r.card, at: r.at, listed: r.listed, ai: r.ai, seller: r.seller, title: r.title, note: r.note, fault: r.fault, v: r.variant || "", vp: r.variant_price || "", m: r.marks || ""}; }); }catch(e){}
   DC.sha = x ? x.sha : null; DC.loaded = true;
 }
 const DEF_MULT = {NM: 1, LP: .85, MP: .7, HP: .5, DMG: .35};
@@ -2690,7 +2763,7 @@ function renderNear(){
 (function(){
   if (!("ontouchstart" in window)) return;   // works in the home-screen app and in Safari
   const ptr = $("#ptr"); let y0 = null, pulled = 0;
-  const atTop = () => Math.max(window.scrollY, (document.scrollingElement || document.documentElement).scrollTop) <= 2 && !document.querySelector(".modal.on, .sheet.on, #colModal[style*='block']");
+  const atTop = () => Math.max(window.scrollY, (document.scrollingElement || document.documentElement).scrollTop) <= 2 && !document.querySelector(".modal.on, .sheet.on, #colModal[style*='block'], #colModal.on, #mkView");
   document.addEventListener("touchstart", e => { y0 = atTop() && e.touches.length === 1 ? e.touches[0].clientY : null; pulled = 0; }, {passive: true});
   document.addEventListener("touchmove", e => { if (y0 == null) return; pulled = e.touches[0].clientY - y0;
     if (pulled > 10){ ptr.style.transform = `translate(-50%, ${Math.min(pulled, 110) - 50}px)`; ptr.textContent = pulled > 70 ? "↻ Release to refresh" : "↓ Pull to refresh"; } }, {passive: true});
@@ -2707,7 +2780,7 @@ async function checkPageVersion(){
 // the background, otherwise once you've been idle a minute with nothing open or unsaved
 const PV = {newer: false, lastInput: Date.now()};
 ["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { PV.lastInput = Date.now(); }, {passive: true, capture: true}));
-const busyNow = () => S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open]") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
+const busyNow = () => S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open], #mkView") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
 async function softReload(){
   if (!PV.newer || busyNow()) return;
   if (!document.hidden && Date.now() - PV.lastInput < 60000) return;
