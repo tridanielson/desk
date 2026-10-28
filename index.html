@@ -190,10 +190,20 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 #mkView .mk-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px}
 .mk-wrap{position:relative;display:inline-block;touch-action:none;user-select:none;-webkit-user-select:none;max-width:100%;max-height:100%}
 .mk-wrap img{display:block;max-width:calc(100vw - 12px);max-height:calc(100vh - 190px);object-fit:contain;pointer-events:none}
-.mk-box{position:absolute;border:2px solid #ff3b30;background:rgba(255,59,48,.15);box-sizing:border-box}
-.mk-box span{position:absolute;left:0;top:-20px;background:#ff3b30;color:#fff;font-size:11px;padding:1px 5px;border-radius:4px;white-space:nowrap}
-.mk-box button{position:absolute;right:-12px;top:-12px;width:24px;height:24px;border-radius:999px;border:0;background:#fff;color:#000;font-size:13px;cursor:pointer}
-.mk-ghost{border-style:dashed}
+#mkView .mk-stage.zoomed{display:block}
+.mk-wrap.zoomed{max-width:none;max-height:none;display:block}
+.mk-wrap.zoomed img{max-width:none;max-height:none;width:100%}
+.mk-wrap.pan{touch-action:auto;cursor:grab}
+.mk-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.mk-svg path{fill:none;stroke:rgba(255,236,0,.62);stroke-linecap:round;stroke-linejoin:round}
+.mk-svg path.mk-under{stroke:rgba(0,0,0,.35)}
+#mkLive{stroke:rgba(255,236,0,.75)}
+.mk-lab{position:absolute;transform:translate(-50%,-130%);display:flex;align-items:center;gap:2px;pointer-events:none}
+.mk-lab span{background:#111;color:#ffe600;border:1px solid #ffe600;font-size:11px;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.mk-lab button{pointer-events:auto;width:22px;height:22px;border-radius:999px;border:0;background:#fff;color:#000;font-size:12px;cursor:pointer}
+.mk-sep{width:1px;background:#555;margin:0 4px;flex:none}
+.mk-dot{display:inline-block;border-radius:999px;background:#ffe600;margin-right:5px;vertical-align:middle}
+#mkView .mk-stage{overflow:auto}
 #mkView .mk-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
 .msel{position:relative;display:inline-block}.msel .btn.on{border-color:var(--gold);font-weight:600}
 .msel-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px}
@@ -371,7 +381,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 03:54 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 04:32 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -2327,33 +2337,50 @@ async function markPhotos(root, d){
   if (!MK.imgs.length){ box.innerHTML = '<span class="mut" style="font-size:13px">No photos (the listing may have ended). Type the why in the note instead.</span>'; return; }
   box.innerHTML = MK.imgs.map((u, i) => { const n = MK.marks.filter(m => m.i === i).length;
     return `<button type="button" class="mk-th" data-mk="${i}" title="Tap to mark the damage on this photo"><img src="${esc(u.replace(/s-l\d+\./, "s-l300."))}" alt="" loading="lazy">${n ? `<b>${n}</b>` : ""}</button>`; }).join("")
-    + `<div class="mut mk-sum" style="font-size:12px;width:100%">${MK.marks.length ? "Marked: " + esc(markSummary(MK.marks)) + " - that's your why (a note is optional)" : "Optional: tap a photo and drag boxes around the wear - then you don't need to type why."}</div>`;
+    + `<div class="mut mk-sum" style="font-size:12px;width:100%">${MK.marks.length ? "Marked: " + esc(markSummary(MK.marks)) + " - that's your why (a note is optional)" : "Optional: tap a photo and highlight the wear - then you don't need to type why."}</div>`;
   box.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", () => openMarker(+b.dataset.mk, () => markPhotos(root, d))));
 }
-function openMarker(i, onClose){
-  MK.cur = i; MK.hist = [];
+function openMarker(i, onClose){   // highlighter: paint over the wear (strokes saved as points, 0-1 of the photo)
+  MK.cur = i; MK.hist = []; MK.zoom = 1;
   let v = $("#mkView"); if (!v){ v = document.createElement("div"); v.id = "mkView"; document.body.appendChild(v); }
+  const SIZES = [["Fine", 0.012], ["Medium", 0.025], ["Thick", 0.045]];
+  if (!MK.size) MK.size = 0.025;
+  const pathD = m => m.p.map((q, k) => (k ? "L" : "M") + (q[0] * 1000).toFixed(1) + " " + (q[1] * 1000).toFixed(1)).join(" ");
+  const strokes = () => MK.marks.map((m, k) => [m, k]).filter(([m]) => m.i === MK.cur);
   const draw = () => {
-    v.innerHTML = `<div class="mk-top"><b>Drag a box around each problem</b><span class="grow"></span><button class="btn ghost small" id="mkUndo" type="button"${MK.hist.length ? "" : " disabled"}>↶ Undo</button><button class="btn small" id="mkDone" type="button">Done</button></div>
-      <div class="mk-tags">${MK_TAGS.map(t => `<button type="button" class="btn small${MK.tag === t ? "" : " ghost"}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-      <div class="mk-stage"><div class="mk-wrap" id="mkWrap"><img id="mkImg" src="${esc(MK.imgs[MK.cur])}" alt="" draggable="false">${MK.marks.filter(m => m.i === MK.cur).map(m => `<div class="mk-box" style="left:${m.x * 100}%;top:${m.y * 100}%;width:${m.w * 100}%;height:${m.h * 100}%"><span>${esc(m.t)}</span><button type="button" data-del="${MK.marks.indexOf(m)}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
-      ${MK.imgs.length > 1 ? `<div class="mk-thumbs">${MK.imgs.map((u, k) => `<button type="button" class="mk-th${k === MK.cur ? " on" : ""}" data-go="${k}"><img src="${esc(u.replace(/s-l\d+\./, "s-l140."))}" alt="">${MK.marks.filter(m => m.i === k).length ? `<b>${MK.marks.filter(m => m.i === k).length}</b>` : ""}</button>`).join("")}</div>` : ""}`;
+    v.innerHTML = `<div class="mk-top"><b>Highlight the wear</b><span class="grow"></span><button class="btn ghost small" id="mkZoom" type="button">${MK.zoom > 1 ? "Zoom Out" : "🔍 Zoom In"}</button>${MK.zoom > 1 ? `<button class="btn${MK.pan ? "" : " ghost"} small" id="mkPan" type="button" title="Move around the zoomed photo">${MK.pan ? "✋ Moving" : "✋ Move"}</button>` : ""}<button class="btn ghost small" id="mkUndo" type="button"${MK.hist.length ? "" : " disabled"}>↶ Undo</button><button class="btn small" id="mkDone" type="button">Done</button></div>
+      <div class="mk-tags">${MK_TAGS.map(t => `<button type="button" class="btn small${MK.tag === t ? "" : " ghost"}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}<span class="mk-sep"></span>${SIZES.map(([n, w]) => `<button type="button" class="btn small${MK.size === w ? "" : " ghost"}" data-size="${w}" title="Highlighter size"><i class="mk-dot" style="width:${Math.round(w * 300)}px;height:${Math.round(w * 300)}px"></i>${n}</button>`).join("")}</div>
+      <div class="mk-stage" id="mkStage"><div class="mk-wrap${MK.zoom > 1 ? " zoomed" : ""}${MK.pan && MK.zoom > 1 ? " pan" : ""}" id="mkWrap"><img id="mkImg" src="${esc(MK.imgs[MK.cur])}" alt="" draggable="false">
+        <svg class="mk-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">${strokes().map(([m]) => `<path class="mk-under" d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000 + 8}"/><path d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000}"/>`).join("")}<path id="mkLive" d="" stroke-width="${MK.size * 1000}"/></svg>
+        ${strokes().map(([m, k]) => `<div class="mk-lab" style="left:${Math.min(0.92, Math.max(0.08, m.p[0][0])) * 100}%;top:${Math.max(0.06, m.p[0][1]) * 100}%"><span>${esc(m.t)}</span><button type="button" data-del="${k}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
+      ${MK.imgs.length > 1 ? `<div class="mk-thumbs">${MK.imgs.map((u, k) => { const n = MK.marks.filter(m => m.i === k).length; return `<button type="button" class="mk-th${k === MK.cur ? " on" : ""}" data-go="${k}"><img src="${esc(u.replace(/s-l\d+\./, "s-l140."))}" alt="">${n ? `<b>${n}</b>` : ""}</button>`; }).join("")}</div>` : ""}`;
     v.querySelector("#mkDone").addEventListener("click", () => { v.remove(); onClose && onClose(); });
     v.querySelector("#mkUndo").addEventListener("click", () => { const h = MK.hist.pop(); if (h) MK.marks = h; draw(); });
+    v.querySelector("#mkZoom").addEventListener("click", () => { if (MK.zoom === 1) MK.baseW = v.querySelector("#mkWrap").getBoundingClientRect().width; MK.zoom = MK.zoom > 1 ? 1 : 2.5; MK.pan = false; MK.scroll = null; draw(); });
+    const pb = v.querySelector("#mkPan"); if (pb) pb.addEventListener("click", () => { MK.pan = !MK.pan; draw(); });
     v.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => { MK.tag = b.dataset.tag; draw(); }));
+    v.querySelectorAll("[data-size]").forEach(b => b.addEventListener("click", () => { MK.size = +b.dataset.size; draw(); }));
     v.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { MK.cur = +b.dataset.go; draw(); }));
     v.querySelectorAll("[data-del]").forEach(b => b.addEventListener("pointerdown", e => { e.stopPropagation(); MK.hist.push(MK.marks.slice()); MK.marks.splice(+b.dataset.del, 1); draw(); }));
-    const wrap = v.querySelector("#mkWrap"); let st = null, ghost = null;
-    const pt = e => { const r = wrap.getBoundingClientRect(); return {x: Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), y: Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))}; };
-    wrap.addEventListener("pointerdown", e => { if (e.target.closest("[data-del]")) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); st = pt(e);
-      ghost = document.createElement("div"); ghost.className = "mk-box mk-ghost"; wrap.appendChild(ghost); });
-    wrap.addEventListener("pointermove", e => { if (!st) return; const p = pt(e);
-      Object.assign(ghost.style, {left: Math.min(st.x, p.x) * 100 + "%", top: Math.min(st.y, p.y) * 100 + "%", width: Math.abs(p.x - st.x) * 100 + "%", height: Math.abs(p.y - st.y) * 100 + "%"}); });
-    const end = e => { if (!st) return; const p = pt(e), b = {x: Math.min(st.x, p.x), y: Math.min(st.y, p.y), w: Math.abs(p.x - st.x), h: Math.abs(p.y - st.y)}; st = null;
-      if (b.w > 0.02 && b.h > 0.02){ MK.hist.push(MK.marks.slice()); const r3 = n => Math.round(n * 1000) / 1000;
-        MK.marks.push({i: MK.cur, u: MK.imgs[MK.cur], x: r3(b.x), y: r3(b.y), w: r3(b.w), h: r3(b.h), t: MK.tag}); }
+    const wrap = v.querySelector("#mkWrap"), live = v.querySelector("#mkLive"), stage = v.querySelector("#mkStage"); let pts = null;
+    if (MK.zoom > 1){ stage.classList.add("zoomed"); wrap.style.width = Math.round((MK.baseW || stage.clientWidth) * MK.zoom) + "px";
+      if (MK.scroll){ stage.scrollLeft = MK.scroll[0]; stage.scrollTop = MK.scroll[1]; } }
+    stage.addEventListener("scroll", () => { MK.scroll = [stage.scrollLeft, stage.scrollTop]; });
+    const pt = e => { const r = wrap.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
+    // zoomed in: one finger paints; the stage scrolls with two fingers / the scroll bars
+    wrap.addEventListener("pointerdown", e => { if (e.target.closest("[data-del]") || (e.pointerType === "touch" && !e.isPrimary) || (MK.pan && MK.zoom > 1)) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); pts = [pt(e)];
+      live.setAttribute("d", "M" + pts[0].map(n => (n * 1000).toFixed(1)).join(" ")); });
+    wrap.addEventListener("pointermove", e => { if (!pts) return; const q = pt(e), l = pts[pts.length - 1];
+      if (Math.hypot(q[0] - l[0], q[1] - l[1]) < 0.003) return; pts.push(q); live.setAttribute("d", pathD({p: pts})); });
+    const end = () => { if (!pts) return; const p = pts; pts = null;
+      if (p.length === 1) p.push([p[0][0] + 0.002, p[0][1] + 0.002]);   // a tap = a dot
+      const r3 = n => Math.round(n * 1000) / 1000, xs = p.map(q => q[0]), ys = p.map(q => q[1]);
+      const x = Math.min(...xs), y = Math.min(...ys);
+      MK.hist.push(MK.marks.slice());
+      MK.marks.push({i: MK.cur, u: MK.imgs[MK.cur], t: MK.tag, s: MK.size, p: p.slice(0, 400).map(q => [r3(q[0]), r3(q[1])]),
+        x: r3(x), y: r3(y), w: r3(Math.max(...xs) - x), h: r3(Math.max(...ys) - y)});   // the outline box, for the AI's "where" words
       draw(); };
-    wrap.addEventListener("pointerup", end); wrap.addEventListener("pointercancel", () => { st = null; draw(); });
+    wrap.addEventListener("pointerup", end); wrap.addEventListener("pointercancel", () => { pts = null; draw(); });
   };
   draw();
 }
