@@ -215,6 +215,7 @@ body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],bod
 .aud-q.need{outline:2px solid var(--down);outline-offset:4px;border-radius:6px}
 #ptr{position:fixed;left:50%;top:0;transform:translate(-50%,-60px);z-index:55;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .15s}
 .vin{font-size:10px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--muted);white-space:nowrap;cursor:help}.vin.on{border-color:var(--gold);color:var(--gold)}
+details.sgroup{margin-bottom:12px}details.sgroup>summary{cursor:pointer;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;font-size:15px;list-style-position:inside}details.sgroup[open]>summary{margin-bottom:10px}details.sgroup>.panel{margin-left:10px}
 .near-row{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}.near-main{min-width:0}
 .condSel{font:inherit;font-size:13px;padding:2px 4px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 select option{background:var(--panel);color:var(--ink)}
@@ -344,7 +345,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 04:46 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:12 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -574,7 +575,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 <!-- SETTINGS -->
 <section class="tab" id="tab-settings">
   <h2>Settings</h2>
-  <p class="sub">Defaults for alerts, how eBay deals are judged (USA only, condition, graded), how much each condition is worth versus Near Mint, and the selling fees used for profit. Changes apply on the next run.</p>
+  <p class="sub">Grouped by what they control. Tap a group to open it - changes save automatically and apply on the next scan (deals are re-judged within a minute).</p>
   <div id="settingsForm"></div>
   <div class="panel owner-only" id="reasonEditor"></div>
 </section>
@@ -1082,6 +1083,40 @@ const SETTINGS = [
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
     ["exclude_languages", "Ignore Languages", "list", "", "Foreign copies are priced differently."]]},
 ];
+// Settings page layout: grouped by what the settings do together (the field definitions above stay the single source).
+const SETTINGS_LAYOUT = [
+  {group: "Deal Finder", note: "What counts as a deal - the price, the condition values used to work out fair value, and what gets caught.", open: true, panels: [
+    {title: "Deal Basics", f: [["deals", "default_deal_pct"], ["deals", "min_market_value"], ["deals", "unknown_condition"], ["deals", "default_shipping"], ["deals", "include_auctions"], ["deals", "auction_hours"]]},
+    {title: "Condition Value - Standard (Fraction of Near Mint)", f: [["conditions", "NM"], ["conditions", "LP"], ["conditions", "MP"], ["conditions", "HP"], ["conditions", "DMG"]]},
+    {title: "Condition Value - Vintage", f: [["conditions_vintage", "before_year"], ["conditions_vintage", "NM"], ["conditions_vintage", "LP"], ["conditions_vintage", "MP"], ["conditions_vintage", "HP"], ["conditions_vintage", "DMG"]]},
+    {title: "What to Catch", f: [["deals", "usa_only"], ["deals", "min_condition"], ["deals", "graded_cards"], ["deals", "min_grade"], ["deals", "signed_cards"], ["deals", "altered_cards"], ["deals", "skip_suspicious"], ["deals", "suspicious_below_pct"], ["deals", "reprint_margin"]]},
+    {title: "Sellers", f: [["deals", "min_seller_feedback_pct"], ["deals", "min_seller_feedback_score"]]},
+    {title: "Listing Filters", f: [["filters", "exclude_words"], ["filters", "exclude_languages"], ["filters", "exclude_games"], ["deals", "ebay_game_filter"], ["deals", "check_full_listing"]]}]},
+  {group: "Phone Alerts", note: "What buzzes your phone, and when.", panels: [
+    {title: "MUST BUY Deals", f: [["alerts", "must_buy_saving"], ["alerts", "must_buy_pct"], ["alerts", "must_buy_auction_minutes"], ["alerts", "must_buy_rings_overnight"], ["alerts", "other_deals"], ["deals", "max_alerts_per_run"]]},
+    {title: "★ Top Picks", note: "Deals matching all of these get a ★ on the Deals tab (and their own alert if All Other Deals is set to 'An Alert for Every Top Pick').", f: [["preferences", "prefer_usa"], ["preferences", "prefer_min_condition"], ["preferences", "prefer_graded"], ["preferences", "prefer_min_grade"]]},
+    {title: "Quiet Hours", f: [["alerts", "quiet_hours"], ["alerts", "quiet_start"], ["alerts", "quiet_end"], ["alerts", "quiet_mode"], ["alerts", "urgent_override"], ["alerts", "timezone"]]},
+    {title: "Price Alerts (Watchlist)", f: [["prices", "default_drop_pct"], ["prices", "max_alert_lines"]]}]},
+  {group: "Every-Minute Sniper", note: "Checks brand-new Buy It Now listings every minute.", panels: [
+    {title: "Sniper", f: [["sniper", "enabled"], ["sniper", "min_listing_price"], ["sniper", "min_market_value"], ["sniper", "max_pages"], ["sniper", "item_details_per_day"], ["sniper", "max_alerts_per_sweep"]]}]},
+  {group: "AI Photo Check", note: "Claude looks at the photos and description of possible deals before they alert.", panels: [
+    {title: "When It Checks", f: [["ai", "enabled"], ["ai", "review_mode"], ["ai", "max_reviews_per_day"], ["ai", "min_fair_value"], ["ai", "risky_discount_pct"], ["ai", "always_review_over"]]},
+    {title: "Models & Cost", f: [["ai", "model"], ["ai", "cheap_model"], ["ai", "cheap_below"]]},
+    {title: "Learning From You", f: [["ai", "teach_examples"], ["ai", "overstate_after"], ["ai", "upside_checks_per_day"], ["ai", "upside_min_value"]]}]},
+  {group: "Scan Size & eBay Usage", note: "How much the 3-hour scan covers. More cards = more of your 5,000 daily eBay calls.", panels: [
+    {title: "3-Hour Scan", f: [["deals", "max_cards_per_scan"], ["sets", "need_min_value"]]}]},
+  {group: "Selling Fees", note: "Used for profit on the Collection tab.", panels: [
+    {title: "eBay", f: [["fees", "ebay_fee_pct"], ["fees", "ebay_order_fee"], ["fees", "ebay_order_fee_small"], ["fees", "ebay_small_order_max"], ["fees", "sales_tax_pct"]]},
+    {title: "TCGplayer & Local", f: [["fees", "tcgplayer_fee_pct"], ["fees", "tcgplayer_order_fee"], ["fees", "other_fee_pct"]]}]},
+];
+function settingsLayout(){   // every defined field placed once; anything the layout forgot lands in "Other"
+  const idx = {}, used = new Set();
+  SETTINGS.forEach(g => g.fields.forEach(f => idx[g.sec + "." + f[0]] = f));
+  const groups = SETTINGS_LAYOUT.map(G => ({...G, panels: G.panels.map(P => ({...P, rows: P.f.filter(([sec, k]) => idx[sec + "." + k]).map(([sec, k]) => { used.add(sec + "." + k); return [sec, idx[sec + "." + k]]; })})).filter(P => P.rows.length)}));
+  const rest = Object.keys(idx).filter(k => !used.has(k));
+  if (rest.length) groups.push({group: "Other", panels: [{title: "Other Settings", rows: rest.map(k => [k.split(".")[0], idx[k]])}]});
+  return groups;
+}
 function parseINI(text){
   const out = {}; let sec = null, lastKey = null;
   for (const raw of (text || "").split(/\r?\n/)){
@@ -1096,7 +1131,9 @@ function parseINI(text){
 }
 function buildINI(){
   const L = ["# MTG Price Tracker settings - edited with Havoth Price Desk (dashboard.html).", ""];
-  for (const g of SETTINGS){
+  const merged = [];
+  SETTINGS.forEach(g => { const m = merged.find(x => x.sec === g.sec); if (m) m.fields = m.fields.concat(g.fields); else merged.push({sec: g.sec, fields: g.fields.slice()}); });
+  for (const g of merged){
     L.push(`[${g.sec}]`);
     for (const [k, label, type, def, help] of g.fields){
       if (help) L.push(`# ${label}: ${help}`);
@@ -1113,11 +1150,19 @@ function buildINI(){
 }
 function renderSettings_(){
   const box = $("#settingsForm"); box.innerHTML = "";
-  for (const g of SETTINGS){
+  const opened = (() => { try{ return JSON.parse(store.get("pd_setopen") || "null"); }catch(e){ return null; } })();
+  for (const G of settingsLayout()){
+    const sec = document.createElement("details"); sec.className = "sgroup";
+    sec.open = opened ? opened.includes(G.group) : !!G.open;
+    sec.innerHTML = `<summary><b>${esc(G.group)}</b>${G.note ? `<span class="mut"> - ${esc(G.note)}</span>` : ""}</summary>`;
+    sec.addEventListener("toggle", () => { const now = [...box.querySelectorAll("details.sgroup")].filter(x => x.open).map(x => x.dataset.g); store.set("pd_setopen", JSON.stringify(now)); });
+    sec.dataset.g = G.group;
+    for (const P of G.panels){
+    const g = {sec: P.rows[0][0]};
     const panel = document.createElement("div"); panel.className = "panel";
-    panel.innerHTML = `<h3 style="margin:0 0 ${g.sec === "preferences" ? 4 : 12}px;font-size:15px">${esc(g.title)}</h3>${g.sec === "preferences" ? '<p class="mut" style="margin:0 0 12px;font-size:13px">Deals matching all of these get their own phone alert and a ★ in eBay deals. Everything else is still caught, grouped into one "+N other deals" alert.</p>' : ""}<div class="formgrid"></div>`;
+    panel.innerHTML = `<h3 style="margin:0 0 ${P.note ? 4 : 12}px;font-size:15px">${esc(P.title)}</h3>${P.note ? `<p class="mut" style="margin:0 0 12px;font-size:13px">${esc(P.note)}</p>` : ""}<div class="formgrid"></div>`;
     const grid = panel.querySelector(".formgrid");
-    for (const [k, label, type, def, help] of g.fields){
+    for (const [rsec, [k, label, type, def, help]] of P.rows){ g.sec = rsec;
       const cur = (S.ini[g.sec] || {})[k]; const val = cur ?? (type === "bool" ? (def ? "yes" : "no") : String(def));
       const id = `set_${g.sec}_${k}`; const f = document.createElement("div"); f.className = "field";
       if (type === "list") f.style.gridColumn = "1 / -1";
@@ -1136,9 +1181,11 @@ function renderSettings_(){
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
       el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals") ? val.toLowerCase() : val;
-      el.addEventListener("change", () => { (S.ini[g.sec] = S.ini[g.sec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
+      el.addEventListener("change", () => { (S.ini[rsec] = S.ini[rsec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
-    box.appendChild(panel);
+    sec.appendChild(panel);
+    }
+    box.appendChild(sec);
   }
 }
 
