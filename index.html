@@ -345,7 +345,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:26 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 05:43 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -2100,7 +2100,7 @@ function dealDetails(d){
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}`,
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
-    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - valued at the ungraded Near Mint price, no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2379,6 +2379,7 @@ function fairAt(d, cond, vc){
   return {v: nm * condMult(cond, d), src: isVintageDeal(d) ? "vintage" : "standard"};
 }
 function vinTag(d){   // which condition table priced this deal - tap for the math
+  if (d._graded) return ` <span class="vin" title="${esc(`Graded slab: valued at the ungraded Near Mint price (${money(+d.fair)}). There's no graded price data, so a high grade can be worth more than this.`)}">graded = NM</span>`;
   const c = condCode(d.condition), m = condMult(c, d), vin = isVintageDeal(d), nm = (+d.fair || 0) / (m || 1);
   return ` <span class="vin${vin ? " on" : ""}" title="${esc(`${money(nm)} NM x ${Math.round(m * 100)}% (${vin ? "vintage" : "standard"} ${c}) = ${money(+d.fair)}${vin ? ` - sets released before ${vintageYear()} use the vintage condition values (Settings)` : ""}`)}">${vin ? "vintage %" : "standard %"}</span>`;
 }
