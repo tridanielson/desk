@@ -180,6 +180,10 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:3px}
 .tiles{display:none}
 .phone-only{display:none}
+.msel{position:relative;display:inline-block}.msel .btn.on{border-color:var(--gold);font-weight:600}
+.msel-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px}
+.msel-pop label{display:flex;gap:8px;align-items:center;padding:7px 4px;font-size:14px;cursor:pointer}.msel-pop label .mut{margin-left:auto;font-size:12px}
+.msel-top{display:flex;justify-content:space-between;align-items:center;padding:2px 4px 6px;border-bottom:1px solid var(--line);margin-bottom:4px}
 @media (max-width:700px){select.phone-only{display:inline-block}}
 button,a,.tile{-webkit-tap-highlight-color:transparent}
 .tile{display:flex;gap:12px;align-items:center;width:100%;padding:10px 2px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;text-decoration:none}
@@ -350,7 +354,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:54 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:14 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -441,7 +445,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <label>Min % Off <input id="dMin" class="num" type="number" value="0"></label>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" class="phone-only" aria-label="Sort by"><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
-    <select id="dSet" aria-label="Set"><option value="">All Sets</option></select>
+    <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
     <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option><option value="sniped">🎯 My Snipes</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
@@ -1494,7 +1498,7 @@ function dealExtraOK(d){
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
   if (ty === "bin" && isAuction(d)) return false;
   if (ty === "sniped" && !snipeOf(d)) return false;
-  const st = $("#dSet") ? $("#dSet").value : ""; if (st && setOf(d) !== st) return false;
+  const st = $("#dSet") ? pickedSets() : []; if (st.length && !st.includes(setOf(d))) return false;
   if ($("#dPref").checked && !prefOK(d)) return false;
   if ($("#dUSA").checked && (d.location || "") !== "US") return false;
   const g = $("#dGraded").value; if (g === "raw" && isGraded(d)) return false; if (g === "graded" && !isGraded(d)) return false;
@@ -1718,17 +1722,30 @@ function dealCompare(a, b){
   const x = f(a), y = f(b); return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * DSORT.dir;
 }
 const setOf = d => (/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "";
-function fillSetFilter(){   // every set that has deals, by name, with how many
-  const el = $("#dSet"); if (!el) return; const want = el.value || el.dataset.want || "";
-  const names = {LEA: "Alpha", LEB: "Beta", "2ED": "Unlimited", "3ED": "Revised", ARN: "Arabian Nights", ATQ: "Antiquities", LEG: "Legends", DRK: "The Dark", FEM: "Fallen Empires", CHR: "Chronicles", "4ED": "Fourth Edition", ICE: "Ice Age", HML: "Homelands", ALL: "Alliances", MIR: "Mirage", VIS: "Visions", WTH: "Weatherlight", TMP: "Tempest", STH: "Stronghold", EXO: "Exodus", USG: "Urza's Saga", ULG: "Urza's Legacy", UDS: "Urza's Destiny", CED: "Collectors' Edition", CEI: "Intl. Collectors' Edition"};
-  S.cards.forEach(c => { if (c.s && c.sn) names[c.s] = c.sn; });
-  const n = {}; S.deals.forEach(d => { const k = setOf(d); if (k) n[k] = (n[k] || 0) + 1; });
-  const sig = Object.keys(n).sort().join(","); if (el.dataset.sig === sig && el.options.length > 1){ return; }
-  el.dataset.sig = sig;
-  el.innerHTML = `<option value="">All Sets</option>` + Object.keys(n).sort((a, b) => (names[a] || a).localeCompare(names[b] || b))
-    .map(k => `<option value="${esc(k)}">${esc(names[k] || k)} (${esc(k)})</option>`).join("");
-  if (want && n[want]){ el.value = want; delete el.dataset.want; }
+const SETNAMES = () => { const names = {LEA: "Alpha", LEB: "Beta", "2ED": "Unlimited", "3ED": "Revised", ARN: "Arabian Nights", ATQ: "Antiquities", LEG: "Legends", DRK: "The Dark", FEM: "Fallen Empires", CHR: "Chronicles", "4ED": "Fourth Edition", ICE: "Ice Age", HML: "Homelands", ALL: "Alliances", MIR: "Mirage", VIS: "Visions", WTH: "Weatherlight", TMP: "Tempest", STH: "Stronghold", EXO: "Exodus", USG: "Urza's Saga", ULG: "Urza's Legacy", UDS: "Urza's Destiny", CED: "Collectors' Edition", CEI: "Intl. Collectors' Edition"};
+  S.cards.forEach(c => { if (c.s && c.sn) names[c.s] = c.sn; }); return names; };
+const pickedSets = () => ($("#dSet").value || "").split(",").filter(Boolean);
+function setLabel(){ const p = pickedSets(), nm = SETNAMES(); return !p.length ? "All Sets" : p.length === 1 ? (nm[p[0]] || p[0]) : p.length + " Sets: " + p.join(", "); }
+function fillSetFilter(){   // every set that has deals, by name, with how many - tick as many as you like
+  const pop = $("#dSetPop"); if (!pop) return;
+  const nm = SETNAMES(), n = {}; S.deals.forEach(d => { const k = setOf(d); if (k) n[k] = (n[k] || 0) + 1; });
+  const picked = new Set(pickedSets());
+  const keys = [...new Set(Object.keys(n).concat([...picked]))].sort((a, b) => (nm[a] || a).localeCompare(nm[b] || b));
+  if (pop.hidden || !pop.children.length) pop.innerHTML = `<div class="msel-top"><b>Sets</b><a href="#" id="dSetClear">Clear</a></div>` + keys.map(k => `<label><input type="checkbox" value="${esc(k)}"${picked.has(k) ? " checked" : ""}> ${esc(nm[k] || k)} <span class="mut">${esc(k)}${n[k] ? " · " + n[k] : ""}</span></label>`).join("");
+  $("#dSetBtn").textContent = (picked.size > 1 ? picked.size + " Sets" : setLabel()) + " ▾";
+  $("#dSetBtn").classList.toggle("on", picked.size > 0); placeSetPop();
 }
+function placeSetPop(){   // keep the list on screen (the button moves as its label changes)
+  const pop = $("#dSetPop"); if (!pop || pop.hidden) return; pop.style.left = "0px";
+  const r = pop.getBoundingClientRect(), over = r.right - (document.documentElement.clientWidth - 12); if (over > 0) pop.style.left = -Math.min(over, r.left - 12) + "px"; }
+function setSetsPicked(list){ $("#dSet").value = list.join(","); $("#dSet").dispatchEvent(new Event("input")); }
+document.addEventListener("change", e => { if (!e.target.closest("#dSetPop")) return;
+  setSetsPicked([...document.querySelectorAll("#dSetPop input:checked")].map(x => x.value)); });
+document.addEventListener("click", e => {
+  if (e.target.closest("#dSetClear")){ e.preventDefault(); setSetsPicked([]); return; }
+  if (e.target.closest("#dSetBtn")){ const pop = $("#dSetPop"); pop.hidden = !pop.hidden;
+    placeSetPop(); return; }
+  if (!e.target.closest("#dSetWrap") && $("#dSetPop")) $("#dSetPop").hidden = true; });
 function renderDeals_(){
   fillSetFilter();
   const days = +$("#dDays").value, min = +$("#dMin").value || 0, onlyBuy = $("#dBuy").checked, hideSus = $("#dSus").checked, q = $("#dSearch").value.trim().toLowerCase();
@@ -1754,7 +1771,6 @@ function renderDeals_(){
   wireFB(t, rows);
 }
 const DEAL_FILTERS = ["#dDays", "#dMin", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded", "#dLang", "#dSet"];
-try{ const sv = JSON.parse(store.get("pd_dealfilters") || "{}")["#dSet"]; if (sv) $("#dSet").dataset.want = sv; }catch(e){}   // set list fills in once deals load
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 // which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
 const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
@@ -1770,7 +1786,7 @@ const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
 function showActiveFilters(){
   const box = $("#dActive"); if (!box) return;
   const on = DEAL_FILTERS.filter(s => { const el = $(s); if (!el || el.hidden) return false; return el.type === "checkbox" ? el.checked : String(el.value) !== (DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : "")); })
-    .map(s => { const el = $(s); return el.type === "checkbox" ? (el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : `last ${el.value} days`; });
+    .map(s => { const el = $(s); return el.type === "checkbox" ? (el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : s === "#dSet" ? setLabel() : `last ${el.value} days`; });
   box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show All</a>` : "";
   if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
