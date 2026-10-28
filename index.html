@@ -349,7 +349,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 06:02 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 07:45 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -1404,8 +1404,12 @@ function snipe(d){   // EZ sniper's Snapper: opens with the item number and eBay
   setSnipe(d, amt);
   toast(`EZ sniper: item ${id} is filled in. Max bid $${amt} is copied - paste it into Max Bid and press Snipe! Marked 🎯 on the deal (tap ✕ if you didn't set it).`, 10000);
 }
+document.addEventListener("click", e => { const b = e.target.closest("[data-snres]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.u); if (!d) return; const r = b.dataset.snres;
+  if (r === "won" && !READONLY && FB.loaded && !boughtFor(d)){ openBought(d, () => setSnipeResult(d, "won")); return; }   // record what you paid -> Collection as Ordered
+  setSnipeResult(d, r); if (r) toast(r === "won" ? "🏆 Marked as won." : "Marked as lost - off your snipes list.", 4000); });
 // ---- 🎯 snipes you've set (collection/snipes.csv for the owner, so every device sees them; this browser for accounts/guests)
-const SN_COLS = ["item_id", "url", "card", "max_bid", "at"];
+const SN_COLS = ["item_id", "url", "card", "max_bid", "at", "result", "result_at", "paid"];
 const SN = {rows: {}, sha: null, loaded: false, local: false};
 function loadSN(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) SN.rows[r.item_id] = r; }); }catch(e){} SN.sha = x ? x.sha : null; SN.loaded = true; }
 function snLocal(){ if (SN.local || ROLE === "owner") return; SN.local = true; try{ Object.assign(SN.rows, JSON.parse(store.get("pd_snipes") || "{}")); }catch(e){} }
@@ -1416,9 +1420,19 @@ function setSnipe(d, amt){
   if (ROLE === "owner"){ if (SN.loaded) markDirty("snipes"); } else store.set("pd_snipes", JSON.stringify(SN.rows));
   renderDeals();
 }
-function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "🎯 Snipe Set ≤ $X" + ✕ to clear
+function setSnipeResult(d, result){   // "won" / "lost" / "" (undo)
+  const s = snipeOf(d); if (!s) return;
+  s.result = result; s.result_at = result ? new Date().toISOString().slice(0, 16) : "";
+  if (ROLE === "owner"){ if (SN.loaded) markDirty("snipes"); } else store.set("pd_snipes", JSON.stringify(SN.rows));
+  renderDeals();
+}
+function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "🎯 Snipe Set ≤ $X" + ✕ to clear; after it ends: Won It / Lost
   if (!+d.max_bid) return "";
   const s = snipeOf(d), tag = tile ? "span" : "button", role = tile ? ' role="button"' : "";
+  const mt = tile ? "" : ";margin-top:4px";
+  if (s && s.result === "won") return `<span class="badge b-on" title="You won this snipe">🏆 Won${+s.paid ? " " + money(s.paid) : ""}</span> <${tag} class="btn small ghost"${role} data-snres="" data-u="${esc(d.url)}" title="Undo" style="margin-left:4px${mt}">↩</${tag}>`;
+  if (s && s.result === "lost") return `<span class="mut" style="font-size:12px">🎯 Snipe lost</span> <${tag} class="btn small ghost"${role} data-snres="" data-u="${esc(d.url)}" title="Undo" style="margin-left:4px${mt}">↩</${tag}>`;
+  if (s && isEnded(d)) return `<span class="mut" style="font-size:12px">🎯 Snipe ≤ ${money(s.max_bid)} · ended -</span> <${tag} class="btn small sniped"${role} data-snres="won" data-u="${esc(d.url)}" title="You won it - add it to Collection as on the way" style="margin-left:4px${mt}">🏆 Won It</${tag}><${tag} class="btn small ghost"${role} data-snres="lost" data-u="${esc(d.url)}" title="Someone outbid you" style="margin-left:4px${mt}">Lost</${tag}>`;
   if (!s) return `<${tag} class="btn small"${role} data-snipe="${esc(d.url)}"${tile ? "" : ' style="margin-top:4px"'}>Snipe ≤ ${money(d.max_bid)}</${tag}>`;
   return `<${tag} class="btn small sniped"${role} data-snipe="${esc(d.url)}" title="You set a snipe on ${esc(whenAZ(s.at + "Z"))}. Tap to open EZ sniper again."${tile ? "" : ' style="margin-top:4px"'}>🎯 Snipe Set ≤ ${money(s.max_bid)}</${tag}><${tag} class="btn small ghost"${role} data-unsnipe="${esc(d.url)}" title="Remove the 🎯 mark" style="margin-left:4px${tile ? "" : ";margin-top:4px"}">✕</${tag}>`;
 }
@@ -1471,7 +1485,9 @@ function ebayLink(d){
 }
 const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
-  if ((isEnded(d) || (FB.loaded && boughtFor(d))) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now
+  const ty0 = $("#dType") ? $("#dType").value : "";
+  if (ty0 === "sniped"){ const s = snipeOf(d); if (!s || s.result) return false; }   // My Snipes: live ones + ended ones waiting for Won/Lost
+  else if ((isEnded(d) || (FB.loaded && boughtFor(d))) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now
   const lg = $("#dLang") ? $("#dLang").value : "";
   if (lg === "en" && langOf(d)) return false;
   if (lg === "foreign" && !langOf(d)) return false;
@@ -1627,13 +1643,13 @@ async function saveCollectionNow(msg){
   COL.invSha = await GH.putFile("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, msg);
   S.dirty.delete("collection");
 }
-function openBought(d){
+function openBought(d, done){
   if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c]));
   const c = S._cardByLabel.get(d.card) || {};
   const cond = (d.condition || "").replace("?", "").toUpperCase();
-  openModal(`<h3>🛒 I Bought This</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
+  openModal(`<h3>${done ? "🏆 I Won This Snipe" : "🛒 I Bought This"}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
     <div class="grid">
-      <div><label for="bPaid">Total paid each ($, incl. shipping & tax)</label><input id="bPaid" inputmode="decimal" value="${esc((+d.total || 0).toFixed(2))}"></div>
+      <div><label for="bPaid">Total paid each ($, incl. shipping & tax)</label><input id="bPaid" inputmode="decimal" value="${esc((+d.price_now && isAuction(d) ? +d.price_now + (+d.ship || 0) : +d.total || 0).toFixed(2))}"></div>
       <div><label for="bQty">Quantity</label><input id="bQty" type="number" min="1" value="1"></div>
       <div><label for="bCond">Condition</label><select id="bCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
       <div><label for="bDate">Bought On</label><input id="bDate" type="date" value="${todayAZ()}"></div>
@@ -1654,6 +1670,8 @@ function openBought(d){
         notes: [$("#bNote").value.trim(), d.url].filter(Boolean).join(" · "), scryfall_id: "", kind: "card", ref: d.url});
       await saveCollectionNow("Bought from an eBay deal (Price Desk)");
       closeModal();
+      const paid = $("#bPaid").value.trim();
+      if (done){ const s = snipeOf(d); if (s) s.paid = paid; done(); }
       await saveFB(d, "bought", "", $("#bNote") ? "" : "");
       renderCOL(); toast(`Added to Collection as Ordered. Mark it received when it arrives.`, 6000);
     }catch(e){ btn.disabled = false; toast("Couldn't add it: " + e.message, 7000); }
