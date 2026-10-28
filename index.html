@@ -354,7 +354,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:14 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 07:08 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -446,7 +446,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" class="phone-only" aria-label="Sort by"><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
-    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option><option value="sniped">🎯 My Snipes</option></select>
+    <select id="dType" aria-label="Listing type" title="Auctions only = sorted by ending soonest, ended ones hidden"><option value="">Auctions + Buy It Now</option><option value="auction">Auctions - Ending Soonest</option><option value="bin">Buy It Now Only</option><option value="offer">🤝 Buy It Now - Takes Offers</option><option value="sniped">🎯 My Snipes</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
@@ -758,7 +758,7 @@ const HINTS = {
   "Price + Ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
   "Condition": "Pick a different condition if the photos disagree - Fair value and % off recalculate and it's saved. From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
   "Fair Value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
-  "Type / Ends": "Buy It Now, Best Offer, or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
+  "Type / Ends": "Buy It Now (🤝 Make Offer = the seller takes offers; No Offers = fixed price) or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
   "Listing": "The eBay listing title - tap to open it on eBay.",
   "Rate": "Tell the scanner how it did: 👍 good deal, 👎 bad deal (pick why), 💬 add a comment. Comments become rules on the next scan.",
   "Have": "Copies you still have (bought minus sold).", "Paid Each": "What you paid per copy.",
@@ -1441,6 +1441,9 @@ function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "�
 }
 // auctions: the scan stores hours left when found ("3.2h"); work out the real end time
 const isAuction = d => /^auction/i.test(d.type || "");
+const takesOffers = d => /best offer/i.test(d.type || "");
+const typeText = d => isAuction(d) ? (d.type || "") : "Buy It Now";
+const offerHTML = d => isAuction(d) ? "" : takesOffers(d) ? ` <span class="flag buy" title="The seller accepts offers - you can try for less than the listed price">🤝 Make Offer</span>` : ` <span class="flag" title="Fixed price - this seller doesn't take offers">No Offers</span>`;
 function endAt(d){
   if (!isAuction(d)) return null; if (d._end !== undefined) return d._end;
   const x = d.ends_at ? Date.parse(d.ends_at) : NaN; if (!isNaN(x)) return d._end = x;   // eBay's exact end time (newer scans)
@@ -1497,6 +1500,7 @@ function dealExtraOK(d){
   const ty = $("#dType") ? $("#dType").value : "";
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
   if (ty === "bin" && isAuction(d)) return false;
+  if (ty === "offer" && (isAuction(d) || !takesOffers(d))) return false;
   if (ty === "sniped" && !snipeOf(d)) return false;
   const st = $("#dSet") ? pickedSets() : []; if (st.length && !st.includes(setOf(d))) return false;
   if ($("#dPref").checked && !prefOK(d)) return false;
@@ -1764,7 +1768,7 @@ function renderDeals_(){
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${d._new ? '<span class="flag must" style="background:#1f7a3a" title="Just showed up - no refresh needed">NEW</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
-      <td class="hide-sm mut">${esc(d.type)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
+      <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
   t.querySelectorAll("[data-unsnipe]").forEach(b => b.addEventListener("click", () => setSnipe(rows.find(x => x.url === b.dataset.unsnipe), null)));
@@ -2829,7 +2833,7 @@ function renderDealsTiles(){
     const url = ebayLink(d);
     return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${d._new ? '<span class="flag must" style="background:#1f7a3a">NEW</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
-      <div class="t-sub">${esc(d.type)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
+      <div class="t-sub">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
       ${d.cond_note && !reviewedByMe(d) ? `<div class="t-chips"><span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span></div>` : ""}
       ${d.below_buylist || d.suspicious ? `<div class="t-chips">${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span>` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}</div>` : ""}
