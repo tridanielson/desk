@@ -349,7 +349,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:04 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:16 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
     <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
     <ol>
@@ -2610,7 +2610,7 @@ async function checkPageVersion(){
 // finds, plus the 3-hour scan's list when a newer scan has finished. No reload, nothing you're doing gets reset.
 const LIVE = {busy: false, off: false, last: 0};
 async function pollLive(force){
-  if (LIVE.busy || LIVE.off || document.hidden || !S.loadedOnce || !AUTH.token || document.body.classList.contains("nodeals")) return;
+  if (LIVE.busy || LIVE.off || !S.loadedOnce || !AUTH.token || document.body.classList.contains("nodeals")) return;
   if (!force && Date.now() - LIVE.last < 55000) return;
   LIVE.busy = true; LIVE.last = Date.now();
   try{ mergeLive(await rawServer("liveDeals", AUTH.token, S._dealsAt || "")); }
@@ -2630,7 +2630,34 @@ function mergeLive(r){
   renderDeals();
   const shown = added.filter(d => (S._dealRows || []).includes(d));
   if (shown.length) toast(`🆕 ${shown.length === 1 ? "New deal: " + shown[0].card + " - " + (+shown[0].discount_pct).toFixed(0) + "% off" : shown.length + " new deals - " + shown.slice(0, 3).map(d => d.card.split(" [")[0]).join(", ")}${shown.length > 3 ? "…" : ""}`, 7000);
+  if (shown.length) tabAlert(shown.length, shown.length === 1 ? shown[0].card.split(" [")[0] + " " + (+shown[0].discount_pct).toFixed(0) + "% off" : "new deals");
 }
+// ---- browser tab warning while you're looking at something else: "(2) 🆕 Sinkhole 38% off" flashing in the tab + a red count on the icon
+const TABA = {n: 0, base: "Havoth Price Desk", flip: null, href: null, img: null};
+const tabAway = () => document.hidden || !document.hasFocus();
+function tabAlert(n, label){
+  if (!tabAway()) return;
+  TABA.n += n; const t1 = `(${TABA.n}) 🆕 ${TABA.n === n && n === 1 ? label : TABA.n + " new deals"}`;
+  clearInterval(TABA.flip); let on = true; document.title = t1;
+  TABA.flip = setInterval(() => { on = !on; document.title = on ? t1 : `(${TABA.n}) ${TABA.base}`; }, 1500);
+  tabIcon(TABA.n);
+}
+function tabIcon(n){
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link){ link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+  if (TABA.href == null) TABA.href = link.getAttribute("href") || "";
+  if (!n){ if (TABA.href) link.href = TABA.href; else link.removeAttribute("href"); return; }
+  const draw = img => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d");
+    if (img) try{ x.drawImage(img, 0, 0, 64, 64); }catch(e){} else { x.fillStyle = "#8a4b14"; x.beginPath(); x.arc(32, 32, 30, 0, 7); x.fill(); }
+    x.fillStyle = "#d32f2f"; x.beginPath(); x.arc(44, 20, 19, 0, 7); x.fill(); x.lineWidth = 3; x.strokeStyle = "#fff"; x.stroke();
+    x.fillStyle = "#fff"; x.font = "bold 24px system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(n > 9 ? "9+" : String(n), 44, 21);
+    try{ link.type = "image/png"; link.href = c.toDataURL("image/png"); }catch(e){} };
+  if (TABA.img) return draw(TABA.img.complete && TABA.img.naturalWidth ? TABA.img : null);
+  if (!TABA.href) return draw(null);
+  const im = new Image(); im.onload = () => { TABA.img = im; draw(im); }; im.onerror = () => { TABA.img = {}; draw(null); }; im.src = TABA.href;
+}
+function tabClear(){ if (!TABA.n) return; TABA.n = 0; clearInterval(TABA.flip); document.title = TABA.base; tabIcon(0); }
+window.addEventListener("focus", tabClear); document.addEventListener("visibilitychange", () => { if (!document.hidden && document.hasFocus()) tabClear(); });
 setInterval(() => pollLive(), 15000); document.addEventListener("visibilitychange", () => { if (!document.hidden) pollLive(true); });
 setInterval(checkPageVersion, 5 * 6e4); document.addEventListener("visibilitychange", () => { if (!document.hidden) checkPageVersion(); });
 async function loadLearned(force){
