@@ -349,19 +349,12 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 08:56 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 27, 09:01 PM</b></p>
     <div class="row"><button class="btn" id="reloadBtn">Reload Data</button><span class="status" id="connMsg"></span></div>
-    <h3 style="margin-top:22px;font-size:15px">Settings Live in the Script</h3>
-    <ol>
-      <li>Open this project in <b>script.google.com</b> → <b>Project Settings</b> (gear icon) → <b>Script Properties</b>.</li>
-      <li><b>GITHUB_TOKEN</b>, <b>GITHUB_OWNER</b>, <b>GITHUB_REPO</b> connect to your repo.</li>
-      <li><b>OWNER_PASSWORD</b> is your password (full access). <b>VIEWER_PASSWORD</b> is the friends password (view only).</li>
-      <li>Changing a password signs out everyone who used the old one.</li>
-    </ol>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
-    <div class="panel" style="margin-top:14px"><b>What each tab does</b>
+    <details class="panel" style="margin-top:14px"><summary><b>What Each Tab Does &amp; Words Used</b></summary>
       <dl class="guide">
         <dt>Watchlist</dt><dd>Cards you picked one by one, each with its own alerts (target price, % drop, deal %, new 1-year low).</dd>
         <dt>All Prices</dt><dd>Everything priced every morning: Watchlist cards + all cards from your Auto-track lists. Filter for drops, lows, buylist strength, volatility.</dd>
@@ -372,13 +365,12 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
         <dt>Collection</dt><dd>What you own (including received Secret Lair items), what you paid, what it's worth now, and profit after fees when you sell.</dd>
         <dt>Auto-Track Lists</dt><dd>Scryfall searches (e.g. "Reserved List $25+") that automatically add whole groups of cards to All prices.</dd>
         <dt>Settings</dt><dd>Alert defaults, deal filters, condition values and selling fees.</dd>
-      </dl><b style="display:block;margin-top:12px">Words used on the desk</b><dl class="guide">
+      </dl><b style="display:block;margin-top:12px">Words Used on the Desk</b><dl class="guide">
         <dt>Watchlist</dt><dd>The specific cards you track one by one, each with its own alert levels.</dd>
         <dt>★ Top Pick</dt><dd>A deal that passed every check and matches your Top-pick settings (USA, condition, graded). Top picks get their own phone alert; other deals are grouped into one summary alert.</dd>
         <dt>Need</dt><dd>A card you're missing for a set on the Sets tab. These are checked first and can ring during quiet hours.</dd>
         <dt>Hidden</dt><dd>A deal removed by your ratings, your rules or an automatic check. See them with the "Only hidden &amp; AI-rejected" view.</dd>
-      </dl></div>
-    <p class="mut" style="font-size:12px">Your GitHub token is stored in the script's settings on Google's side. This page never sees it.</p>
+      </dl></details>
   </div>
 </section>
 
