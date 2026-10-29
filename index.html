@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:34 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:48 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3611,8 +3611,9 @@ function openSDSell(g){
     $("#sdsPrev").innerHTML = `<div><span>Sold for</span><span>${money(p * n)}</span></div><div><span>Fees + shipping</span><span>−${money(f)}</span></div><div><span>What you paid</span><span>−${money(c)}</span></div><div class="tot"><span>Profit</span><span>${gainHTML(Math.round((p * n - f - c) * 100) / 100)}</span></div>`; };
   ["#sdsQty", "#sdsPrice", "#sdsFees"].forEach(x => $(x).addEventListener("input", prev)); prev();
   $("#sdsCancel").addEventListener("click", closeModal);
-  $("#sdsOk").addEventListener("click", () => {
+  $("#sdsOk").addEventListener("click", e => {
     const n = qn(), p = numOrNull($("#sdsPrice").value); if (p == null) return toast("Enter the price.");
+    if (e.currentTarget.disabled) return; e.currentTarget.disabled = true;
     const f = numOrNull($("#sdsFees").value) || 0, parts = sdTake(g, n, {status: "sold", sold_price: String(p), sold_at: $("#sdsDate").value});
     parts.forEach(r => r.sold_fees = (f * (parseInt(r.qty) || 0) / n).toFixed(2));   // fees split across the parts sold
     markDirty("collection"); closeModal(); renderSD(); toast(`Sold ${n} - recorded with profit. ↩ Undo is under Sold.`, 4500);
@@ -3643,7 +3644,8 @@ function openSDOpen(g){
   $("#soQty").addEventListener("input", syncCost); syncCost();
   if ($("#soCost")) $("#soCost").addEventListener("input", e => e.target.dataset.touched = 1);
   $("#soCancel").addEventListener("click", closeModal);
-  $("#soOk").addEventListener("click", () => {
+  $("#soOk").addEventListener("click", e => {
+    if (e.currentTarget.disabled) return; e.currentTarget.disabled = true;   // one tap = one open, even on a double-tap
     const n = qn(), day = $("#soDate").value || todayAZ();
     const picks = cards.map((c, k) => ({c, on: $(`[data-oc="${k}"]`).checked, fin: $(`[data-of="${k}"]`).value, q: Math.max(1, parseInt($(`[data-oq="${k}"]`).value) || 1) * n})).filter(x => x.on);
     const bonus = (($("#soBonus") || {}).value || "").split("\n").map(s => s.trim()).filter(Boolean).map(s => { const m = s.match(/^(\d+)\s*x?\s+(.+)$/i); return {name: m ? m[2] : s, q: m ? +m[1] : 1}; });
