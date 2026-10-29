@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:07 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:16 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3204,22 +3204,41 @@ function slOrderRows(){
     (!q || l.product.toLowerCase().includes(q) || (l.components || []).some(c => c.name.toLowerCase().includes(q))))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
+function slGroups(rows){   // the same item (and finish) on several orders -> one row; bundles stay one row each (their drops are inside)
+  const out = [], by = {};
+  for (const l of rows){
+    if (l.components && l.components.length){ out.push({key: "L:" + l.line_id, lines: [l], bundle: true}); continue; }
+    const k = "G:" + l.product.toLowerCase().trim() + "|" + String(l.finish || "").toLowerCase();
+    if (!by[k]){ by[k] = {key: k, lines: []}; out.push(by[k]); }
+    by[k].lines.push(l);
+  }
+  SL._groups = Object.fromEntries(out.map(g => [g.key, g]));
+  return out;
+}
 function renderSLOrders(){
   if (!SL.ordersOpen || !$("#oTable")) return;
-  const rows = slOrderRows(); $("#oCount").textContent = `${rows.length} lines`;
-  const valCell = l => l.value == null ? '<span class="mut">not priced</span>' : (l.approx ? '<span title="Approximate: priced from the other finish (foil/non-foil) because this one has no price yet">≈ </span>' : "") + money(l.value) + (l.priced === "some" ? ' <span class="badge b-out">PARTIAL</span>' : "");
+  const rows = slOrderRows(), groups = slGroups(rows);
+  $("#oCount").textContent = `${groups.length} items · ${rows.length} order lines`;
+  const sum = (g, f) => g.lines.reduce((a, l) => a + (+l[f] || 0), 0);
+  const gval = g => g.lines.every(l => l.value == null) ? null : sum(g, "value");
+  const valCell = g => { const v = gval(g), l = g.lines[0]; return v == null ? '<span class="mut">not priced</span>' : (g.lines.some(x => x.approx) ? '<span title="Approximate: priced from the other finish (foil/non-foil) because this one has no price yet">≈ </span>' : "") + money(v) + (g.lines.some(x => x.priced === "some") ? ' <span class="badge b-out">PARTIAL</span>' : ""); };
   const recDate = l => { const r = COL.rec.find(x => x.line_id === l.line_id); return (r && r.date) || l.received || ""; };
-  const st = l => (isReceived(l) ? `<b class="up">Received</b>${recDate(l) ? ` <span class="mut">· ${esc(recDate(l))}</span>` : ""}`
+  const st1 = l => (isReceived(l) ? `<b class="up">Received</b>${recDate(l) ? ` <span class="mut">· ${esc(recDate(l))}</span>` : ""}`
       : esc(l.status) + (l.open && l.days_waiting != null ? ` <span class="mut">· ${l.days_waiting}d</span>` : "")) + (l.tracking ? `<div class="mut" style="font-size:12px">${esc(l.tracking)}</div>` : "");
-  const name = l => `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${l.notes && !l.components ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`;
+  const st = g => { if (g.lines.length === 1) return st1(g.lines[0]); const n = g.lines.filter(isReceived).length;
+    return n === g.lines.length ? '<b class="up">All received</b>' : (n ? `<b>${n} of ${g.lines.length} received</b><br>` : "") + esc([...new Set(g.lines.filter(l => !isReceived(l)).map(l => l.status))].join(", ")); };
+  const accts = g => [...new Set(g.lines.map(l => String(l.account).split("@")[0]))];
+  const dates = g => { const d = g.lines.map(l => l.date || "").filter(Boolean).sort(); return d.length ? (d[0] === d[d.length - 1] ? d[0] : d[0] + " – " + d[d.length - 1]) : ""; };
+  const name = g => { const l = g.lines[0]; return `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${g.lines.length > 1 ? ` · on ${g.lines.length} orders` : ""}${l.notes && !l.components && g.lines.length === 1 ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`; };
+  const acts = g => g.lines.length > 1 ? groupMarkHTML(g) : markHTML(g.lines[0]) + bundleHTML(g.lines[0]);
   $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
-    rows.map(l => `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(l.date || "")}</td><td>${name(l)}</td><td class="hide-sm mut" style="font-size:12px" title="${esc(l.account)}">${esc(String(l.account).split("@")[0])}</td>
-      <td class="r">${l.qty}</td><td class="r">${money(l.cost)}</td><td class="r">${valCell(l)}</td><td class="r">${l.value == null ? "–" : gainHTML(l.value - l.cost)}</td><td>${st(l)}</td><td class="mk">${markHTML(l)}${bundleHTML(l)}</td></tr>`).join("") + "</tbody>";
-  $("#oTiles").innerHTML = rows.map(l => `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
-      <div class="t-sub">${esc(l.date || "")} · ${esc(l.finish)} · ×${l.qty} · ${esc(String(l.account).split("@")[0])}</div><div class="t-sub">${st(l)}</div><div class="t-chips mk">${markHTML(l)}</div>${bundleHTML(l)}</div>
-      <div class="t-right"><div class="t-price">${l.value == null ? "–" : (l.approx ? "≈ " : "") + money(l.value)}</div><div class="t-sub">cost ${money(l.cost)}</div>${l.value == null ? "" : `<div style="font-size:12px">${gainHTML(l.value - l.cost)}</div>`}</div></div>`).join("") || '<p class="empty">No lines match.</p>';
-  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, [data-mark], [data-unmark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
-  document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark, el.dataset.scope, el); }));
+    groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g))}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
+      <td class="r">${sum(g, "qty")}</td><td class="r">${money(sum(g, "cost"))}</td><td class="r">${valCell(g)}</td><td class="r">${v == null ? "–" : gainHTML(v - sum(g, "cost"))}</td><td>${st(g)}</td><td class="mk">${acts(g)}</td></tr>`; }).join("") + "</tbody>";
+  $("#oTiles").innerHTML = groups.map(g => { const l = g.lines[0], v = gval(g); return `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
+      <div class="t-sub">${esc(dates(g))} · ${esc(l.finish)} · ×${sum(g, "qty")} · ${accts(g).map(esc).join(", ")}${g.lines.length > 1 ? ` · ${g.lines.length} orders` : ""}</div><div class="t-sub">${st(g)}</div><div class="t-chips mk">${acts(g)}</div></div>
+      <div class="t-right"><div class="t-price">${v == null ? "–" : (g.lines.some(x => x.approx) ? "≈ " : "") + money(v)}</div><div class="t-sub">cost ${money(sum(g, "cost"))}</div>${v == null ? "" : `<div style="font-size:12px">${gainHTML(v - sum(g, "cost"))}</div>`}</div></div>`; }).join("") || '<p class="empty">No lines match.</p>';
+  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, .mk, [data-mark], [data-unmark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
+  document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark); }));
 }
 function wireSLOrders(){
   $("#slOrdersToggle").addEventListener("click", () => { SL.ordersOpen = !SL.ordersOpen; renderSL(); });
@@ -3274,9 +3293,16 @@ function markHTML(l){
   if (isReceived(l)) return '<span class="badge b-on">IN COLLECTION</span>' + (COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id))
     ? ` <span class="btn ghost small" role="button" data-unmark="${esc(l.line_id)}" title="Not received after all - take it back out of Collection">↩ Undo</span>` : "");
   if (!COL.loaded) return COL.error ? "" : '<span class="mut" style="font-size:12px">…</span>';
-  const orderOpen = SL.orders.lines.filter(x => x.account === l.account && x.order === l.order && !x.dead && !isReceived(x)).length;
-  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}" data-scope="line">Mark this received</span>` +
-    (orderOpen > 1 ? `<br><span class="btn ghost small" role="button" data-mark="${esc(l.line_id)}" data-scope="order" title="Marks every unreceived line in order ${esc(l.order)} - asks you to tap again">Whole order (${orderOpen} lines)…</span>` : "");
+  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}">${l.components ? "Mark whole bundle received" : "Mark received"}</span>`;
+}
+const canUndo = l => COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id));
+function groupMarkHTML(g){   // the same item on several orders: one row, mark them all at once
+  if (READONLY || !COL.loaded) return COL.error || READONLY ? "" : '<span class="mut" style="font-size:12px">…</span>';
+  const live = g.lines.filter(l => !l.dead), open = live.filter(l => !isReceived(l)), undo = live.filter(canUndo);
+  return (open.length ? `<span class="btn small" role="button" data-gmark="${esc(g.key)}">Mark all ${open.length === live.length ? "" : open.length + " "}received</span>` : '<span class="badge b-on">ALL IN COLLECTION</span>')
+    + (undo.length ? ` <span class="btn ghost small" role="button" data-gunmark="${esc(g.key)}" title="Take ${undo.length === 1 ? "it" : "them"} back out of Collection">↩ Undo${undo.length > 1 ? " all" : ""}</span>` : "")
+    + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG === g.key ? "▾" : "▸"} ${live.length} orders</span>${SL.openG === g.key ? `<div class="bdl-list">${live.map(l =>
+      `<div class="bdl-row"><span>${esc(l.date || "")} · ${esc(String(l.account).split("@")[0])} · #${esc(l.order)} · ×${l.qty}</span><span style="margin-left:auto">${markHTML(l)}</span></div>`).join("")}</div>` : ""}</div>`;
 }
 // ---- bundles: mark each drop inside as it arrives (they often ship separately). When every drop is in, the bundle goes to Collection.
 const compKey = (l, c) => l.line_id + "::" + c.name;
@@ -3298,16 +3324,10 @@ function markComp(lineId, k, on){
   markDirty("collection"); renderSLOrders();
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-bopen]"); if (!b) return; e.preventDefault(); e.stopPropagation(); SL.openB = SL.openB === b.dataset.bopen ? "" : b.dataset.bopen; renderSLOrders(); });
-document.addEventListener("click", e => { if (e.target.closest(".bdl-list")) e.stopPropagation(); }, true);
 document.addEventListener("change", e => { const x = e.target.closest("[data-comp]"); if (!x) return; markComp(x.dataset.comp, +x.dataset.ck, x.checked); });
-const REC_UNDO = {rec: [], inv: [], lines: []};
-function markReceived(lineId, scope, el){
-  const base = SL.orders.lines.find(x => x.line_id === lineId); if (!base) return;
-  const lines = scope === "order" ? SL.orders.lines.filter(x => x.account === base.account && x.order === base.order && !x.dead && !isReceived(x)) : [base];
-  if (scope === "order" && el && !el.dataset.sure){   // the whole order is a big step - tap twice
-    el.dataset.sure = "1"; el.textContent = `Tap again: mark all ${lines.length} lines in order ${base.order}`; el.classList.remove("ghost");
-    setTimeout(() => { if (el.isConnected){ delete el.dataset.sure; el.textContent = `Whole order (${lines.length} lines)…`; el.classList.add("ghost"); } }, 5000); return; }
-  const day = todayAZ(), rec0 = COL.rec.length, inv0 = COL.inv.length;
+function markLines(lines){
+  lines = lines.filter(l => l && !l.dead && !isReceived(l)); if (!lines.length) return;
+  const day = todayAZ();
   for (const l of lines){
     COL.rec.push({line_id: l.line_id, qty: String(l.qty), date: day});
     const fin = /foil/i.test(l.finish) && !/non/i.test(l.finish) ? "foil" : "nonfoil";
@@ -3316,28 +3336,27 @@ function markReceived(lineId, scope, el){
       notes: `${l.account} · order ${l.order}`, scryfall_id: "", kind: "secret_lair", ref: l.line_id});
     l.in_collection = true; l.open = false;
   }
-  REC_UNDO.rec = COL.rec.slice(rec0); REC_UNDO.inv = COL.inv.slice(inv0); REC_UNDO.lines = lines;
   markDirty("collection");
-  toastHTML(`${lines.length === 1 ? esc(base.product.slice(0, 50)) : lines.length + " lines"} marked received and added to Collection. <a href="#" id="recUndo">Undo</a>`, 9000);
-  const u = $("#recUndo"); if (u) u.addEventListener("click", e => { e.preventDefault(); undoReceived(); });
+  toast(`${lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders of " + lines[0].product.slice(0, 40)} - received and added to Collection. ↩ Undo is next to it.`, 5000);
   renderSLOrders();
 }
-function unmarkReceived(lineId){   // the ↩ next to IN COLLECTION: back to not received, and out of Collection
-  const l = SL.orders.lines.find(x => x.line_id === lineId); if (!l) return;
-  const sold = COL.inv.filter(r => r.ref === lineId).some(r => COL.sales.some(s_ => s_.item_id === r.id));
-  if (sold) return toast("Some of these are recorded as sold in Collection - remove the sale there first.", 6000);
-  COL.rec = COL.rec.filter(r => r.line_id !== lineId); COL.inv = COL.inv.filter(r => r.ref !== lineId);
-  l.in_collection = false; l.open = !l.received;
-  markDirty("collection"); toast(`${l.product.slice(0, 50)} - back to not received.`, 4000); renderSLOrders();
+const markReceived = lineId => markLines([SL.orders.lines.find(x => x.line_id === lineId)]);
+function unmarkLines(lines){   // the ↩ Undo: back to not received, and out of Collection
+  lines = lines.filter(l => l && canUndo(l)); if (!lines.length) return;
+  const ids = new Set(lines.map(l => l.line_id));
+  if (COL.inv.some(r => ids.has(r.ref) && COL.sales.some(s_ => s_.item_id === r.id))) return toast("Some of these are recorded as sold in Collection - remove the sale there first.", 6000);
+  COL.rec = COL.rec.filter(r => !ids.has(r.line_id)); COL.inv = COL.inv.filter(r => !ids.has(r.ref));
+  lines.forEach(l => { l.in_collection = false; l.open = !l.received; });
+  markDirty("collection"); toast(`${lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders"} - back to not received.`, 4000); renderSLOrders();
 }
-document.addEventListener("click", e => { const b = e.target.closest("[data-unmark]"); if (!b) return; e.preventDefault(); e.stopPropagation(); unmarkReceived(b.dataset.unmark); });
-function undoReceived(){
-  if (!REC_UNDO.lines.length) return;
-  COL.rec = COL.rec.filter(r => !REC_UNDO.rec.includes(r)); COL.inv = COL.inv.filter(r => !REC_UNDO.inv.includes(r));
-  REC_UNDO.lines.forEach(l => { l.in_collection = false; l.open = !l.received; });
-  const n = REC_UNDO.lines.length; REC_UNDO.lines = []; REC_UNDO.rec = []; REC_UNDO.inv = [];
-  markDirty("collection"); toast(`Undone - ${n} line${n > 1 ? "s" : ""} back to not received.`, 4000); renderSLOrders();
-}
+const unmarkReceived = lineId => unmarkLines([SL.orders.lines.find(x => x.line_id === lineId)]);
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-unmark], [data-gunmark], [data-gmark], [data-gopen]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const g = (SL._groups || {})[b.dataset.gunmark || b.dataset.gmark || b.dataset.gopen];
+  if (b.dataset.unmark) unmarkReceived(b.dataset.unmark);
+  else if (b.dataset.gunmark && g) unmarkLines(g.lines);
+  else if (b.dataset.gmark && g) markLines(g.lines);
+  else if (b.dataset.gopen){ SL.openG = SL.openG === b.dataset.gopen ? "" : b.dataset.gopen; renderSLOrders(); } });
 // ---- live numbers: quantities from your files right now, values from the last run
 function colItems(){
   const val = new Map(((COL.data && COL.data.items) || []).map(i => [i.id, i]));
