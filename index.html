@@ -392,7 +392,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:50 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 07:02 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -2621,7 +2621,7 @@ function floorCard(d){
 const PRINTS = {}, EXTRA = {};
 async function printsOf(name){
   if (PRINTS[name]) return PRINTS[name];
-  const out = []; let url = "/cards/search?" + new URLSearchParams({q: `!"${name}" -is:digital`, unique: "prints", order: "released", dir: "asc"});
+  const out = []; let url = "/cards/search?" + new URLSearchParams({q: `!"${name}" game:paper include:extras`, unique: "prints", order: "released", dir: "asc"});
   for (let page = 0; url && page < 4; page++){
     const j = await sf(url); (j.data || []).forEach(c => {
       const k = `${c.name}|${String(c.set || "").toUpperCase()}|${c.collector_number}|nonfoil`, pr = c.prices || {};
@@ -3865,7 +3865,9 @@ $("#updated").addEventListener("click", () => { if (!READONLY && S.runs) switchT
 
 const condFlag = d => /as this edition before/.test(d.cond_note || "") ? "⚠ seller mislabels editions" : /overstates/.test(d.cond_note || "") ? "⬇ seller overstates" : "⚠ check";
 // MUST BUY (same rule as the phone alerts: [alerts] must_buy_*)
-const LOOKALIKE_SETS = ["2ED", "LEA", "LEB", "ARN", "ATQ", "LEG", "DRK", "3ED", "CED", "CEI"];
+const LOOKALIKE_SETS = ["2ED", "LEA", "LEB", "ARN", "ATQ", "LEG", "DRK", "3ED", "CED", "CEI",
+  // gold-bordered World Championship / Pro Tour Collector reprints exist for these (1995-2004) - photos must confirm the black border
+  "4ED", "CHR", "ICE", "HML", "ALL", "MIR", "VIS", "5ED", "WTH", "TMP", "STH", "EXO", "USG", "ULG", "6ED", "UDS", "MMQ", "NEM", "PCY", "INV", "PLS", "7ED", "APC", "ODY", "TOR", "JUD", "ONS", "LGN", "SCG", "8ED", "MRD", "DST", "5DN", "POR", "P02", "PTK"];
 function isMustBuy(d){
   const A = S.ini.alerts || {}, save = (+d.fair || 0) - (+d.total || 0), pct = +d.discount_pct || 0;
   if (d.ai_verdict === "reject" || d.hidden) return false;
