@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:16 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:29 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3488,6 +3488,8 @@ function sdItems(){
   return SD.rows.map(r => {
     const v = sdVal(r), qty = parseInt(r.qty) || 0, cost = numOrNull(r.cost_each) || 0;
     let each = v && v.market != null ? v.market : null, est = v && v.est === "cards", why = v && v.why;
+    if (each == null){ const sib = SD.rows.find(x => x !== r && (sdVal(x) || {}).market != null && x.product.toLowerCase() === r.product.toLowerCase() && x.finish === r.finish);   // a new copy of something you already have: same price
+      if (sib){ const sv = sdVal(sib); each = sv.market; est = sv.est === "cards"; why = ""; } }
     if (each == null){ const s = sdSLValue(r); if (s != null){ each = s; est = true; why = ""; } }
     if (each == null && !why) why = "Gets a TCGplayer price on the next morning run.";
     return {row: r, id: r.id, product: r.product, kind: r.kind || "other", finish: r.finish || "", qty, cost_each: cost, cost: Math.round(cost * qty * 100) / 100,
@@ -3549,9 +3551,9 @@ function renderSDList(){
   $("#sdCount").textContent = `${groups.length} products`;
   const worth = g => g.value == null ? `<span class="mut unk" title="${esc(g.items.find(i => i.why)?.why || "")}">Unknown ⓘ</span>` : (g.est ? '<span title="No sealed price on TCGplayer yet - this is what its cards are worth">≈ </span>' : "") + money(g.value);
   const badge = g => g.first.status === "opened" ? ' <span class="badge b-out">OPENED</span>' : g.first.status === "sold" ? ' <span class="badge b-up">SOLD</span>' : "";
-  const meta = g => `${esc(sdKindLabel(g.first.kind))}${g.first.finish && g.first.kind === "secret_lair" ? " · " + esc(g.first.finish === "foil" ? "Foil" : "Non-Foil") : ""}${g.items.length > 1 ? ` · ${g.items.length} entries` : g.first.row.source ? " · " + esc(g.first.row.source) : ""}${g.first.row.location ? " · 📍" + esc(g.first.row.location) : ""}`;
+  const meta = g => `${esc(sdKindLabel(g.first.kind))}${g.first.finish && g.first.kind === "secret_lair" ? " · " + esc(g.first.finish === "foil" ? "Foil" : "Non-Foil") : ""}${g.items.length > 1 ? ` · ${[...new Set(g.items.map(i => i.cost_each))].length > 1 ? "paid " + g.items.map(i => (i.qty > 1 ? i.qty + "×" : "") + money(i.cost_each)).join(" + ") : g.items.length + " entries"}` : g.first.row.source ? " · " + esc(g.first.row.source) : ""}${g.first.row.location ? " · 📍" + esc(g.first.row.location) : ""}`;
   const acts = g => { const st = g.first.status;
-    return (st === "sealed" ? `<span class="btn small" role="button" data-sdopen="${esc(g.key)}">Open</span> <span class="btn small" role="button" data-sdsell="${esc(g.key)}">Sell</span> ` : `<span class="btn ghost small" role="button" data-sdundo="${esc(g.key)}" title="Back to sealed">↩ Undo</span> `)
+    return (st === "sealed" ? `<span class="btn small" role="button" data-sdopen="${esc(g.key)}" title="You opened it: it leaves your sealed totals (kept in history). A Secret Lair lets you pick which cards go to Collection.">Mark Opened</span> <span class="btn small" role="button" data-sdsell="${esc(g.key)}" title="Record the sale and your profit">Mark Sold</span> <span class="btn ghost small" role="button" data-sdmore="${esc(g.key)}" title="Bought another one? Add it with its own price">+1 More</span> ` : `<span class="btn ghost small" role="button" data-sdundo="${esc(g.key)}" title="Back to sealed">↩ Undo</span> `)
       + (g.items.length > 1 ? `<span class="btn ghost small" role="button" data-sdlist="${esc(g.key)}">${SD.openG === g.key ? "▾" : "▸"} ${g.items.length}</span>` : `<span class="btn ghost small" role="button" data-sdedit="${esc(g.first.id)}">Edit</span>`); };
   const sub = g => SD.openG === g.key && g.items.length > 1 ? `<tr class="bdl-tr"><td colspan="7"><div class="bdl-list">${g.items.map(i => `<div class="bdl-row"><span>×${i.qty} · ${money(i.cost_each)} each · ${esc(i.row.acquired || "")}${i.row.account ? " · " + esc(acctLabel(i.row.account)) : ""}${i.row.source ? " · " + esc(i.row.source) : ""}${i.row.notes ? ` · <span class="mut">${esc(i.row.notes.slice(0, 60))}</span>` : ""}</span><span style="margin-left:auto"><span class="btn ghost small" role="button" data-sdedit="${esc(i.id)}">Edit</span></span></div>`).join("")}</div></td></tr>` : "";
   $("#sdTable").innerHTML = `<thead><tr><th class="nosort">Product</th><th class="r nosort">Qty</th><th class="r nosort">Paid</th><th class="r nosort">Worth Each</th><th class="r nosort">${SD.status === "sold" ? "Sold Profit" : "Worth"}</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -3564,9 +3566,10 @@ function renderSDList(){
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundo], #sdBody [data-sdlist], #sdBody [data-sdedit]"); if (!b) return;
-  e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist];
+  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundo], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore]"); if (!b) return;
+  e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist || b.dataset.sdmore];
   if (b.dataset.sdedit) openSDEdit(b.dataset.sdedit);
+  else if (g && b.dataset.sdmore){ const f = g.first.row; openSDEdit(null, {product: f.product, kind: f.kind, finish: f.finish, set: f.set, tcg_id: f.tcg_id, drop: f.drop}); }
   else if (b.dataset.sdlist){ SD.openG = SD.openG === b.dataset.sdlist ? "" : b.dataset.sdlist; renderSDList(); }
   else if (g && b.dataset.sdopen) openSDOpen(g);
   else if (g && b.dataset.sdsell) openSDSell(g);
@@ -3594,7 +3597,7 @@ function sdUndo(g){
 }
 function openSDSell(g){
   const sug = g.first.each ?? "";
-  openModal(`<h3>Sell: ${esc(g.first.product)}</h3><div class="mut" style="font-size:13px">You have ${g.qty} sealed · paid ${money(g.cost / g.qty)} each on average${g.first.each != null ? ` · worth ~${money(g.first.each)} each` : ""}</div>
+  openModal(`<h3>Mark Sold: ${esc(g.first.product)}</h3><div class="mut" style="font-size:13px">You have ${g.qty} sealed · paid ${money(g.cost / g.qty)} each on average${g.first.each != null ? ` · worth ~${money(g.first.each)} each` : ""}</div>
     <div class="grid">
       <div><label for="sdsQty">Quantity Sold</label><input id="sdsQty" type="number" min="1" max="${g.qty}" value="1"></div>
       <div><label for="sdsDate">Date</label><input id="sdsDate" type="date" value="${todayAZ()}"></div>
@@ -3626,7 +3629,7 @@ function openSDOpen(g){
       <span>${esc(c.n)} <span class="mut">#${esc(c.num)}</span></span>
       <select data-of="${k}">${fins.map(x => `<option value="${x}"${x === ff ? " selected" : ""}>${x === "foil" ? "Foil" : x === "etched" ? "Etched" : "Non-Foil"}</option>`).join("")}</select>
       <input data-oq="${k}" type="number" min="1" value="1" title="How many (per box opened)"></label>`; }).join("");
-  openModal(`<h3>Open: ${esc(f.product)}</h3>
+  openModal(`<h3>Mark Opened: ${esc(f.product)}</h3><div class="mut" style="font-size:13px">For when you've opened it. It leaves your sealed totals and stays in history (↩ Undo under Opened).</div>
     <div class="grid"><div><label for="soQty">How many to open</label><input id="soQty" type="number" min="1" max="${g.qty}" value="1"></div><div><label for="soDate">Date</label><input id="soDate" type="date" value="${todayAZ()}"></div></div>
     ${f.kind === "secret_lair" ? (cards.length ? `<p class="mut" style="font-size:13px;margin:12px 0 6px">Tick the cards that were inside - only these go to your Collection. Change foil / non-foil or the count if yours differ.</p>
       <div class="bdl-list" style="max-height:44vh;overflow:auto">${cardRows}</div>` : '<p class="mut" style="font-size:13px">No card list for this drop yet - add the cards you got with + Add Card on Collection.</p>')
@@ -3674,11 +3677,11 @@ function sdSuggest(q){
   const cat = (SD.cat || []).filter(c => hit(c.n + " " + c.g)).slice(0, 25).map(c => ({label: c.n, kind: c.sl ? "secret_lair" : sdGuessKind(c.n + " " + c.g), tcg: c.id, group: c.g, finish: /\bfoil\b/i.test(c.n) && !/non-?foil/i.test(c.n) ? "foil" : "nonfoil"}));
   return sl.concat(cat).slice(0, 30);
 }
-function openSDEdit(id){
-  const r = id ? SD.rows.find(x => x.id === id) : {id: "", product: "", kind: "booster_box", set: "", finish: "nonfoil", qty: "1", cost_each: "", acquired: todayAZ(), source: "", notes: "", location: "", status: "sealed", ref: "", tcg_id: "", drop: "", account: "", order: ""};
+function openSDEdit(id, pre){
+  const r = id ? SD.rows.find(x => x.id === id) : Object.assign({id: "", product: "", kind: "booster_box", set: "", finish: "nonfoil", qty: "1", cost_each: "", acquired: todayAZ(), source: "", notes: "", location: "", status: "sealed", ref: "", tcg_id: "", drop: "", account: "", order: ""}, pre || {});
   if (!r) return;
   const srcs = [...new Set(SD.rows.map(x => x.source).concat(COL.inv.map(x => x.source)).filter(Boolean))].slice(0, 40);
-  openModal(`<h3>${id ? "Edit Sealed" : "+ Add Sealed"}</h3>${r.ref ? `<div class="mut" style="font-size:13px">From your Secret Lair order${r.order ? " #" + esc(r.order) : ""} - to un-receive it, use ↩ Undo on the Secret Lair tab.</div>` : '<div class="mut" style="font-size:13px">Search a Secret Lair drop or any sealed Magic product (TCGplayer list), or type your own name.</div>'}
+  openModal(`<h3>${id ? "Edit Sealed" : pre ? "Add another: " + esc(r.product) : "+ Add Sealed"}</h3>${pre ? '<div class="mut" style="font-size:13px">Saved as its own entry with its own price, shown together with the ones you already have.</div>' : ""}${r.ref ? `<div class="mut" style="font-size:13px">From your Secret Lair order${r.order ? " #" + esc(r.order) : ""} - to un-receive it, use ↩ Undo on the Secret Lair tab.</div>` : pre ? "" : '<div class="mut" style="font-size:13px">Search a Secret Lair drop or any sealed Magic product (TCGplayer list), or type your own name.</div>'}
     <div class="grid">
       <div class="full" style="position:relative"><label for="sdeName">Product</label><input id="sdeName" value="${esc(r.product)}" autocomplete="off" ${r.ref ? "readonly" : ""} placeholder="e.g. Dominaria United Draft Booster Box">
         <div id="sdeSug" class="sd-sug" hidden></div></div>
