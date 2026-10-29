@@ -188,7 +188,8 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 #cardPeek{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:8px 10px;pointer-events:none}
 #cardPeek .peek-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}#cardPeek img{width:100%;border-radius:4px;display:block}
 .peek-btn{padding:1px 6px;margin-left:4px}@media (hover:hover){.peek-btn{display:none}}
-.bdl{margin-top:6px}.bdl-list{display:grid;gap:2px;margin-top:6px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);min-width:220px;text-align:left}
+.bdl{margin-top:6px}
+.bdl-tr td{padding-top:0;border-top:0}#oTable .bdl-tr .bdl-list{margin:0 0 10px 0;max-width:none;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));column-gap:18px}.bdl-tr .bdl-row span:first-of-type{white-space:normal}.bdl-list{display:grid;gap:2px;margin-top:6px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);min-width:220px;text-align:left}
 .bdl-row{display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0;cursor:pointer}.bdl-row.on span:first-of-type{color:var(--up, #1f7a3a)}
 .mk-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
 .mk-th{position:relative;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--panel);cursor:pointer;width:64px;height:64px;overflow:hidden}
@@ -391,7 +392,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:40 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:50 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -2637,7 +2638,7 @@ async function fillEditions(root, d){
   const nm = String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || [];
   try{
     const all = (await printsOf(nm[1])).filter(c => c.s !== nm[2]);
-    if (!all.length){ box.innerHTML = '<span class="mut" style="font-size:13px">No other printings of this card.</span>'; return; }
+    if (!all.length){ box.innerHTML = `<span class="mut" style="font-size:13px">${esc(nm[1] || "This card")} was only ever printed in ${esc(nm[2] || "this set")} (in paper), so there's no other edition to pick. If it's a fake or proxy, choose that under "Is It the Right Card?"; if it's foreign or something else, say so in the note.</span>`; return; }
     box.innerHTML = all.map(v => `<button type="button" class="btn small${RV.sel.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.sn || v.s)} ${esc(v.yr || "")} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${esc(v.s)} #${esc(v.num)}${v.yr ? " · " + esc(v.yr) : ""}</span><span>${v.p ? money(+v.p) : "no price"}</span></button>`).join("");
   }catch(e){ box.innerHTML = `<span class="mut" style="font-size:13px">Couldn't load the printings (${esc(e.message)}).</span>`; }
 }
@@ -3252,10 +3253,13 @@ function renderSLOrders(){
   const accts = g => [...new Set(g.lines.map(l => acctLabel(l.account)))];
   const dates = g => { const d = g.lines.map(l => l.date || "").filter(Boolean).sort(); return d.length ? (d[0] === d[d.length - 1] ? d[0] : d[0] + " – " + d[d.length - 1]) : ""; };
   const name = g => { const l = g.lines[0]; return `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${g.lines.length > 1 ? ` · on ${g.lines.length} orders` : ""}${l.notes && !l.components && g.lines.length === 1 ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`; };
-  const acts = g => g.lines.length > 1 ? groupMarkHTML(g) : markHTML(g.lines[0]) + bundleHTML(g.lines[0]);
+  const acts = (g, t) => g.lines.length > 1 ? groupMarkHTML(g, t) : markHTML(g.lines[0]) + bundleHTML(g.lines[0], t);
+  const subRow = g => { const l = g.lines[0];
+    const h = g.lines.length > 1 ? (SL.openG === g.key ? groupListHTML(g) : "") : (SL.openB === l.line_id && l.components && l.components.length ? bundleListHTML(l) : "");
+    return h ? `<tr class="bdl-tr"><td colspan="9">${h}</td></tr>` : ""; };
   $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
     groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g)).replace(" – ", '<br><span class="mut" style="font-size:12px">to ') + (dates(g).includes(" – ") ? "</span>" : "")}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px;white-space:nowrap" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
-      <td class="r">${sum(g, "qty")}</td><td class="r">${money(sum(g, "cost"))}</td><td class="r">${valCell(g)}</td><td class="r">${v == null ? "–" : gainHTML(v - sum(g, "cost"))}</td><td>${st(g)}</td><td class="mk">${acts(g)}</td></tr>`; }).join("") + "</tbody>";
+      <td class="r">${sum(g, "qty")}</td><td class="r">${money(sum(g, "cost"))}</td><td class="r">${valCell(g)}</td><td class="r">${v == null ? "–" : gainHTML(v - sum(g, "cost"))}</td><td>${st(g)}</td><td class="mk">${acts(g, true)}</td></tr>${subRow(g)}`; }).join("") + "</tbody>";
   $("#oTiles").innerHTML = groups.map(g => { const l = g.lines[0], v = gval(g); return `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
       <div class="t-sub">${esc(dates(g))} · ${esc(l.finish)} · ×${sum(g, "qty")} · ${accts(g).map(esc).join(", ")}${g.lines.length > 1 ? ` · ${g.lines.length} orders` : ""}</div><div class="t-sub">${st(g)}</div><div class="t-chips mk">${acts(g)}</div></div>
       <div class="t-right"><div class="t-price">${v == null ? `<span class="mut unk" title="${why(g)}" style="font-size:13px">Unknown ⓘ</span>` : (g.lines.some(x => x.approx) ? "≈ " : "") + money(v)}</div><div class="t-sub">cost ${money(sum(g, "cost"))}</div>${v == null ? "" : `<div style="font-size:12px">${gainHTML(v - sum(g, "cost"))}</div>`}</div></div>`; }).join("") || '<p class="empty">No lines match.</p>';
@@ -3318,24 +3322,30 @@ function markHTML(l){
   return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}">${l.components ? "Mark bundle received" : "Mark received"}</span>`;
 }
 const canUndo = l => COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id));
-function groupMarkHTML(g){   // the same item on several orders: one row, mark them all at once
+function groupListHTML(g){
+  return `<div class="bdl-list">${g.lines.filter(l => !l.dead).map(l =>
+      `<div class="bdl-row"><span>${esc(l.date || "")} · ${esc(acctLabel(l.account))} · #${esc(l.order)} · ×${l.qty}</span><span style="margin-left:auto">${markHTML(l)}</span></div>`).join("")}</div>`;
+}
+function groupMarkHTML(g, noList){   // the same item on several orders: one row, mark them all at once
   if (READONLY || !COL.loaded) return COL.error || READONLY ? "" : '<span class="mut" style="font-size:12px">…</span>';
   const live = g.lines.filter(l => !l.dead), open = live.filter(l => !isReceived(l)), undo = live.filter(canUndo);
   return (open.length ? `<span class="btn small" role="button" data-gmark="${esc(g.key)}">Mark all ${open.length === live.length ? "" : open.length + " "}received</span>` : '<span class="badge b-on">ALL IN COLLECTION</span>')
     + (undo.length ? ` <span class="btn ghost small" role="button" data-gunmark="${esc(g.key)}" title="Take ${undo.length === 1 ? "it" : "them"} back out of Collection">↩ Undo${undo.length > 1 ? " all" : ""}</span>` : "")
-    + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG === g.key ? "▾" : "▸"} ${live.length} orders</span>${SL.openG === g.key ? `<div class="bdl-list">${live.map(l =>
-      `<div class="bdl-row"><span>${esc(l.date || "")} · ${esc(acctLabel(l.account))} · #${esc(l.order)} · ×${l.qty}</span><span style="margin-left:auto">${markHTML(l)}</span></div>`).join("")}</div>` : ""}</div>`;
+    + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG === g.key ? "▾" : "▸"} ${live.length} orders</span>${SL.openG === g.key && !noList ? groupListHTML(g) : ""}</div>`;
 }
 // ---- bundles: mark each drop inside as it arrives (they often ship separately). When every drop is in, the bundle goes to Collection.
 const compKey = (l, c) => l.line_id + "::" + c.name;
 const compRec = (l, c) => isReceived(l) || COL.rec.some(r => r.line_id === compKey(l, c));
 const compCount = l => (l.components || []).filter(c => compRec(l, c)).length;
-function bundleHTML(l){
+function bundleHTML(l, noList){
   if (!l.components || !l.components.length || READONLY || l.dead) return "";
   const n = compCount(l), all = l.components.length, open = SL.openB === l.line_id;
-  return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops: ${n} of ${all} in</span>${open ? `<div class="bdl-list">${l.components.map((c, k) => {
+  return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops: ${n} of ${all} in</span>${open && !noList ? bundleListHTML(l) : ""}</div>`;
+}
+function bundleListHTML(l){
+  return `<div class="bdl-list">${l.components.map((c, k) => {
     const on = compRec(l, c), r = COL.rec.find(x => x.line_id === compKey(l, c));
-    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span data-hcards="${esc(c.drop || "")}">${esc(c.name)}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>` : ""}</div>`;
+    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span data-hcards="${esc(c.drop || "")}" title="${esc(c.name)}">${esc(c.name.replace(/^Secret Lair x /i, ""))}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>`;
 }
 // hover a drop inside a bundle (or tap 🃏 on a phone) to see its cards
 function peekHTML(key){
