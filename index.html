@@ -392,7 +392,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 07:02 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 07:59 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3197,7 +3197,7 @@ function slOrdersHTML(){
   const O = SL.orders, t = O.totals;
   const stat = (label, v, sub) => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
   let L = `<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="margin:0;font-size:16px">My Orders</h3>
-    <span class="mut" style="font-size:12px">From ${esc(O.file || "your tracker")} · valued ${esc(azFmt(O.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ · only you can see this</span></div>
+</div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:12px 0">
       ${stat("Spent", money(t.spent), `${t.items} items · ${t.lines} lines`)}
       ${stat("Worth Now", money(t.value), t.unpriced_lines ? `${t.unpriced_lines} lines not priced (${money(t.unpriced_cost)})` : "all priced")}
@@ -3212,7 +3212,7 @@ function slOrdersHTML(){
   if (SL.ordersOpen){
     const statuses = [...new Set(O.lines.map(l => l.status).filter(Boolean))];
     L += `<div class="row" style="margin-top:12px"><select id="oAcct"><option value="">All Accounts</option>${O.accounts.map(a => `<option>${esc(a.account)}</option>`).join("")}</select>
-      <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Not Marked Received</option><option value="__rec">Received (incl. bundles partly in)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
+      <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Everything Except In Collection</option><option value="__rec">Received (incl. bundles partly in)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
       <input id="oQ" placeholder="Search products…" style="flex:1;min-width:160px" value="${esc(SL.oQ)}"><span class="status" id="oCount"></span></div>
       <div class="scroll" id="oWrap" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
   }
