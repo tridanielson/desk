@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 09:24 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 09:28 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3366,7 +3366,7 @@ function bundleHTML(l, noList){
 function bundleListHTML(l){
   return `<div class="bdl-list">${l.components.map((c, k) => {
     const on = compRec(l, c), r = COL.rec.find(x => x.line_id === compKey(l, c));
-    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span data-hcards="${esc(c.drop || "")}" title="${esc(c.name)}">${esc(c.name.replace(/^Secret Lair x /i, ""))}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>`;
+    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}> <span data-hcards="${esc(c.drop || "")}" title="${esc(c.name)}">${esc(c.name.replace(/^Secret Lair x /i, ""))}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>`;
 }
 // hover a drop inside a bundle (or tap 🃏 on a phone) to see its cards
 function peekHTML(key){
@@ -3393,8 +3393,18 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-peek
   const r = b.getBoundingClientRect(); showPeek(b.dataset.peek, Math.max(8, r.left - 200), r.bottom); }, true);
 window.addEventListener("scroll", () => { const p = $("#cardPeek"); if (p && !p.hidden && Math.abs(window.scrollY - (+p.dataset.y || 0)) > 60) hidePeek(); }, {passive: true});
 function markComp(lineId, k, on){
-  const l = SL.orders.lines.find(x => x.line_id === lineId); if (!l || !l.components || !l.components[k] || isReceived(l)) return;
+  const l = SL.orders.lines.find(x => x.line_id === lineId); if (!l || !l.components || !l.components[k]) return;
   const c = l.components[k], key = compKey(l, c);
+  if (on && isReceived(l)) return;
+  if (!on && isReceived(l)){   // unticking one drop of a bundle that was all in: the other drops stay received
+    const rows = SD.rows.filter(r => r.ref === key || (r.ref === l.line_id && r.product === c.name));
+    if (rows.some(r => (r.status || "sealed") !== "sealed")) return toast("That drop is already opened or sold on the Sealed tab - undo that there first.", 6000), renderSLOrders();
+    const d = (COL.rec.find(r => r.line_id === l.line_id) || {}).date || todayAZ();
+    COL.rec = COL.rec.filter(r => r.line_id !== l.line_id && !r.line_id.startsWith(l.line_id + "::"));
+    l.components.forEach((x, i) => { if (i !== k) COL.rec.push({line_id: compKey(l, x), qty: String(x.n || l.qty), date: d}); });
+    SD.rows = SD.rows.filter(r => !rows.includes(r)); l.in_collection = false; l.open = !l.received;
+    markDirty("collection"); renderSLOrders(); return toast(`${c.name.replace(/^Secret Lair x /i, "")} - back to not received.`, 3500);
+  }
   if (!on && SD.rows.some(r => r.ref === key && (r.status || "sealed") !== "sealed")) return toast("That drop is already opened or sold on the Sealed tab - undo that there first.", 6000), renderSLOrders();
   COL.rec = COL.rec.filter(r => r.line_id !== key); SD.rows = SD.rows.filter(r => r.ref !== key);
   if (on){ COL.rec.push({line_id: key, qty: String(c.n || l.qty), date: todayAZ()}); SD.rows.push(...sdRowsFor(l, l.qty, [k])); }
@@ -3417,7 +3427,7 @@ function sdRowsFor(l, n, comps){
   return per.map((x, i) => ({x, i})).filter(({i}) => !comps || comps.includes(i)).map(({x}) => {
     const share = tot ? (x.c.unit_value || 0) * x.k / tot : x.k / cnt;
     return Object.assign({}, base, {id: newId("sd-"), product: x.c.name, finish: /foil edition/i.test(x.c.name) ? "foil" : "nonfoil", qty: String(Math.round(x.k * n)),
-      cost_each: x.k ? (costEach * share / x.k).toFixed(2) : "0", ref: comps ? compKey(l, x.c) : l.line_id, drop: x.c.drop || "", notes: "From bundle: " + l.product}); });
+      cost_each: x.k ? (costEach * share / x.k).toFixed(2) : "0", ref: compKey(l, x.c), drop: x.c.drop || "", notes: "From bundle: " + l.product}); });
 }
 // n = how many arrived (default: the rest). Everything from Secret Lair arrives sealed, free promos included.
 function markLines(lines, n){
