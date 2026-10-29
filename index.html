@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:30 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:54 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3555,15 +3555,19 @@ function renderSD(){
   renderSDList();
 }
 // the last things you opened or sold, each with its own ↩ Undo - always here, so a mistake is easy to take back
+// when a row was added: its id carries the time it was created (newId)
+const sdTs = r => { const m = /^sd-([0-9a-z]{8,9})[0-9a-z]{4}$/.exec(r.id || ""); return m ? parseInt(m[1], 36) : 0; };
+const sdAddedAt = r => { const t = sdTs(r); return t > 1.7e12 && t < Date.now() + 864e5 ? new Date(t).toLocaleDateString("en-CA", {timeZone: "America/Phoenix"}) : ""; };
 function sdRecentHTML(){
   const cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
-  const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : "";
-  const rec = SD.rows.filter(r => r.status !== "sealed" && (when(r) || "") >= cut)
-    .sort((a, b) => (when(b) + b.id).localeCompare(when(a) + a.id)).slice(0, 8);
+  const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : r.ref ? "" : sdAddedAt(r);   // received Secret Lairs have their own list on that tab
+  const rec = SD.rows.filter(r => (when(r) || "") >= cut)
+    .sort((a, b) => (when(b) + "|" + sdTs(b)).localeCompare(when(a) + "|" + sdTs(a))).slice(0, 10);
   if (!rec.length) return "";
-  return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo puts it back to sealed${COL.inv.length ? " and takes its cards back out of Collection" : ""}</span>
+  return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently added, opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span>
     <div class="bdl-list" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
-      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span></span></div>`; }).join("")}</div></div>`;
+      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px">${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
+        : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></div>`;
 }
 function renderSDList(){
   if ($("#sdRecent")) $("#sdRecent").innerHTML = SD.status === "sealed" ? sdRecentHTML() : "";
@@ -3591,8 +3595,9 @@ function renderSDList(){
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundoid], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore], #sdBody [data-sdgive]"); if (!b) return;
+  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundoid], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore], #sdBody [data-sdgive], #sdBody [data-sdunadd]"); if (!b) return;
   e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist || b.dataset.sdmore || b.dataset.sdgive];
+  if (b.dataset.sdunadd){ const r = SD.rows.find(x => x.id === b.dataset.sdunadd); if (r && !r.ref && (r.status || "sealed") === "sealed"){ SD.rows = SD.rows.filter(x => x !== r); markDirty("collection"); renderSD(); toast(`Removed ${r.product.slice(0, 50)}.`); } return; }
   if (b.dataset.sdundoid){ const r = SD.rows.find(x => x.id === b.dataset.sdundoid); if (r) sdUndo([r]); return; }
   if (b.dataset.sdedit) openSDEdit(b.dataset.sdedit);
   else if (g && b.dataset.sdmore){ const f = g.first.row; openSDEdit(null, {product: f.product, kind: f.kind, finish: f.finish, set: f.set, tcg_id: f.tcg_id, drop: f.drop}); }
