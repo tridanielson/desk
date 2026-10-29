@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:54 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 11:00 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -819,8 +819,8 @@ const HINTS = {
   "Sold For": "Price × quantity + the shipping the buyer paid.",
   "Fees": "eBay / TCGplayer fees. '~' = estimated from the fee rates in Settings.", "Ship Cost": "What you paid to ship it.",
   "Paid": "What you originally paid for the copies you sold.", "Profit": "Sold for - fees - your shipping - what you paid.",
-  "Ordered": "Order date from your Secret Lair spreadsheet.", "Cost": "What you paid for the line (from your spreadsheet).",
-  "Status": "Order status from your spreadsheet, or Received once you mark it.", "Qty": "How many you ordered.",
+  "Ordered": "Order date (from your order history / Secret Lair emails).", "Cost": "What you paid for the line, incl. tax; an order-wide discount is spread over its lines.",
+  "Status": "Order status from the Secret Lair emails, or Received once you mark it.", "Qty": "How many you ordered.",
   "Rarity": "The card's rarity in this set.", "Trend": "Price change over the last 30 days.",
 };
 const HINTS_BY_TABLE = {
