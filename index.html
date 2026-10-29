@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:29 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:36 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -2102,6 +2102,11 @@ async function updateServerNow(auto){
     }
     toast("Saved, but Google is still switching over. Refresh in a minute - it should say Up to date (no need to tap Update again).", 10000); b.disabled = false; b.textContent = "Update Now"; }
   catch(e){ b.disabled = false; b.textContent = "Update Now"; toast(e.message, 12000); const d = document.querySelector("#srvBody details"); if (d) d.open = true; }
+}
+async function relabelSniper(){   // one-time: fix old sniper finds that were really auctions (labeled Buy It Now)
+  try{ const r = await rawServer("sniperRelabel", AUTH.token); store.set("pd_relabel1", "1");
+    if (r && r.fixed){ toast(`Fixed ${r.fixed} sniper find${r.fixed > 1 ? "s" : ""} that were really auctions.`, 5000); if (!busyNow()) loadAll().catch(() => {}); } }
+  catch(e){ /* server not updated yet - tries again next load */ }
 }
 async function autoUpdateServer(){   // quiet: the page updates the Apps Script code by itself when a newer version is out
   SRV.updating = true; renderServerCode();
@@ -3984,6 +3989,7 @@ async function loadAll(){
   $("#acctName").textContent = d0.name || "";
   if (ROLE !== "owner"){ COL.loaded = false; }
   if (!READONLY) setTimeout(checkServerCode, 1500);
+  if (!READONLY && !store.get("pd_relabel1")) setTimeout(relabelSniper, 8000);
   if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
   else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
   S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
