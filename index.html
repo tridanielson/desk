@@ -386,7 +386,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:47 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:54 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3162,7 +3162,7 @@ function renderSLDetail(){
   if (myB.length){   // bundles: show what's inside (from your order) with links to each drop
     const comps = myB[0].components, names = new Map((SL.data && SL.data.drops || []).map(x => [x.key, x.name]));
     L += `<h3 style="font-size:16px;margin:8px 0 10px">What's inside (${comps.length} drops)</h3><div class="panel scroll"><table><thead><tr><th class="nosort">Drop</th><th class="r nosort">Qty</th><th class="r nosort">Value Each</th></tr></thead><tbody>` +
-      comps.map(c => `<tr class="${c.drop ? "click" : ""}" data-bdrop="${esc(c.drop || "")}"><td>${esc(c.name)}${c.drop && names.get(c.drop) && names.get(c.drop) !== c.name ? ` <span class="mut">(${esc(names.get(c.drop))})</span>` : ""}</td><td class="r">${c.n}</td><td class="r">${c.unit_value == null ? "–" : (c.approx ? "≈ " : "") + money(c.unit_value)}</td></tr>`).join("") +
+      comps.map(c => `<tr class="${c.drop ? "click" : ""}" data-bdrop="${esc(c.drop || "")}"><td data-hcards="${esc(c.drop || "")}">${esc(c.name)}${c.drop && names.get(c.drop) && names.get(c.drop) !== c.name ? ` <span class="mut">(${esc(names.get(c.drop))})</span>` : ""}</td><td class="r">${c.n}</td><td class="r">${c.unit_value == null ? "–" : (c.approx ? "≈ " : "") + money(c.unit_value)}</td></tr>`).join("") +
       `</tbody></table></div><p class="mut" style="font-size:12px">${myB.map(l => `You ordered ×${l.qty} on ${esc(l.date || "")} · paid ${money(l.cost)} · worth ${l.value == null ? "–" : money(l.value)}`).join("<br>")}</p>`;
   }
   if (!d.cards.length && !st.some(p => p.images && p.images.length) && d.teaser && d.teaser.length)   // announced, not listed yet: show the teaser
@@ -3337,14 +3337,15 @@ function peekHTML(key){
 }
 function showPeek(key, x, y){
   let p = $("#cardPeek"); if (!p){ p = document.createElement("div"); p.id = "cardPeek"; document.body.appendChild(p); }
-  const h = peekHTML(key); if (!h){ p.hidden = true; return; }
-  p.innerHTML = h; p.hidden = false; p.dataset.key = key; p.dataset.y = window.scrollY;
+  if (p.hidden || p.dataset.key !== key){ const h = peekHTML(key); if (!h){ p.hidden = true; return; }
+    p.innerHTML = h; p.hidden = false; p.dataset.key = key; p.dataset.y = window.scrollY; }
   const w = Math.min(420, window.innerWidth - 16); p.style.width = w + "px";
   p.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + "px";
   const ph = p.offsetHeight; p.style.top = (y + 16 + ph > window.innerHeight ? Math.max(8, y - ph - 12) : y + 16) + "px";
 }
 const hidePeek = () => { const p = $("#cardPeek"); if (p) p.hidden = true; };
-document.addEventListener("mouseover", e => { const t = e.target.closest("[data-hcards]"); if (t && t.dataset.hcards && matchMedia("(hover: hover)").matches) showPeek(t.dataset.hcards, e.clientX, e.clientY); });
+document.addEventListener("pointerover", e => { if (e.pointerType === "touch") return; const t = e.target.closest("[data-hcards]"); if (t && t.dataset.hcards) showPeek(t.dataset.hcards, e.clientX, e.clientY); });
+document.addEventListener("pointermove", e => { if (e.pointerType === "touch") return; const p = $("#cardPeek"), t = e.target.closest("[data-hcards]"); if (p && !p.hidden && t && t.dataset.hcards === p.dataset.key) showPeek(t.dataset.hcards, e.clientX, e.clientY); });
 document.addEventListener("mouseout", e => { if (e.target.closest("[data-hcards]") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("[data-hcards]"))) hidePeek(); });
 document.addEventListener("click", e => { const b = e.target.closest("[data-peek]");
   if (!b){ if (!e.target.closest("#cardPeek")) hidePeek(); return; }
