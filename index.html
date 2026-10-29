@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:11 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:20 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3723,7 +3723,11 @@ function sdSuggest(q){
     const base = /^secret lair/i.test(d.name) ? d.name : "Secret Lair: " + d.name;
     return [{label: base, kind: "secret_lair", drop: d.key, finish: "nonfoil"}].concat(d.retail_foil || (d.cards || []).some(c => (c.fin || []).includes("foil")) ? [{label: base + " Foil Edition", kind: "secret_lair", drop: d.key, finish: "foil"}] : []); });
   const cat = (SD.cat || []).filter(c => hit(c.n + " " + c.g)).slice(0, 25).map(c => ({label: c.n, kind: c.sl ? "secret_lair" : sdGuessKind(c.n + " " + c.g), tcg: c.id, group: c.g, finish: /\bfoil\b/i.test(c.n) && !/non-?foil/i.test(c.n) ? "foil" : "nonfoil"}));
-  return sl.concat(cat).slice(0, 30);
+  // the same product from both lists (Wizards' drop list and TCGplayer) shows once: keep the drop (it knows the cards), take TCGplayer's price link
+  const nk = (t, f) => (t || "").toLowerCase().replace(/[™®©]/g, "").replace(/&/g, " and ").replace(/\bsecret lair( drop| x)?\b|\b(traditional |non-?)?foil (edition|version)\b|\bedition\b/g, " ").replace(/[^a-z0-9]+/g, " ").trim() + "|" + f;
+  const byKey = new Map(sl.map(o => [nk(o.label, o.finish), o]));
+  const rest = cat.filter(c => { const o = byKey.get(nk(c.label, c.finish)); if (o){ if (!o.tcg) o.tcg = c.tcg; return false; } return true; });
+  return sl.concat(rest).slice(0, 30);
 }
 // Wizards' retail price for a Secret Lair: the store price for that finish, else what the line cost on one of your orders
 function sdMSRP(product, finish, drop){
