@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 09:28 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:11 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3482,7 +3482,7 @@ document.addEventListener("click", e => {
   else if (b.dataset.gopen){ SL.openG.has(b.dataset.gopen) ? SL.openG.delete(b.dataset.gopen) : SL.openG.add(b.dataset.gopen); renderSLOrders(); } });
 // ---------------------------------------------------------------- Sealed product (Secret Lairs, booster boxes, packs, decks...)
 // collection/sealed.csv: one row per batch you hold. Opening or selling part of a row splits it, so history stays.
-const SEALED_COLS = ["id", "product", "kind", "set", "finish", "qty", "cost_each", "acquired", "source", "notes", "location", "status", "opened_at", "sold_price", "sold_at", "sold_fees", "ref", "tcg_id", "drop", "account", "order"];
+const SEALED_COLS = ["id", "product", "kind", "set", "finish", "qty", "cost_each", "acquired", "source", "notes", "location", "status", "opened_at", "sold_price", "sold_at", "sold_fees", "ref", "tcg_id", "drop", "account", "order", "given_to", "given_at"];
 const SD_KINDS = {secret_lair: "Secret Lair", booster_box: "Booster Box", collector_box: "Collector Booster Box", pack: "Booster Pack", bundle: "Bundle / Fat Pack", deck: "Deck / Precon", box_set: "Box Set / Gift Box", other: "Other"};
 const SD = {rows: [], sha: null, vals: null, cat: null, catLoading: false, loaded: false, q: "", status: "sealed", kind: "", openG: new Set()};
 const sdVal = r => ((SD.vals && SD.vals.items) || {})[r.id] || null;
@@ -3540,10 +3540,11 @@ function renderSD(){
       ${stat("Worth Now", money(sum(priced, i => i.value)), held.length - priced.length ? `${held.length - priced.length} rows Unknown` : "")}
       ${stat("Gain", gainHTML(sum(priced, i => i.value - i.cost), sum(priced, i => i.cost)), "if sold at market")}
       ${stat("Opened", `${sum(opened, i => i.qty)}`, "kept in history")}
+      ${(() => { const gv = items.filter(i => i.status === "given"); return gv.length ? stat("Given away", `${sum(gv, i => i.qty)}`, `worth ${money(sum(gv, i => i.value))} · not in your totals`) : ""; })()}
       ${stat("Sold profit", gainHTML(sum(sold, i => (i.sold || 0) * i.qty - i.fees - i.cost)), `${sum(sold, i => i.qty)} sold`)}
     </div>
     <div class="panel row"><input id="sdQ" placeholder="Search sealed…" value="${esc(SD.q)}" style="flex:1;min-width:180px">
-      <select id="sdStatus"><option value="sealed">Still Sealed</option><option value="opened">Opened</option><option value="sold">Sold</option><option value="">Everything</option></select>
+      <select id="sdStatus"><option value="sealed">Still Sealed</option><option value="opened">Opened</option><option value="sold">Sold</option><option value="given">Given Away</option><option value="">Everything</option></select>
       <select id="sdKind"><option value="">All Kinds</option>${kinds.map(k => `<option value="${esc(k)}">${esc(sdKindLabel(k))}</option>`).join("")}</select>
       <span class="status" id="sdCount"></span></div>
     <div id="sdRecent"></div>
@@ -3556,12 +3557,13 @@ function renderSD(){
 // the last things you opened or sold, each with its own ↩ Undo - always here, so a mistake is easy to take back
 function sdRecentHTML(){
   const cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
-  const rec = SD.rows.filter(r => (r.status === "opened" && (r.opened_at || "") >= cut) || (r.status === "sold" && (r.sold_at || "") >= cut))
-    .sort((a, b) => ((b.opened_at || b.sold_at || "") + b.id).localeCompare((a.opened_at || a.sold_at || "") + a.id)).slice(0, 8);
+  const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : "";
+  const rec = SD.rows.filter(r => r.status !== "sealed" && (when(r) || "") >= cut)
+    .sort((a, b) => (when(b) + b.id).localeCompare(when(a) + a.id)).slice(0, 8);
   if (!rec.length) return "";
-  return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently opened or sold</b> <span class="mut" style="font-size:12px">- ↩ Undo puts it back to sealed${COL.inv.length ? " and takes its cards back out of Collection" : ""}</span>
+  return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo puts it back to sealed${COL.inv.length ? " and takes its cards back out of Collection" : ""}</span>
     <div class="bdl-list" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
-      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : "Opened"}</b> ${esc(r.opened_at || r.sold_at)} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto"><span class="btn ghost small" role="button" data-sdundoid="${esc(r.id)}">↩ Undo</span></span></div>`; }).join("")}</div></div>`;
+      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span></span></div>`; }).join("")}</div></div>`;
 }
 function renderSDList(){
   if ($("#sdRecent")) $("#sdRecent").innerHTML = SD.status === "sealed" ? sdRecentHTML() : "";
@@ -3572,12 +3574,13 @@ function renderSDList(){
   SD._groups = Object.fromEntries(groups.map(g => [g.key, g]));
   $("#sdCount").textContent = `${groups.length} products`;
   const worth = g => g.value == null ? `<span class="mut unk" title="${esc(g.items.find(i => i.why)?.why || "")}">Unknown ⓘ</span>` : (g.est ? '<span title="No sealed price on TCGplayer yet - this is what its cards are worth">≈ </span>' : "") + money(g.value);
-  const badge = g => g.first.status === "opened" ? ' <span class="badge b-out">OPENED</span>' : g.first.status === "sold" ? ' <span class="badge b-up">SOLD</span>' : "";
+  const badge = g => g.first.status === "opened" ? ' <span class="badge b-out">OPENED</span>' : g.first.status === "sold" ? ' <span class="badge b-up">SOLD</span>'
+    : g.first.status === "given" ? ` <span class="badge b-src">GIVEN${[...new Set(g.items.map(i => i.row.given_to).filter(Boolean))].length ? " TO " + esc([...new Set(g.items.map(i => i.row.given_to).filter(Boolean))].join(", ").toUpperCase()) : ""}</span>` : "";
   const meta = g => `${esc(sdKindLabel(g.first.kind))}${g.first.finish && g.first.kind === "secret_lair" ? " · " + esc(g.first.finish === "foil" ? "Foil" : "Non-Foil") : ""}${g.items.length > 1 ? ` · ${[...new Set(g.items.map(i => i.cost_each))].length > 1 ? "paid " + g.items.map(i => (i.qty > 1 ? i.qty + "×" : "") + money(i.cost_each)).join(" + ") : g.items.length + " entries"}` : g.first.row.source ? " · " + esc(g.first.row.source) : ""}${g.first.row.location ? " · 📍" + esc(g.first.row.location) : ""}`;
   const acts = g => { const st = g.first.status;
-    return (st === "sealed" ? `<span class="btn small" role="button" data-sdopen="${esc(g.key)}" title="You opened it: it leaves your sealed totals (kept in history). A Secret Lair lets you pick which cards go to Collection.">Mark Opened</span> <span class="btn small" role="button" data-sdsell="${esc(g.key)}" title="Record the sale and your profit">Mark Sold</span> <span class="btn ghost small" role="button" data-sdmore="${esc(g.key)}" title="Bought another one? Add it with its own price">+1 More</span> ` : g.items.length === 1 ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(g.first.id)}" title="Back to sealed">↩ Undo</span> ` : "")
+    return (st === "sealed" ? `<span class="btn small" role="button" data-sdopen="${esc(g.key)}" title="You opened it: it leaves your sealed totals (kept in history). A Secret Lair lets you pick which cards go to Collection.">Mark Opened</span> <span class="btn small" role="button" data-sdsell="${esc(g.key)}" title="Record the sale and your profit">Mark Sold</span> <span class="btn small" role="button" data-sdgive="${esc(g.key)}" title="Gave it to someone (still sealed): it leaves your totals, and ↩ Back to me returns it">Mark Given</span> <span class="btn ghost small" role="button" data-sdmore="${esc(g.key)}" title="Bought another one? Add it with its own price">+1 More</span> ` : g.items.length === 1 ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(g.first.id)}" title="Back to sealed">${st === "given" ? "↩ Back to me" : "↩ Undo"}</span> ` : "")
       + (g.items.length > 1 ? `<span class="btn ghost small" role="button" data-sdlist="${esc(g.key)}">${SD.openG.has(g.key) ? "▾" : "▸"} ${g.items.length}</span>` : `<span class="btn ghost small" role="button" data-sdedit="${esc(g.first.id)}">Edit</span>`); };
-  const sub = g => SD.openG.has(g.key) && g.items.length > 1 ? `<tr class="bdl-tr"><td colspan="7"><div class="bdl-list">${g.items.map(i => `<div class="bdl-row"><span>×${i.qty} · ${money(i.cost_each)} each · ${esc(i.row.acquired || "")}${i.row.account ? " · " + esc(acctLabel(i.row.account)) : ""}${i.row.source ? " · " + esc(i.row.source) : ""}${i.row.notes ? ` · <span class="mut">${esc(i.row.notes.slice(0, 60))}</span>` : ""}</span><span style="margin-left:auto">${i.status !== "sealed" ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(i.id)}">↩ Undo</span> ` : ""}<span class="btn ghost small" role="button" data-sdedit="${esc(i.id)}">Edit</span></span></div>`).join("")}</div></td></tr>` : "";
+  const sub = g => SD.openG.has(g.key) && g.items.length > 1 ? `<tr class="bdl-tr"><td colspan="7"><div class="bdl-list">${g.items.map(i => `<div class="bdl-row"><span>×${i.qty} · ${money(i.cost_each)} each · ${esc(i.row.acquired || "")}${i.row.account ? " · " + esc(acctLabel(i.row.account)) : ""}${i.row.source ? " · " + esc(i.row.source) : ""}${i.row.notes ? ` · <span class="mut">${esc(i.row.notes.slice(0, 60))}</span>` : ""}</span><span style="margin-left:auto">${i.status !== "sealed" ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(i.id)}">${i.status === "given" ? "↩ Back to me" : "↩ Undo"}</span> ` : ""}${i.row.given_to ? `<span class="mut" style="font-size:12px">to ${esc(i.row.given_to)} ${esc(i.row.given_at || "")}</span> ` : ""}<span class="btn ghost small" role="button" data-sdedit="${esc(i.id)}">Edit</span></span></div>`).join("")}</div></td></tr>` : "";
   $("#sdTable").innerHTML = `<thead><tr><th class="nosort">Product</th><th class="r nosort">Qty</th><th class="r nosort">Paid</th><th class="r nosort">Worth Each</th><th class="r nosort">${SD.status === "sold" ? "Sold Profit" : "Worth"}</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
     (groups.map(g => `<tr><td><div class="cname">${g.first.url ? `<a href="${esc(g.first.url)}" target="_blank" rel="noopener">${esc(g.first.product)}</a>` : esc(g.first.product)}${badge(g)}</div><div class="cset">${meta(g)}</div></td>
       <td class="r">${g.qty}</td><td class="r">${money(g.cost)}</td><td class="r">${g.first.each == null ? "–" : (g.est ? "≈ " : "") + money(g.first.each)}</td>
@@ -3588,14 +3591,15 @@ function renderSDList(){
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundoid], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore]"); if (!b) return;
-  e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist || b.dataset.sdmore];
+  const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundoid], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore], #sdBody [data-sdgive]"); if (!b) return;
+  e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist || b.dataset.sdmore || b.dataset.sdgive];
   if (b.dataset.sdundoid){ const r = SD.rows.find(x => x.id === b.dataset.sdundoid); if (r) sdUndo([r]); return; }
   if (b.dataset.sdedit) openSDEdit(b.dataset.sdedit);
   else if (g && b.dataset.sdmore){ const f = g.first.row; openSDEdit(null, {product: f.product, kind: f.kind, finish: f.finish, set: f.set, tcg_id: f.tcg_id, drop: f.drop}); }
   else if (b.dataset.sdlist){ SD.openG.has(b.dataset.sdlist) ? SD.openG.delete(b.dataset.sdlist) : SD.openG.add(b.dataset.sdlist); renderSDList(); }
   else if (g && b.dataset.sdopen) openSDOpen(g);
   else if (g && b.dataset.sdsell) openSDSell(g);
+  else if (g && b.dataset.sdgive) openSDGive(g);
 
 });
 document.addEventListener("click", e => { const a = e.target.closest("[data-gotab]"); if (!a) return; e.preventDefault(); switchTab(a.dataset.gotab); });
@@ -3615,8 +3619,27 @@ function sdUndo(rows){
   const cards = COL.inv.filter(r => ids.has(r.ref));
   if (cards.some(r => COL.sales.some(s => s.item_id === r.id))) return toast("Some cards from this are recorded as sold in Collection - undo that sale first.", 6000);
   COL.inv = COL.inv.filter(r => !ids.has(r.ref));
-  rows.forEach(r => Object.assign(r, {status: "sealed", opened_at: "", sold_price: "", sold_at: "", sold_fees: ""}));
+  const back = rows.every(r => r.status === "given");
+  rows.forEach(r => Object.assign(r, {status: "sealed", opened_at: "", sold_price: "", sold_at: "", sold_fees: "", given_to: "", given_at: ""}));
+  if (back){ markDirty("collection"); renderSD(); return toast("Back with you - sealed, with your original price and date.", 4500); }
   markDirty("collection"); renderSD(); toast(`Back to sealed${cards.length ? ` - ${cards.length} card row${cards.length > 1 ? "s" : ""} taken back out of Collection` : ""}.`, 4500);
+}
+function openSDGive(g){
+  const who = [...new Set(SD.rows.map(r => r.given_to).filter(Boolean))];
+  openModal(`<h3>Mark Given: ${esc(g.first.product)}</h3><div class="mut" style="font-size:13px">Still sealed, just not yours now. It leaves your sealed totals and stays under <b>Given Away</b> with what you paid; <b>↩ Back to me</b> returns it any time.</div>
+    <div class="grid">
+      <div><label for="sdgQty">How many</label><input id="sdgQty" type="number" min="1" max="${g.qty}" value="1"></div>
+      <div><label for="sdgDate">Date</label><input id="sdgDate" type="date" value="${todayAZ()}"></div>
+      <div class="full"><label for="sdgWho">Given to</label><input id="sdgWho" list="sdgWhos" placeholder="e.g. Wife" value="${esc(who[0] || "")}"><datalist id="sdgWhos">${who.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
+    </div>
+    <div class="acts"><button class="btn ghost" id="sdgCancel" type="button">Cancel</button><button class="btn" id="sdgOk" type="button">Mark Given</button></div>`);
+  $("#sdgCancel").addEventListener("click", closeModal);
+  $("#sdgOk").addEventListener("click", e => {
+    if (e.currentTarget.disabled) return; e.currentTarget.disabled = true;
+    const n = Math.min(g.qty, Math.max(1, parseInt($("#sdgQty").value) || 1)), to = $("#sdgWho").value.trim();
+    sdTake(g, n, {status: "given", given_to: to, given_at: $("#sdgDate").value || todayAZ()});
+    markDirty("collection"); closeModal(); renderSD(); toast(`Given${to ? " to " + to : ""}: ${n}. Find it under Given Away - ↩ Back to me returns it.`, 5000);
+  });
 }
 function openSDSell(g){
   const sug = g.first.each ?? "";
