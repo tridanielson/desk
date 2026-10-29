@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:49 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 09:24 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3059,7 +3059,7 @@ $("#shRemove").addEventListener("click", e => {
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetIdx >= 0) closeSheet(); });
 
 // ---------------------------------------------------------------- Secret Lair
-const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", data: null, upcoming: [], upSha: null, loading: false, error: "", detail: null, status: "", q: "", sort: "new", limit: 120, editing: false};
+const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", data: null, upcoming: [], upSha: null, loading: false, error: "", detail: null, status: "", q: "", sort: "new", limit: 120, editing: false, openB: new Set(), openG: new Set()};
 const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image"];
 function openSL(key){   // open a drop; remember where the list was so ← All Secret Lairs comes back to the same spot
   if (!SL.detail) SL.listY = window.scrollY;
@@ -3271,7 +3271,7 @@ function renderSLOrders(){
   const name = g => { const l = g.lines[0]; return `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${g.lines.length > 1 ? ` · on ${g.lines.length} orders` : ""}${l.notes && !l.components && g.lines.length === 1 ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`; };
   const acts = (g, t) => g.lines.length > 1 ? groupMarkHTML(g, t) : markHTML(g.lines[0]) + bundleHTML(g.lines[0], t);
   const subRow = g => { const l = g.lines[0];
-    const h = g.lines.length > 1 ? (SL.openG === g.key ? groupListHTML(g) : "") : (SL.openB === l.line_id && l.components && l.components.length ? bundleListHTML(l) : "");
+    const h = g.lines.length > 1 ? (SL.openG.has(g.key) ? groupListHTML(g) : "") : (SL.openB.has(l.line_id) && l.components && l.components.length ? bundleListHTML(l) : "");
     return h ? `<tr class="bdl-tr"><td colspan="9">${h}</td></tr>` : ""; };
   $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
     groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g)).replace(" – ", '<br><span class="mut" style="font-size:12px">to ') + (dates(g).includes(" – ") ? "</span>" : "")}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px;white-space:nowrap" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
@@ -3352,7 +3352,7 @@ function groupMarkHTML(g, noList){   // the same item on several orders: one row
   const live = g.lines.filter(l => !l.dead), open = live.filter(l => !isReceived(l)), undo = live.filter(canUndo);
   return (open.length ? `<span class="btn small" role="button" data-gmark="${esc(g.key)}">Mark all ${open.length === live.length ? "" : open.length + " "}received</span>` : '<span class="badge b-on">ALL RECEIVED</span>')
     + (undo.length ? ` <span class="btn ghost small" role="button" data-gunmark="${esc(g.key)}" title="Take ${undo.length === 1 ? "it" : "them"} back out of Collection">↩ Undo${undo.length > 1 ? " all" : ""}</span>` : "")
-    + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG === g.key ? "▾" : "▸"} ${live.length} orders</span>${SL.openG === g.key && !noList ? groupListHTML(g) : ""}</div>`;
+    + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG.has(g.key) ? "▾" : "▸"} ${live.length} orders</span>${SL.openG.has(g.key) && !noList ? groupListHTML(g) : ""}</div>`;
 }
 // ---- bundles: mark each drop inside as it arrives (they often ship separately). When every drop is in, the bundle goes to Collection.
 const compKey = (l, c) => l.line_id + "::" + c.name;
@@ -3360,7 +3360,7 @@ const compRec = (l, c) => isReceived(l) || COL.rec.some(r => r.line_id === compK
 const compCount = l => (l.components || []).filter(c => compRec(l, c)).length;
 function bundleHTML(l, noList){
   if (!l.components || !l.components.length || READONLY || l.dead) return "";
-  const n = compCount(l), all = l.components.length, open = SL.openB === l.line_id;
+  const n = compCount(l), all = l.components.length, open = SL.openB.has(l.line_id);
   return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops: ${n} of ${all} in</span>${open && !noList ? bundleListHTML(l) : ""}</div>`;
 }
 function bundleListHTML(l){
@@ -3401,7 +3401,7 @@ function markComp(lineId, k, on){
   if (compCount(l) === l.components.length){ toast(`Every drop in ${l.product} is in.`, 4000); COL.rec = COL.rec.filter(r => !r.line_id.startsWith(l.line_id + "::")); COL.rec.push({line_id: l.line_id, qty: String(l.qty), date: todayAZ()}); l.in_collection = true; l.open = false; }
   markDirty("collection"); renderSLOrders();
 }
-document.addEventListener("click", e => { const b = e.target.closest("[data-bopen]"); if (!b) return; e.preventDefault(); e.stopPropagation(); SL.openB = SL.openB === b.dataset.bopen ? "" : b.dataset.bopen; renderSLOrders(); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-bopen]"); if (!b) return; e.preventDefault(); e.stopPropagation(); (SL.openB.has(b.dataset.bopen) ? SL.openB.delete(b.dataset.bopen) : SL.openB.add(b.dataset.bopen)); renderSLOrders(); });
 document.addEventListener("change", e => { const x = e.target.closest("[data-comp]"); if (!x) return; markComp(x.dataset.comp, +x.dataset.ck, x.checked); });
 // Sealed rows for n units of an order line. A bundle becomes one row per drop inside it (cost split by what each drop is worth),
 // so each drop can be opened or sold on its own. comps: only these drops (marking a bundle's drops one by one).
@@ -3469,12 +3469,12 @@ document.addEventListener("click", e => {
   if (b.dataset.unmark) unmarkReceived(b.dataset.unmark);
   else if (b.dataset.gunmark && g) unmarkLines(g.lines);
   else if (b.dataset.gmark && g) markLines(g.lines);
-  else if (b.dataset.gopen){ SL.openG = SL.openG === b.dataset.gopen ? "" : b.dataset.gopen; renderSLOrders(); } });
+  else if (b.dataset.gopen){ SL.openG.has(b.dataset.gopen) ? SL.openG.delete(b.dataset.gopen) : SL.openG.add(b.dataset.gopen); renderSLOrders(); } });
 // ---------------------------------------------------------------- Sealed product (Secret Lairs, booster boxes, packs, decks...)
 // collection/sealed.csv: one row per batch you hold. Opening or selling part of a row splits it, so history stays.
 const SEALED_COLS = ["id", "product", "kind", "set", "finish", "qty", "cost_each", "acquired", "source", "notes", "location", "status", "opened_at", "sold_price", "sold_at", "sold_fees", "ref", "tcg_id", "drop", "account", "order"];
 const SD_KINDS = {secret_lair: "Secret Lair", booster_box: "Booster Box", collector_box: "Collector Booster Box", pack: "Booster Pack", bundle: "Bundle / Fat Pack", deck: "Deck / Precon", box_set: "Box Set / Gift Box", other: "Other"};
-const SD = {rows: [], sha: null, vals: null, cat: null, catLoading: false, loaded: false, q: "", status: "sealed", kind: "", openG: ""};
+const SD = {rows: [], sha: null, vals: null, cat: null, catLoading: false, loaded: false, q: "", status: "sealed", kind: "", openG: new Set()};
 const sdVal = r => ((SD.vals && SD.vals.items) || {})[r.id] || null;
 function sdSLValue(r){   // a Secret Lair you just received has no TCGplayer price until the next run: use what its cards are worth meanwhile
   if (r.kind !== "secret_lair") return null;
@@ -3566,15 +3566,15 @@ function renderSDList(){
   const meta = g => `${esc(sdKindLabel(g.first.kind))}${g.first.finish && g.first.kind === "secret_lair" ? " · " + esc(g.first.finish === "foil" ? "Foil" : "Non-Foil") : ""}${g.items.length > 1 ? ` · ${[...new Set(g.items.map(i => i.cost_each))].length > 1 ? "paid " + g.items.map(i => (i.qty > 1 ? i.qty + "×" : "") + money(i.cost_each)).join(" + ") : g.items.length + " entries"}` : g.first.row.source ? " · " + esc(g.first.row.source) : ""}${g.first.row.location ? " · 📍" + esc(g.first.row.location) : ""}`;
   const acts = g => { const st = g.first.status;
     return (st === "sealed" ? `<span class="btn small" role="button" data-sdopen="${esc(g.key)}" title="You opened it: it leaves your sealed totals (kept in history). A Secret Lair lets you pick which cards go to Collection.">Mark Opened</span> <span class="btn small" role="button" data-sdsell="${esc(g.key)}" title="Record the sale and your profit">Mark Sold</span> <span class="btn ghost small" role="button" data-sdmore="${esc(g.key)}" title="Bought another one? Add it with its own price">+1 More</span> ` : g.items.length === 1 ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(g.first.id)}" title="Back to sealed">↩ Undo</span> ` : "")
-      + (g.items.length > 1 ? `<span class="btn ghost small" role="button" data-sdlist="${esc(g.key)}">${SD.openG === g.key ? "▾" : "▸"} ${g.items.length}</span>` : `<span class="btn ghost small" role="button" data-sdedit="${esc(g.first.id)}">Edit</span>`); };
-  const sub = g => SD.openG === g.key && g.items.length > 1 ? `<tr class="bdl-tr"><td colspan="7"><div class="bdl-list">${g.items.map(i => `<div class="bdl-row"><span>×${i.qty} · ${money(i.cost_each)} each · ${esc(i.row.acquired || "")}${i.row.account ? " · " + esc(acctLabel(i.row.account)) : ""}${i.row.source ? " · " + esc(i.row.source) : ""}${i.row.notes ? ` · <span class="mut">${esc(i.row.notes.slice(0, 60))}</span>` : ""}</span><span style="margin-left:auto">${i.status !== "sealed" ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(i.id)}">↩ Undo</span> ` : ""}<span class="btn ghost small" role="button" data-sdedit="${esc(i.id)}">Edit</span></span></div>`).join("")}</div></td></tr>` : "";
+      + (g.items.length > 1 ? `<span class="btn ghost small" role="button" data-sdlist="${esc(g.key)}">${SD.openG.has(g.key) ? "▾" : "▸"} ${g.items.length}</span>` : `<span class="btn ghost small" role="button" data-sdedit="${esc(g.first.id)}">Edit</span>`); };
+  const sub = g => SD.openG.has(g.key) && g.items.length > 1 ? `<tr class="bdl-tr"><td colspan="7"><div class="bdl-list">${g.items.map(i => `<div class="bdl-row"><span>×${i.qty} · ${money(i.cost_each)} each · ${esc(i.row.acquired || "")}${i.row.account ? " · " + esc(acctLabel(i.row.account)) : ""}${i.row.source ? " · " + esc(i.row.source) : ""}${i.row.notes ? ` · <span class="mut">${esc(i.row.notes.slice(0, 60))}</span>` : ""}</span><span style="margin-left:auto">${i.status !== "sealed" ? `<span class="btn ghost small" role="button" data-sdundoid="${esc(i.id)}">↩ Undo</span> ` : ""}<span class="btn ghost small" role="button" data-sdedit="${esc(i.id)}">Edit</span></span></div>`).join("")}</div></td></tr>` : "";
   $("#sdTable").innerHTML = `<thead><tr><th class="nosort">Product</th><th class="r nosort">Qty</th><th class="r nosort">Paid</th><th class="r nosort">Worth Each</th><th class="r nosort">${SD.status === "sold" ? "Sold Profit" : "Worth"}</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
     (groups.map(g => `<tr><td><div class="cname">${g.first.url ? `<a href="${esc(g.first.url)}" target="_blank" rel="noopener">${esc(g.first.product)}</a>` : esc(g.first.product)}${badge(g)}</div><div class="cset">${meta(g)}</div></td>
       <td class="r">${g.qty}</td><td class="r">${money(g.cost)}</td><td class="r">${g.first.each == null ? "–" : (g.est ? "≈ " : "") + money(g.first.each)}</td>
       <td class="r">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</td><td class="r">${g.first.status === "sold" || g.value == null ? "–" : gainHTML(g.value - g.cost)}</td><td class="mk" style="white-space:nowrap">${acts(g)}</td></tr>${sub(g)}`).join("")
      || `<tr><td colspan="7" class="empty">${SD.rows.length ? "Nothing matches." : "Nothing here yet. + Add Sealed, or mark Secret Lair orders received."}</td></tr>`) + "</tbody>";
   $("#sdTiles").innerHTML = groups.map(g => `<div class="tile"><div class="t-main"><div class="t-name">${esc(g.first.product)}${badge(g)}</div><div class="t-sub">${meta(g)}</div>
-      <div class="t-sub">×${g.qty} · paid ${money(g.cost)}</div><div class="t-chips mk">${acts(g)}</div>${SD.openG === g.key ? sub(g).replace(/<\/?(tr|td)[^>]*>/g, "") : ""}</div>
+      <div class="t-sub">×${g.qty} · paid ${money(g.cost)}</div><div class="t-chips mk">${acts(g)}</div>${SD.openG.has(g.key) ? sub(g).replace(/<\/?(tr|td)[^>]*>/g, "") : ""}</div>
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
 }
 document.addEventListener("click", e => {
@@ -3583,7 +3583,7 @@ document.addEventListener("click", e => {
   if (b.dataset.sdundoid){ const r = SD.rows.find(x => x.id === b.dataset.sdundoid); if (r) sdUndo([r]); return; }
   if (b.dataset.sdedit) openSDEdit(b.dataset.sdedit);
   else if (g && b.dataset.sdmore){ const f = g.first.row; openSDEdit(null, {product: f.product, kind: f.kind, finish: f.finish, set: f.set, tcg_id: f.tcg_id, drop: f.drop}); }
-  else if (b.dataset.sdlist){ SD.openG = SD.openG === b.dataset.sdlist ? "" : b.dataset.sdlist; renderSDList(); }
+  else if (b.dataset.sdlist){ SD.openG.has(b.dataset.sdlist) ? SD.openG.delete(b.dataset.sdlist) : SD.openG.add(b.dataset.sdlist); renderSDList(); }
   else if (g && b.dataset.sdopen) openSDOpen(g);
   else if (g && b.dataset.sdsell) openSDSell(g);
 
