@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:29 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:34 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3677,6 +3677,13 @@ function sdSuggest(q){
   const cat = (SD.cat || []).filter(c => hit(c.n + " " + c.g)).slice(0, 25).map(c => ({label: c.n, kind: c.sl ? "secret_lair" : sdGuessKind(c.n + " " + c.g), tcg: c.id, group: c.g, finish: /\bfoil\b/i.test(c.n) && !/non-?foil/i.test(c.n) ? "foil" : "nonfoil"}));
   return sl.concat(cat).slice(0, 30);
 }
+// Wizards' retail price for a Secret Lair: the store price for that finish, else what the line cost on one of your orders
+function sdMSRP(product, finish, drop){
+  const d = drop && ((SL.data && SL.data.drops) || []).find(x => x.key === drop), foil = finish === "foil";
+  const v = d ? (foil ? d.retail_foil : d.retail_nonfoil) : null; if (v) return v;
+  const pn = (product || "").toLowerCase(), ln = SL.orders && SL.orders.lines.find(l => l.product.toLowerCase() === pn && l.price > 0);
+  return ln ? ln.price : null;
+}
 function openSDEdit(id, pre){
   const r = id ? SD.rows.find(x => x.id === id) : Object.assign({id: "", product: "", kind: "booster_box", set: "", finish: "nonfoil", qty: "1", cost_each: "", acquired: todayAZ(), source: "", notes: "", location: "", status: "sealed", ref: "", tcg_id: "", drop: "", account: "", order: ""}, pre || {});
   if (!r) return;
@@ -3688,7 +3695,7 @@ function openSDEdit(id, pre){
       <div><label for="sdeKind">Kind</label><select id="sdeKind">${Object.entries(SD_KINDS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></div>
       <div><label for="sdeFin">Finish</label><select id="sdeFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select></div>
       <div><label for="sdeQty">Quantity</label><input id="sdeQty" type="number" min="1" value="${esc(r.qty)}"></div>
-      <div><label for="sdeCost">Paid each ($)</label><input id="sdeCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
+      <div><label for="sdeCost">Paid each ($) <span class="btn ghost small" role="button" id="sdeMsrp" hidden title="Fill in Wizards' retail price - e.g. a friend bought it for you at MSRP"></span></label><input id="sdeCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="sdeAcq">Acquired</label><input id="sdeAcq" type="date" value="${esc(r.acquired)}"></div>
       <div><label for="sdeSrc">Where From</label><input id="sdeSrc" value="${esc(r.source)}" list="sdeSrcs" placeholder="e.g. eBay, LGS, Wizards"><datalist id="sdeSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div><label for="sdeLoc">Storage location (optional)</label><input id="sdeLoc" value="${esc(r.location)}"></div>
@@ -3697,7 +3704,11 @@ function openSDEdit(id, pre){
     <div class="acts">${id && !r.ref ? '<button class="btn ghost" id="sdeDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="sdeCancel" type="button">Cancel</button>${id ? "" : '<button class="btn ghost" id="sdeMore" type="button" title="Save this and keep the form open for the next one">Add &amp; Add Another</button>'}<button class="btn" id="sdeOk" type="button">${id ? "Save" : "Add"}</button></div>`);
   $("#sdeKind").value = SD_KINDS[r.kind] ? r.kind : "other"; $("#sdeFin").value = r.finish === "foil" ? "foil" : "nonfoil";
   const pick = {tcg: r.tcg_id || "", drop: r.drop || ""};
-  const hint = () => $("#sdeHint").textContent = pick.drop ? "Linked to the Secret Lair drop - Open will show its cards." : pick.tcg ? "Linked to TCGplayer - priced every morning." : "";
+  const msrp = () => { const v = $("#sdeKind").value === "secret_lair" ? sdMSRP($("#sdeName").value.trim(), $("#sdeFin").value, pick.drop) : null, b = $("#sdeMsrp");
+    b.hidden = !v; if (v){ b.textContent = "MSRP " + money(v); b.dataset.v = v; } };
+  const hint = () => { $("#sdeHint").textContent = pick.drop ? "Linked to the Secret Lair drop - Mark Opened will show its cards." : pick.tcg ? "Linked to TCGplayer - priced every morning." : ""; msrp(); };
+  $("#sdeMsrp").addEventListener("click", e => { e.preventDefault(); $("#sdeCost").value = (+$("#sdeMsrp").dataset.v).toFixed(2); if (!$("#sdeSrc").value.trim()) $("#sdeSrc").value = "Friend (Wizards, MSRP)"; });
+  ["#sdeKind", "#sdeFin"].forEach(x => $(x).addEventListener("input", msrp));
   hint();
   if (!r.ref){
     if (!SL.data && typeof loadSL === "function") loadSL();
