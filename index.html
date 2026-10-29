@@ -180,6 +180,9 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(--muted) 60%,transparent);text-underline-offset:3px}
 .tiles{display:none}
 .phone-only{display:none}
+#cardPeek{position:fixed;z-index:80;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:8px 10px;pointer-events:none}
+#cardPeek .peek-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:6px}#cardPeek img{width:100%;border-radius:4px;display:block}
+.peek-btn{padding:1px 6px;margin-left:4px}@media (hover:hover){.peek-btn{display:none}}
 .bdl{margin-top:6px}.bdl-list{display:grid;gap:2px;margin-top:6px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);min-width:220px;text-align:left}
 .bdl-row{display:flex;gap:8px;align-items:center;font-size:13px;padding:3px 0;cursor:pointer}.bdl-row.on span:first-of-type{color:var(--up, #1f7a3a)}
 .mk-strip{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0}
@@ -383,7 +386,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:41 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:47 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3039,6 +3042,10 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetIdx >
 // ---------------------------------------------------------------- Secret Lair
 const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", data: null, upcoming: [], upSha: null, loading: false, error: "", detail: null, status: "", q: "", sort: "new", limit: 120, editing: false};
 const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image"];
+function openSL(key){   // open a drop; remember where the list was so ← All Secret Lairs comes back to the same spot
+  if (!SL.detail) SL.listY = window.scrollY;
+  SL.detail = key; renderSL(); window.scrollTo(0, 0);
+}
 const sfImg = (sid, size) => sid ? `https://cards.scryfall.io/${size || "large"}/front/${sid[0]}/${sid[1]}/${sid}.${size === "png" ? "png" : "jpg"}` : "";
 const azFmt = (v, o) => v ? new Date(v).toLocaleString("en-US", Object.assign({timeZone: "America/Phoenix"}, o)) : "";
 function slDate(d, withYear){
@@ -3094,7 +3101,7 @@ function renderSL(){
       <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="slMore" hidden>Show More</button></div></div>`;
   box.innerHTML = L;
   $("#slStatus").value = SL.status; $("#slSort").value = SL.sort;
-  box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", () => { SL.detail = el.dataset.sl; renderSL(); window.scrollTo(0, 0); }));
+  box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", () => { openSL(el.dataset.sl); }));
   $("#slEditBtn").addEventListener("click", () => { SL.editing = !SL.editing; renderSL(); });
   $("#slQ").addEventListener("input", e => { SL.q = e.target.value; SL.limit = 120; renderSLList(); });
   $("#slStatus").addEventListener("input", e => { SL.status = e.target.value; SL.limit = 120; renderSLList(); });
@@ -3135,7 +3142,7 @@ function renderSLList(){
       <div class="t-main"><div class="t-name">${esc(d.name)}</div><div class="t-sub">${esc(slDate(d, true))} · ${d.n_cards || 0} cards</div><div class="t-chips">${slStatusBadge(d)}</div></div>
       <div class="t-right"><div class="t-price">${money(d.value_nonfoil)}</div><div class="t-sub">foil ${money(d.value_foil)}</div></div></button>`; }).join("") || '<p class="empty">No drops match.</p>';
   if (!show.length) $("#slTable").innerHTML = '<tr><td class="empty">No drops match.</td></tr>';
-  document.querySelectorAll("#slTable [data-sl], #slTiles [data-sl]").forEach(el => el.addEventListener("click", () => { SL.detail = el.dataset.sl; renderSL(); window.scrollTo(0, 0); }));
+  document.querySelectorAll("#slTable [data-sl], #slTiles [data-sl]").forEach(el => el.addEventListener("click", () => { openSL(el.dataset.sl); }));
   $("#slMore").hidden = rows.length <= SL.limit;
 }
 function renderSLDetail(){
@@ -3174,8 +3181,8 @@ function renderSLDetail(){
     if (imgs.length) L += `<div class="sl-store-imgs">${imgs.map(u => `<img src="${esc(u)}" data-full="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`).join("")}</div>`;
   }
   box.innerHTML = L;
-  $("#slBack").addEventListener("click", () => { SL.detail = null; renderSL(); });
-  box.querySelectorAll("[data-bdrop]").forEach(r => r.addEventListener("click", () => { if (r.dataset.bdrop){ SL.detail = r.dataset.bdrop; renderSL(); window.scrollTo(0, 0); } }));
+  $("#slBack").addEventListener("click", () => { SL.detail = null; renderSL(); const y = SL.listY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); });
+  box.querySelectorAll("[data-bdrop]").forEach(r => r.addEventListener("click", () => { if (r.dataset.bdrop){ openSL(r.dataset.bdrop); } }));
   box.querySelectorAll("img[data-full]").forEach(img => img.addEventListener("click", () => { $("#lightboxImg").src = img.dataset.full; $("#lightbox").classList.add("on"); }));
 }
 $("#lightbox").addEventListener("click", () => { $("#lightbox").classList.remove("on"); $("#lightboxImg").src = ""; });
@@ -3244,7 +3251,7 @@ function renderSLOrders(){
   $("#oTiles").innerHTML = groups.map(g => { const l = g.lines[0], v = gval(g); return `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
       <div class="t-sub">${esc(dates(g))} · ${esc(l.finish)} · ×${sum(g, "qty")} · ${accts(g).map(esc).join(", ")}${g.lines.length > 1 ? ` · ${g.lines.length} orders` : ""}</div><div class="t-sub">${st(g)}</div><div class="t-chips mk">${acts(g)}</div></div>
       <div class="t-right"><div class="t-price">${v == null ? "–" : (g.lines.some(x => x.approx) ? "≈ " : "") + money(v)}</div><div class="t-sub">cost ${money(sum(g, "cost"))}</div>${v == null ? "" : `<div style="font-size:12px">${gainHTML(v - sum(g, "cost"))}</div>`}</div></div>`; }).join("") || '<p class="empty">No lines match.</p>';
-  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, .mk, [data-mark], [data-unmark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
+  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, .mk, [data-mark], [data-unmark]")) return; if (el.dataset.odrop){ openSL(el.dataset.odrop); } }));
   document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark); }));
 }
 function wireSLOrders(){
@@ -3320,8 +3327,31 @@ function bundleHTML(l){
   const n = compCount(l), all = l.components.length, open = SL.openB === l.line_id;
   return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops inside · ${n} of ${all} received</span>${open ? `<div class="bdl-list">${l.components.map((c, k) => {
     const on = compRec(l, c), r = COL.rec.find(x => x.line_id === compKey(l, c));
-    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span>${esc(c.name)}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>` : ""}</div>`;
+    return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span data-hcards="${esc(c.drop || "")}">${esc(c.name)}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>` : ""}</div>`;
 }
+// hover a drop inside a bundle (or tap 🃏 on a phone) to see its cards
+function peekHTML(key){
+  const d = ((SL.data && SL.data.drops) || []).find(x => x.key === key); if (!d) return "";
+  const cards = d.cards.slice(0, 10);
+  return `<b>${esc(d.name)}</b>${cards.length ? `<div class="peek-cards">${cards.map(c => `<img src="${esc(sfImg(c.sid, "small"))}" alt="${esc(c.n)}" title="${esc(c.n)}" loading="lazy">`).join("")}</div>${d.cards.length > 10 ? `<div class="mut" style="font-size:11px">+${d.cards.length - 10} more</div>` : ""}` : '<div class="mut" style="font-size:12px">Card list not published yet.</div>'}`;
+}
+function showPeek(key, x, y){
+  let p = $("#cardPeek"); if (!p){ p = document.createElement("div"); p.id = "cardPeek"; document.body.appendChild(p); }
+  const h = peekHTML(key); if (!h){ p.hidden = true; return; }
+  p.innerHTML = h; p.hidden = false; p.dataset.key = key; p.dataset.y = window.scrollY;
+  const w = Math.min(420, window.innerWidth - 16); p.style.width = w + "px";
+  p.style.left = Math.max(8, Math.min(x + 14, window.innerWidth - w - 8)) + "px";
+  const ph = p.offsetHeight; p.style.top = (y + 16 + ph > window.innerHeight ? Math.max(8, y - ph - 12) : y + 16) + "px";
+}
+const hidePeek = () => { const p = $("#cardPeek"); if (p) p.hidden = true; };
+document.addEventListener("mouseover", e => { const t = e.target.closest("[data-hcards]"); if (t && t.dataset.hcards && matchMedia("(hover: hover)").matches) showPeek(t.dataset.hcards, e.clientX, e.clientY); });
+document.addEventListener("mouseout", e => { if (e.target.closest("[data-hcards]") && !(e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest("[data-hcards]"))) hidePeek(); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-peek]");
+  if (!b){ if (!e.target.closest("#cardPeek")) hidePeek(); return; }
+  e.preventDefault(); e.stopPropagation(); const p = $("#cardPeek");
+  if (p && !p.hidden && p.dataset.key === b.dataset.peek) return hidePeek();
+  const r = b.getBoundingClientRect(); showPeek(b.dataset.peek, Math.max(8, r.left - 200), r.bottom); }, true);
+window.addEventListener("scroll", () => { const p = $("#cardPeek"); if (p && !p.hidden && Math.abs(window.scrollY - (+p.dataset.y || 0)) > 60) hidePeek(); }, {passive: true});
 function markComp(lineId, k, on){
   const l = SL.orders.lines.find(x => x.line_id === lineId); if (!l || !l.components || !l.components[k] || isReceived(l)) return;
   const c = l.components[k], key = compKey(l, c);
