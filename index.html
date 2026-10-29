@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:20 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:23 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -1479,8 +1479,8 @@ function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "�
 // auctions: the scan stores hours left when found ("3.2h"); work out the real end time
 const isAuction = d => /^auction/i.test(d.type || "");
 const takesOffers = d => /best offer/i.test(d.type || "");
-const typeText = d => isAuction(d) ? (d.type || "") : "Buy It Now";
-const offerHTML = d => isAuction(d) ? "" : takesOffers(d) ? ` <span class="flag buy" title="The seller accepts offers - you can try for less than the listed price">🤝 Make Offer</span>` : ` <span class="flag" title="Fixed price - this seller doesn't take offers">No Offers</span>`;
+const typeText = d => /^auction w\/ buy it now/i.test(d.type || "") ? "Auction w/ Buy It Now" : isAuction(d) ? (d.type || "") : "Buy It Now";
+const offerHTML = d => isAuction(d) && !/buy it now/i.test(d.type || "") ? "" : takesOffers(d) ? ` <span class="flag buy" title="The seller accepts offers - you can try for less than the listed price">🤝 Make Offer</span>` : ` <span class="flag" title="Fixed price - this seller doesn't take offers">No Offers</span>`;
 function endAt(d){
   if (!isAuction(d)) return null; if (d._end !== undefined) return d._end;
   const x = d.ends_at ? Date.parse(d.ends_at) : NaN; if (!isNaN(x)) return d._end = x;   // eBay's exact end time (newer scans)
@@ -1536,8 +1536,9 @@ function dealExtraOK(d){
   if (lg === "foreign" && !langOf(d)) return false;
   const ty = $("#dType") ? $("#dType").value : "";
   if (ty === "auction" && (!isAuction(d) || endsText(d) === "ended")) return false;
-  if (ty === "bin" && isAuction(d)) return false;
-  if (ty === "offer" && (isAuction(d) || !takesOffers(d))) return false;
+  const buyNow = !isAuction(d) || /buy it now/i.test(d.type || "");   // an auction w/ Buy It Now can be bought now too
+  if (ty === "bin" && !buyNow) return false;
+  if (ty === "offer" && (!buyNow || !takesOffers(d))) return false;
   if (ty === "sniped" && !snipeOf(d)) return false;
   const st = $("#dSet") ? pickedSets() : []; if (st.length && !st.includes(setOf(d))) return false;
   if ($("#dPref").checked && !prefOK(d)) return false;
@@ -2186,7 +2187,7 @@ const GONE = {rows: {}, sha: null, loaded: false};
 function loadGONE(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) GONE.rows[r.item_id] = r; }); }catch(e){} GONE.sha = x ? x.sha : null; GONE.loaded = true; applyGone(); }
 function applyGone(){ S.deals.forEach(d => { if (GONE.rows[itemId(d)] && d.status !== "ended"){ d._preGone = d.status || "live"; d.status = "ended"; d._gone = true; } else if (GONE.rows[itemId(d)]) d._gone = true; }); }
 function goneBtnHTML(d, tile){
-  if (READONLY || !GONE.loaded || isAuction(d)) return "";
+  if (READONLY || !GONE.loaded || (isAuction(d) && !/buy it now/i.test(d.type || ""))) return "";
   const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
   if (d._gone) return ` <${tag} class="btn ghost small" data-gone="undo" data-u="${esc(d.url)}" title="You marked this sold / gone - tap if it's actually still for sale">↩ Not Sold</${end}>`;
   if (d.status === "ended") return "";
@@ -3814,7 +3815,7 @@ function isMustBuy(d){
   const A = S.ini.alerts || {}, save = (+d.fair || 0) - (+d.total || 0), pct = +d.discount_pct || 0;
   if (d.ai_verdict === "reject" || d.hidden) return false;
   if (save < (+A.must_buy_saving || 30) || pct < (+A.must_buy_pct || 35)) return false;
-  if (/auction/i.test(d.type || "")){ const m = String(d.ends_in || "").match(/([\d.]+)\s*([dhm])/); const left = m ? +m[1] * ({d: 1440, h: 60, m: 1})[m[2]] : null;
+  if (/current bid/i.test(d.type || "")){ const m = String(d.ends_in || "").match(/([\d.]+)\s*([dhm])/); const left = m ? +m[1] * ({d: 1440, h: 60, m: 1})[m[2]] : null;
     if (left == null || left > (+A.must_buy_auction_minutes || 60)) return false; }
   const set = ((d.card || "").match(/\[([A-Z0-9]+)\]\s*$/) || [])[1] || "";
   if ((LOOKALIKE_SETS.includes(set) || d.reprint) && !(d.ai_verdict === "ok" && d.ai_edition === "matches")) return false;
