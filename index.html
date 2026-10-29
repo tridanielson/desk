@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:03 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:07 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3218,7 +3218,7 @@ function renderSLOrders(){
   $("#oTiles").innerHTML = rows.map(l => `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
       <div class="t-sub">${esc(l.date || "")} · ${esc(l.finish)} · ×${l.qty} · ${esc(String(l.account).split("@")[0])}</div><div class="t-sub">${st(l)}</div><div class="t-chips mk">${markHTML(l)}</div>${bundleHTML(l)}</div>
       <div class="t-right"><div class="t-price">${l.value == null ? "–" : (l.approx ? "≈ " : "") + money(l.value)}</div><div class="t-sub">cost ${money(l.cost)}</div>${l.value == null ? "" : `<div style="font-size:12px">${gainHTML(l.value - l.cost)}</div>`}</div></div>`).join("") || '<p class="empty">No lines match.</p>';
-  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, [data-mark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
+  document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, [data-mark], [data-unmark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
   document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark, el.dataset.scope, el); }));
 }
 function wireSLOrders(){
@@ -3271,7 +3271,8 @@ async function loadCOL(force){
 const isReceived = l => !!(l.in_collection || COL.rec.some(r => r.line_id === l.line_id));
 function markHTML(l){
   if (READONLY || l.dead || !l.line_id) return "";
-  if (isReceived(l)) return '<span class="badge b-on">IN COLLECTION</span>';
+  if (isReceived(l)) return '<span class="badge b-on">IN COLLECTION</span>' + (COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id))
+    ? ` <span class="btn ghost small" role="button" data-unmark="${esc(l.line_id)}" title="Not received after all - take it back out of Collection">↩ Undo</span>` : "");
   if (!COL.loaded) return COL.error ? "" : '<span class="mut" style="font-size:12px">…</span>';
   const orderOpen = SL.orders.lines.filter(x => x.account === l.account && x.order === l.order && !x.dead && !isReceived(x)).length;
   return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}" data-scope="line">Mark this received</span>` +
@@ -3321,6 +3322,15 @@ function markReceived(lineId, scope, el){
   const u = $("#recUndo"); if (u) u.addEventListener("click", e => { e.preventDefault(); undoReceived(); });
   renderSLOrders();
 }
+function unmarkReceived(lineId){   // the ↩ next to IN COLLECTION: back to not received, and out of Collection
+  const l = SL.orders.lines.find(x => x.line_id === lineId); if (!l) return;
+  const sold = COL.inv.filter(r => r.ref === lineId).some(r => COL.sales.some(s_ => s_.item_id === r.id));
+  if (sold) return toast("Some of these are recorded as sold in Collection - remove the sale there first.", 6000);
+  COL.rec = COL.rec.filter(r => r.line_id !== lineId); COL.inv = COL.inv.filter(r => r.ref !== lineId);
+  l.in_collection = false; l.open = !l.received;
+  markDirty("collection"); toast(`${l.product.slice(0, 50)} - back to not received.`, 4000); renderSLOrders();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-unmark]"); if (!b) return; e.preventDefault(); e.stopPropagation(); unmarkReceived(b.dataset.unmark); });
 function undoReceived(){
   if (!REC_UNDO.lines.length) return;
   COL.rec = COL.rec.filter(r => !REC_UNDO.rec.includes(r)); COL.inv = COL.inv.filter(r => !REC_UNDO.inv.includes(r));
