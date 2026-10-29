@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 04:42 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:03 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3219,7 +3219,7 @@ function renderSLOrders(){
       <div class="t-sub">${esc(l.date || "")} · ${esc(l.finish)} · ×${l.qty} · ${esc(String(l.account).split("@")[0])}</div><div class="t-sub">${st(l)}</div><div class="t-chips mk">${markHTML(l)}</div>${bundleHTML(l)}</div>
       <div class="t-right"><div class="t-price">${l.value == null ? "–" : (l.approx ? "≈ " : "") + money(l.value)}</div><div class="t-sub">cost ${money(l.cost)}</div>${l.value == null ? "" : `<div style="font-size:12px">${gainHTML(l.value - l.cost)}</div>`}</div></div>`).join("") || '<p class="empty">No lines match.</p>';
   document.querySelectorAll("[data-odrop]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".bdl, [data-mark]")) return; if (el.dataset.odrop){ SL.detail = el.dataset.odrop; renderSL(); window.scrollTo(0, 0); } }));
-  document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark, el.dataset.scope); }));
+  document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark, el.dataset.scope, el); }));
 }
 function wireSLOrders(){
   $("#slOrdersToggle").addEventListener("click", () => { SL.ordersOpen = !SL.ordersOpen; renderSL(); });
@@ -3274,8 +3274,8 @@ function markHTML(l){
   if (isReceived(l)) return '<span class="badge b-on">IN COLLECTION</span>';
   if (!COL.loaded) return COL.error ? "" : '<span class="mut" style="font-size:12px">…</span>';
   const orderOpen = SL.orders.lines.filter(x => x.account === l.account && x.order === l.order && !x.dead && !isReceived(x)).length;
-  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}" data-scope="line">Mark received</span>` +
-    (orderOpen > 1 ? `<br><span class="btn ghost small" role="button" data-mark="${esc(l.line_id)}" data-scope="order" title="Mark all ${orderOpen} unreceived lines in this order">All ${orderOpen} in order</span>` : "");
+  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}" data-scope="line">Mark this received</span>` +
+    (orderOpen > 1 ? `<br><span class="btn ghost small" role="button" data-mark="${esc(l.line_id)}" data-scope="order" title="Marks every unreceived line in order ${esc(l.order)} - asks you to tap again">Whole order (${orderOpen} lines)…</span>` : "");
 }
 // ---- bundles: mark each drop inside as it arrives (they often ship separately). When every drop is in, the bundle goes to Collection.
 const compKey = (l, c) => l.line_id + "::" + c.name;
@@ -3299,10 +3299,14 @@ function markComp(lineId, k, on){
 document.addEventListener("click", e => { const b = e.target.closest("[data-bopen]"); if (!b) return; e.preventDefault(); e.stopPropagation(); SL.openB = SL.openB === b.dataset.bopen ? "" : b.dataset.bopen; renderSLOrders(); });
 document.addEventListener("click", e => { if (e.target.closest(".bdl-list")) e.stopPropagation(); }, true);
 document.addEventListener("change", e => { const x = e.target.closest("[data-comp]"); if (!x) return; markComp(x.dataset.comp, +x.dataset.ck, x.checked); });
-function markReceived(lineId, scope){
+const REC_UNDO = {rec: [], inv: [], lines: []};
+function markReceived(lineId, scope, el){
   const base = SL.orders.lines.find(x => x.line_id === lineId); if (!base) return;
   const lines = scope === "order" ? SL.orders.lines.filter(x => x.account === base.account && x.order === base.order && !x.dead && !isReceived(x)) : [base];
-  const day = todayAZ();
+  if (scope === "order" && el && !el.dataset.sure){   // the whole order is a big step - tap twice
+    el.dataset.sure = "1"; el.textContent = `Tap again: mark all ${lines.length} lines in order ${base.order}`; el.classList.remove("ghost");
+    setTimeout(() => { if (el.isConnected){ delete el.dataset.sure; el.textContent = `Whole order (${lines.length} lines)…`; el.classList.add("ghost"); } }, 5000); return; }
+  const day = todayAZ(), rec0 = COL.rec.length, inv0 = COL.inv.length;
   for (const l of lines){
     COL.rec.push({line_id: l.line_id, qty: String(l.qty), date: day});
     const fin = /foil/i.test(l.finish) && !/non/i.test(l.finish) ? "foil" : "nonfoil";
@@ -3311,9 +3315,18 @@ function markReceived(lineId, scope){
       notes: `${l.account} · order ${l.order}`, scryfall_id: "", kind: "secret_lair", ref: l.line_id});
     l.in_collection = true; l.open = false;
   }
+  REC_UNDO.rec = COL.rec.slice(rec0); REC_UNDO.inv = COL.inv.slice(inv0); REC_UNDO.lines = lines;
   markDirty("collection");
-  toast(`${lines.length} line${lines.length > 1 ? "s" : ""} marked received and added to Collection. Saved automatically.`, 5000);
+  toastHTML(`${lines.length === 1 ? esc(base.product.slice(0, 50)) : lines.length + " lines"} marked received and added to Collection. <a href="#" id="recUndo">Undo</a>`, 9000);
+  const u = $("#recUndo"); if (u) u.addEventListener("click", e => { e.preventDefault(); undoReceived(); });
   renderSLOrders();
+}
+function undoReceived(){
+  if (!REC_UNDO.lines.length) return;
+  COL.rec = COL.rec.filter(r => !REC_UNDO.rec.includes(r)); COL.inv = COL.inv.filter(r => !REC_UNDO.inv.includes(r));
+  REC_UNDO.lines.forEach(l => { l.in_collection = false; l.open = !l.received; });
+  const n = REC_UNDO.lines.length; REC_UNDO.lines = []; REC_UNDO.rec = []; REC_UNDO.inv = [];
+  markDirty("collection"); toast(`Undone - ${n} line${n > 1 ? "s" : ""} back to not received.`, 4000); renderSLOrders();
 }
 // ---- live numbers: quantities from your files right now, values from the last run
 function colItems(){
