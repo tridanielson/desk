@@ -2117,6 +2117,7 @@ async function autoUpdateServer(){   // quiet: the page updates the Apps Script 
     }
     SRV.updating = false; SRV.autoFailed = false; SRV.st = await rawServer("codeStatus", AUTH.token).catch(() => SRV.st); renderServerCode();
     LIVE.off = false;   // new server features (like live deals) can start now
+    if (!store.get("pd_relabel1")) relabelSniper();
   }catch(e){ SRV.updating = false; SRV.autoFailed = e.message || "failed"; renderServerCode(); checkServerCode(); }
 }
 // ---------------------------------------------------------------- ID & Fake Guide (education tab)
