@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:36 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:41 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -787,7 +787,7 @@ const HINTS = {
   "Price + Ship": "What you'd actually pay: the listing price plus shipping (shown underneath when it's known). eBay's page shows the price alone. If shipping is calculated at checkout, $5 is assumed (Settings).",
   "Condition": "Pick a different condition if the photos disagree - Fair value and % off recalculate and it's saved. From the seller's condition field or the title. '?' = not stated, assumed MP. Damage words (crease, bent...) count as Damaged. Graded slabs show the grade.",
   "Fair Value": "What this copy is worth: Near Mint market price × the condition value from Settings (NM 100%, LP 85%, MP 70%, HP 50%, DMG 35%). Cards with several printings in a set use the cheapest one.",
-  "Type / Ends": "Buy It Now (🤝 Make Offer = the seller takes offers; No Offers = fixed price) or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
+  "Type / Ends": "Buy It Now (🤝 Make Offer = the seller takes offers) or an auction (current bid). Auctions show time left, counting down; red = under an hour. Sort here for ending soonest.",
   "Listing": "The eBay listing title - tap to open it on eBay.",
   "Rate": "Tell the scanner how it did: 👍 good deal, 👎 bad deal (pick why), 💬 add a comment. Comments become rules on the next scan.",
   "Have": "Copies you still have (bought minus sold).", "Paid Each": "What you paid per copy.",
@@ -1480,7 +1480,7 @@ function snipeBtnHTML(d, tile){   // "Snipe ≤ $X", or once you've set one: "�
 const isAuction = d => /^auction/i.test(d.type || "");
 const takesOffers = d => /best offer|make offer/i.test(d.type || "");
 const typeText = d => /^auction w\/ buy it now/i.test(d.type || "") ? "Auction w/ Buy It Now" : isAuction(d) ? String(d.type || "").replace(/ \/ make offer$/i, "") : "Buy It Now";
-const offerHTML = d => isAuction(d) && !/buy it now|make offer/i.test(d.type || "") ? "" : takesOffers(d) ? ` <span class="flag buy" title="The seller accepts offers - you can try for less than the listed price">🤝 Make Offer</span>` : ` <span class="flag" title="Fixed price - this seller doesn't take offers">No Offers</span>`;
+const offerHTML = d => isAuction(d) && !/buy it now|make offer/i.test(d.type || "") ? "" : takesOffers(d) ? ` <span class="flag buy" title="The seller accepts offers - you can try for less than the listed price">🤝 Make Offer</span>` : "";
 function endAt(d){
   if (!isAuction(d)) return null; if (d._end !== undefined) return d._end;
   const x = d.ends_at ? Date.parse(d.ends_at) : NaN; if (!isNaN(x)) return d._end = x;   // eBay's exact end time (newer scans)
