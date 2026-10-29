@@ -157,7 +157,11 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .preview div{display:flex;justify-content:space-between}
 .preview .tot{font-weight:700;border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
 .mk{white-space:nowrap}
-#oTable td.mk{width:1%}
+#oTable td.mk{width:1%;white-space:normal;min-width:140px}
+#oTable td .cname{min-width:180px;max-width:320px}
+#oWrap{overflow-x:auto!important}
+#oTable .mk .btn{white-space:nowrap}
+#oTable .bdl-list{min-width:0;max-width:340px}
 #oTable td:nth-child(3){max-width:120px;overflow-wrap:anywhere}
 #oTable .mk .btn{display:inline-block;line-height:1.3}
 .mk .btn{margin:2px 0}
@@ -386,7 +390,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:57 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 06:05 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3208,7 +3212,7 @@ function slOrdersHTML(){
     L += `<div class="row" style="margin-top:12px"><select id="oAcct"><option value="">All Accounts</option>${O.accounts.map(a => `<option>${esc(a.account)}</option>`).join("")}</select>
       <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Not Marked Received</option><option value="__rec">Received (incl. bundles partly in)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
       <input id="oQ" placeholder="Search products…" style="flex:1;min-width:160px" value="${esc(SL.oQ)}"><span class="status" id="oCount"></span></div>
-      <div class="scroll" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
+      <div class="scroll" id="oWrap" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
   }
   return L + "</div>";
 }
@@ -3218,6 +3222,8 @@ function slOrderRows(){
     (!q || l.product.toLowerCase().includes(q) || (l.components || []).some(c => c.name.toLowerCase().includes(q))))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
+// short, unique account names: gmail addresses by name (tridanielson), others by their domain (havothcards)
+const acctLabel = a => { const [n, d] = String(a || "").toLowerCase().split("@"); return !d || /^(gmail|googlemail|yahoo|outlook|hotmail|icloud|aol)\./.test(d) ? n : d.split(".")[0]; };
 function slGroups(rows){   // the same item (and finish) on several orders -> one row; bundles stay one row each (their drops are inside)
   const out = [], by = {};
   for (const l of rows){
@@ -3241,12 +3247,12 @@ function renderSLOrders(){
       : esc(l.status) + (l.open && l.days_waiting != null ? ` <span class="mut">· ${l.days_waiting}d</span>` : "")) + (l.tracking ? `<div class="mut" style="font-size:12px">${esc(l.tracking)}</div>` : "");
   const st = g => { if (g.lines.length === 1) return st1(g.lines[0]); const n = g.lines.filter(isReceived).length;
     return n === g.lines.length ? '<b class="up">All received</b>' : (n ? `<b>${n} of ${g.lines.length} received</b><br>` : "") + esc([...new Set(g.lines.filter(l => !isReceived(l)).map(l => l.status))].join(", ")); };
-  const accts = g => [...new Set(g.lines.map(l => String(l.account).split("@")[0]))];
+  const accts = g => [...new Set(g.lines.map(l => acctLabel(l.account)))];
   const dates = g => { const d = g.lines.map(l => l.date || "").filter(Boolean).sort(); return d.length ? (d[0] === d[d.length - 1] ? d[0] : d[0] + " – " + d[d.length - 1]) : ""; };
   const name = g => { const l = g.lines[0]; return `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${g.lines.length > 1 ? ` · on ${g.lines.length} orders` : ""}${l.notes && !l.components && g.lines.length === 1 ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`; };
   const acts = g => g.lines.length > 1 ? groupMarkHTML(g) : markHTML(g.lines[0]) + bundleHTML(g.lines[0]);
   $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
-    groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g))}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px;white-space:nowrap" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
+    groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g)).replace(" – ", '<br><span class="mut" style="font-size:12px">to ') + (dates(g).includes(" – ") ? "</span>" : "")}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px;white-space:nowrap" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
       <td class="r">${sum(g, "qty")}</td><td class="r">${money(sum(g, "cost"))}</td><td class="r">${valCell(g)}</td><td class="r">${v == null ? "–" : gainHTML(v - sum(g, "cost"))}</td><td>${st(g)}</td><td class="mk">${acts(g)}</td></tr>`; }).join("") + "</tbody>";
   $("#oTiles").innerHTML = groups.map(g => { const l = g.lines[0], v = gval(g); return `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
       <div class="t-sub">${esc(dates(g))} · ${esc(l.finish)} · ×${sum(g, "qty")} · ${accts(g).map(esc).join(", ")}${g.lines.length > 1 ? ` · ${g.lines.length} orders` : ""}</div><div class="t-sub">${st(g)}</div><div class="t-chips mk">${acts(g)}</div></div>
@@ -3307,7 +3313,7 @@ function markHTML(l){
   if (isReceived(l)) return '<span class="badge b-on">IN COLLECTION</span>' + (COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id))
     ? ` <span class="btn ghost small" role="button" data-unmark="${esc(l.line_id)}" title="Not received after all - take it back out of Collection">↩ Undo</span>` : "");
   if (!COL.loaded) return COL.error ? "" : '<span class="mut" style="font-size:12px">…</span>';
-  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}">${l.components ? "Mark whole bundle received" : "Mark received"}</span>`;
+  return `<span class="btn small" role="button" data-mark="${esc(l.line_id)}">${l.components ? "Mark bundle received" : "Mark received"}</span>`;
 }
 const canUndo = l => COL.loaded && (COL.rec.some(r => r.line_id === l.line_id) || COL.inv.some(r => r.ref === l.line_id));
 function groupMarkHTML(g){   // the same item on several orders: one row, mark them all at once
@@ -3316,7 +3322,7 @@ function groupMarkHTML(g){   // the same item on several orders: one row, mark t
   return (open.length ? `<span class="btn small" role="button" data-gmark="${esc(g.key)}">Mark all ${open.length === live.length ? "" : open.length + " "}received</span>` : '<span class="badge b-on">ALL IN COLLECTION</span>')
     + (undo.length ? ` <span class="btn ghost small" role="button" data-gunmark="${esc(g.key)}" title="Take ${undo.length === 1 ? "it" : "them"} back out of Collection">↩ Undo${undo.length > 1 ? " all" : ""}</span>` : "")
     + `<div class="bdl"><span class="btn ghost small" role="button" data-gopen="${esc(g.key)}">${SL.openG === g.key ? "▾" : "▸"} ${live.length} orders</span>${SL.openG === g.key ? `<div class="bdl-list">${live.map(l =>
-      `<div class="bdl-row"><span>${esc(l.date || "")} · ${esc(String(l.account).split("@")[0])} · #${esc(l.order)} · ×${l.qty}</span><span style="margin-left:auto">${markHTML(l)}</span></div>`).join("")}</div>` : ""}</div>`;
+      `<div class="bdl-row"><span>${esc(l.date || "")} · ${esc(acctLabel(l.account))} · #${esc(l.order)} · ×${l.qty}</span><span style="margin-left:auto">${markHTML(l)}</span></div>`).join("")}</div>` : ""}</div>`;
 }
 // ---- bundles: mark each drop inside as it arrives (they often ship separately). When every drop is in, the bundle goes to Collection.
 const compKey = (l, c) => l.line_id + "::" + c.name;
@@ -3325,7 +3331,7 @@ const compCount = l => (l.components || []).filter(c => compRec(l, c)).length;
 function bundleHTML(l){
   if (!l.components || !l.components.length || READONLY || l.dead) return "";
   const n = compCount(l), all = l.components.length, open = SL.openB === l.line_id;
-  return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops inside · ${n} of ${all} received</span>${open ? `<div class="bdl-list">${l.components.map((c, k) => {
+  return `<div class="bdl"><span class="btn ghost small" role="button" data-bopen="${esc(l.line_id)}">${open ? "▾" : "▸"} Drops: ${n} of ${all} in</span>${open ? `<div class="bdl-list">${l.components.map((c, k) => {
     const on = compRec(l, c), r = COL.rec.find(x => x.line_id === compKey(l, c));
     return `<label class="bdl-row${on ? " on" : ""}"><input type="checkbox" data-comp="${esc(l.line_id)}" data-ck="${k}"${on ? " checked" : ""}${isReceived(l) ? " disabled" : ""}> <span data-hcards="${esc(c.drop || "")}">${esc(c.name)}${c.n ? ` <span class="mut">×${c.n}</span>` : ""}</span>${c.drop ? `<span class="btn ghost small peek-btn" role="button" data-peek="${esc(c.drop)}" title="Show the cards">🃏</span>` : ""}${r && r.date ? `<span class="mut" style="margin-left:auto;font-size:12px">${esc(r.date)}</span>` : ""}</label>`; }).join("")}</div>` : ""}</div>`;
 }
