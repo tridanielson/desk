@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:12 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 09:16 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3337,7 +3337,7 @@ const sdRefs = id => SD.rows.filter(r => r.ref === id || (r.ref || "").startsWit
 function markHTML(l){
   if (READONLY || l.dead || !l.line_id) return "";
   const undo = canUndo(l) ? ` <span class="btn ghost small" role="button" data-unmark="${esc(l.line_id)}" title="Not received after all - take it back out">↩ Undo</span>` : "";
-  if (isReceived(l)) return `<span class="badge b-on">${l.promo ? "IN COLLECTION" : "RECEIVED"}</span>` + undo;
+  if (isReceived(l)) return `<span class="badge b-on">RECEIVED</span>` + undo;
   if (!COL.loaded) return COL.error ? "" : '<span class="mut" style="font-size:12px">…</span>';
   const got = recQty(l);
   return (got ? `<span class="badge b-out" title="Part of this order has arrived">${got} of ${l.qty} in</span> ` : "") + `<span class="btn small" role="button" data-mark="${esc(l.line_id)}">${l.components ? "Mark bundle received" : got ? "Mark the rest" : "Mark received"}</span>` + (got ? undo : "");
@@ -3419,10 +3419,10 @@ function sdRowsFor(l, n, comps){
     return Object.assign({}, base, {id: newId("sd-"), product: x.c.name, finish: /foil edition/i.test(x.c.name) ? "foil" : "nonfoil", qty: String(Math.round(x.k * n)),
       cost_each: x.k ? (costEach * share / x.k).toFixed(2) : "0", ref: comps ? compKey(l, x.c) : l.line_id, drop: x.c.drop || "", notes: "From bundle: " + l.product}); });
 }
-// n = how many arrived (default: the rest). Free promo cards go to Collection; everything else is sealed product.
+// n = how many arrived (default: the rest). Everything from Secret Lair arrives sealed, free promos included.
 function markLines(lines, n){
   lines = lines.filter(l => l && !l.dead && !isReceived(l)); if (!lines.length) return;
-  const day = todayAZ(); let toCol = 0;
+  const day = todayAZ();
   for (const l of lines){
     const left = (+l.qty || 1) - recQty(l), k = Math.max(1, Math.min(left, n || left));
     COL.rec.push({line_id: l.line_id, qty: String(k), date: day});
@@ -3431,16 +3431,12 @@ function markLines(lines, n){
       COL.rec = COL.rec.filter(r => !r.line_id.startsWith(l.line_id + "::"));
       SD.rows.push(...(miss.length === l.components.length ? sdRowsFor(l, k) : sdRowsFor(l, l.qty, miss)));
     }
-    if (l.promo){ toCol++;
-      COL.inv.push({id: newId("sl-"), name: l.product, set: "", number: "", finish: "foil", condition: "NM", language: "EN", qty: String(k),
-        cost_each: l.qty ? (l.cost / l.qty).toFixed(2) : "0", acquired: day, source: "Secret Lair", status: "owned", list_price: "",
-        notes: `${l.account} · order ${l.order}`, scryfall_id: "", kind: "secret_lair", ref: l.line_id}); }
-    if (!l.components && !l.promo) SD.rows.push(...sdRowsFor(l, k));
+    if (!l.components) SD.rows.push(...sdRowsFor(l, k).map(r => l.promo ? Object.assign(r, {finish: "foil", notes: "Free promo"}) : r));
     if (isReceived(l)){ l.in_collection = true; l.open = false; }
   }
   markDirty("collection");
   const what = lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders of " + lines[0].product.slice(0, 40);
-  toast(`${what} - received${toCol === lines.length ? " and added to Collection" : toCol ? "" : " and added to Sealed"}. ↩ Undo is next to it.`, 5000);
+  toast(`${what} - received and added to Sealed. ↩ Undo is next to it.`, 5000);
   renderSLOrders();
 }
 // one line with more than one coming: ask how many arrived (orders often ship in parts)
