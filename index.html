@@ -383,7 +383,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:16 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:20 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3192,7 +3192,7 @@ function slOrdersHTML(){
   if (SL.ordersOpen){
     const statuses = [...new Set(O.lines.map(l => l.status).filter(Boolean))];
     L += `<div class="row" style="margin-top:12px"><select id="oAcct"><option value="">All Accounts</option>${O.accounts.map(a => `<option>${esc(a.account)}</option>`).join("")}</select>
-      <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Not Marked Received</option><option value="__rec">Received (In Collection)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
+      <select id="oStatus"><option value="">All Statuses</option><option value="__open">Still Coming</option><option value="__tomark">Not Marked Received</option><option value="__rec">Received (incl. bundles partly in)</option>${statuses.map(x => `<option>${esc(x)}</option>`).join("")}</select>
       <input id="oQ" placeholder="Search products…" style="flex:1;min-width:160px" value="${esc(SL.oQ)}"><span class="status" id="oCount"></span></div>
       <div class="scroll" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
   }
@@ -3200,7 +3200,7 @@ function slOrdersHTML(){
 }
 function slOrderRows(){
   const q = SL.oQ.trim().toLowerCase();
-  return SL.orders.lines.filter(l => (!SL.oAcct || l.account === SL.oAcct) && (!SL.oStatus || (SL.oStatus === "__open" ? l.open : SL.oStatus === "__tomark" ? (!l.dead && !isReceived(l)) : SL.oStatus === "__rec" ? isReceived(l) : l.status === SL.oStatus && !isReceived(l))) &&
+  return SL.orders.lines.filter(l => (!SL.oAcct || l.account === SL.oAcct) && (!SL.oStatus || (SL.oStatus === "__open" ? l.open : SL.oStatus === "__tomark" ? (!l.dead && !isReceived(l)) : SL.oStatus === "__rec" ? (isReceived(l) || (l.components && compCount(l) > 0)) : l.status === SL.oStatus && !isReceived(l))) &&
     (!q || l.product.toLowerCase().includes(q) || (l.components || []).some(c => c.name.toLowerCase().includes(q))))
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
