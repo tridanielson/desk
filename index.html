@@ -386,7 +386,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:54 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 28, 05:57 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3246,7 +3246,7 @@ function renderSLOrders(){
   const name = g => { const l = g.lines[0]; return `<div class="cname">${esc(l.product)}</div><div class="cset">${esc(l.finish)}${l.components ? ` · ${l.components.length} drops inside` : ""}${g.lines.length > 1 ? ` · on ${g.lines.length} orders` : ""}${l.notes && !l.components && g.lines.length === 1 ? " · " + esc(l.notes.slice(0, 60)) : ""}</div>`; };
   const acts = g => g.lines.length > 1 ? groupMarkHTML(g) : markHTML(g.lines[0]) + bundleHTML(g.lines[0]);
   $("#oTable").innerHTML = `<thead><tr><th class="nosort">Ordered</th><th class="nosort">Product</th><th class="nosort hide-sm">Account</th><th class="r nosort">Qty</th><th class="r nosort">Cost</th><th class="r nosort">Worth Now</th><th class="r nosort">Gain / Loss</th><th class="nosort">Status</th><th class="nosort"></th></tr></thead><tbody>` +
-    groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g))}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
+    groups.map(g => { const l = g.lines[0], v = gval(g); return `<tr class="${l.drop ? "click" : ""}" data-odrop="${esc(l.drop || "")}"><td style="white-space:nowrap">${esc(dates(g))}</td><td>${name(g)}</td><td class="hide-sm mut" style="font-size:12px;white-space:nowrap" title="${esc([...new Set(g.lines.map(x => x.account))].join(", "))}">${accts(g).map(esc).join("<br>")}</td>
       <td class="r">${sum(g, "qty")}</td><td class="r">${money(sum(g, "cost"))}</td><td class="r">${valCell(g)}</td><td class="r">${v == null ? "–" : gainHTML(v - sum(g, "cost"))}</td><td>${st(g)}</td><td class="mk">${acts(g)}</td></tr>`; }).join("") + "</tbody>";
   $("#oTiles").innerHTML = groups.map(g => { const l = g.lines[0], v = gval(g); return `<div class="tile" role="button" tabindex="0" data-odrop="${esc(l.drop || "")}"><div class="t-main"><div class="t-name">${esc(l.product)}</div>
       <div class="t-sub">${esc(dates(g))} · ${esc(l.finish)} · ×${sum(g, "qty")} · ${accts(g).map(esc).join(", ")}${g.lines.length > 1 ? ` · ${g.lines.length} orders` : ""}</div><div class="t-sub">${st(g)}</div><div class="t-chips mk">${acts(g)}</div></div>
