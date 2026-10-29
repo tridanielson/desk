@@ -399,7 +399,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:20 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 10:30 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3682,7 +3682,7 @@ function openSDOpen(g){
       <div class="bdl-list" style="max-height:44vh;overflow:auto">${cardRows}</div>` : '<p class="mut" style="font-size:13px">No card list for this drop yet - add the cards you got with + Add Card on Collection.</p>')
       + `<div class="grid"><div class="full"><label for="soBonus">Bonus / extra cards (optional, one per line)</label><textarea id="soBonus" rows="2" placeholder="e.g. 1 Sol Ring" style="width:100%"></textarea></div>
         <div class="full"><label for="soCost">Spread this much of what you paid across the cards ($)</label><input id="soCost" inputmode="decimal"></div></div>`
-      : `<p class="mut" style="font-size:13px;margin-top:12px">${esc(sdKindLabel(f.kind))}: it's marked opened and leaves your sealed totals. Nothing is added to Collection - add any cards you keep yourself.</p>`}
+      : `<div class="panel" style="margin-top:12px;padding:10px 12px;border-left:4px solid #d08a2c;font-size:13px">⚠ <b>Heads up:</b> ${esc(sdKindLabel(f.kind))} contents are random, so nothing is added to your Collection. Add any cards you want to keep or track with <b>+ Add Card</b> on the Collection tab.</div>`}
     <div class="acts"><button class="btn ghost" id="soCancel" type="button">Cancel</button><button class="btn" id="soOk" type="button">Mark Opened</button></div>`);
   const qn = () => Math.min(g.qty, Math.max(1, parseInt($("#soQty").value) || 1));
   const costOf = n => { let left = n, c = 0; for (const i of g.items.slice().sort((a, b) => (a.row.acquired || "").localeCompare(b.row.acquired || ""))){ const k = Math.min(i.qty, left); c += k * i.cost_each; left -= k; if (left <= 0) break; } return Math.round(c * 100) / 100; };
@@ -3705,7 +3705,7 @@ function openSDOpen(g){
     bonus.forEach(x => COL.inv.push({id: newId("c-"), name: x.name, set: "", number: "", finish: "nonfoil", condition: "NM", language: "EN", qty: String(x.q), cost_each: each,
       acquired: day, source: src, status: "owned", list_price: "", notes: "bonus card", scryfall_id: "", kind: "card", ref}));
     markDirty("collection"); closeModal(); renderSD();
-    toast(units ? `Opened ${n} - ${units} card${units > 1 ? "s" : ""} added to Collection. ↩ Undo is under Opened.` : `Opened ${n} - out of your sealed totals.`, 5000);
+    toast(units ? `Opened ${n} - ${units} card${units > 1 ? "s" : ""} added to Collection. ↩ Undo is under Opened.` : `Opened ${n}. Remember: add any cards you keep with + Add Card on Collection.`, 7000);
   });
 }
 // + Add Sealed / Edit. Search covers every Secret Lair drop plus TCGplayer's sealed Magic catalog.
