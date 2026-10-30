@@ -154,6 +154,7 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .oc-row img{width:34px;border-radius:3px;display:block}.modal .oc-row input[type=checkbox]{width:18px;height:18px;margin:0;padding:0}
 .modal .oc-row select{width:auto;min-width:0;height:32px;padding:4px 6px;font-size:13px}.modal .oc-row input[type=number]{width:56px;height:32px;padding:4px 6px}
 @media (max-width:700px){.modal .oc-row{grid-template-columns:20px minmax(0,1fr) auto 50px}.oc-row img{display:none}.modal .oc-row input[type=number]{width:50px}}
+.cq-row{display:flex;gap:8px;flex-wrap:wrap}.modal .cq{display:flex;flex-direction:column;align-items:center;gap:2px;margin:0;font-size:12px}.modal .cq input{width:58px;text-align:center}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -399,7 +400,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 11:00 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:09 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3988,8 +3989,9 @@ function openColEdit(id, pre){
       <div class="full"><label for="eName">Card / Product</label><input id="eName" value="${esc(r.name)}" list="eNames" autocomplete="off" ${isSL ? "readonly" : ""}><datalist id="eNames"></datalist></div>
       ${isSL ? "" : `<div><label for="eSet">Set Code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
       <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
-      ${isSL ? "" : `<div><label for="eCond">Condition</label><select id="eCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
-      <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
+      ${isSL || !id ? "" : `<div><label for="eCond">Condition</label><select id="eCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
+      ${!id && !isSL ? `<div class="full"><label>How many in each condition</label><div class="cq-row">${["NM", "LP", "MP", "HP", "DMG"].map(c => `<label class="cq"><span>${c}</span><input data-cq="${c}" type="number" min="0" inputmode="numeric" value="${c === (r.condition || "NM") ? esc(r.qty || "1") : "0"}"></label>`).join("")}</div><div class="mut" style="font-size:12px;margin-top:4px">Each condition is saved as its own row. If they cost different amounts, change a row's price later with Edit.</div></div>`
+        : `<div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>`}
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div><label for="eAcq">Acquired</label><input id="eAcq" type="date" value="${esc(r.acquired)}"></div>
@@ -4007,11 +4009,15 @@ function openColEdit(id, pre){
     markDirty("collection"); closeModal(); renderCOL(); });
   $("#eOk").addEventListener("click", () => {
     const name = $("#eName").value.trim(); if (!name) return toast("Enter a card name.");
-    const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt($("#eQty").value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
+    const split = [...document.querySelectorAll("[data-cq]")].map(x => [x.dataset.cq, Math.max(0, parseInt(x.value) || 0)]).filter(x => x[1] > 0);
+    if (!id && !isSL && !split.length) return toast("Enter how many you have.");
+    const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt(($("#eQty") || {}).value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
-    if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); upd.condition = $("#eCond").value;
+    if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value;
       if (id && (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name)) upd.scryfall_id = ""; }
-    if (id) Object.assign(r, upd); else COL.inv.push(Object.assign(r, upd, {id: newId("c-")}));
+    if (id) Object.assign(r, upd);
+    else if (split.length) split.forEach(([c, q]) => COL.inv.push(Object.assign({}, r, upd, {id: newId("c-"), condition: c, qty: String(q)})));   // one row per condition
+    else COL.inv.push(Object.assign(r, upd, {id: newId("c-")}));
     markDirty("collection"); closeModal(); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); toast("Saved.");
   });
 }
