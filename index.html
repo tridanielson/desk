@@ -402,7 +402,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 06:47 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:00 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -2247,8 +2247,9 @@ function reviewBtnHTML0(d, tile){
   const st = reviewedState(d), tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
   const bought = boughtFor(d) ? `<span class="badge b-on" title="You bought this - it's in Collection as Ordered">🛒 BOUGHT</span> ` : "";
   if (!st) return `${bought}<${tag} class="btn small rv" data-review="${esc(d.url)}" title="Right card? Condition? Should it have shown this? - one save teaches everything">Review</${end}>`;
-  const icons = st.wrongEd ? (st.fault === "app" ? "✕ App Mismatch" : "✕ Seller Mislabeled") : (st.good === "good" ? "👍" : st.good === "bad" ? "👎" : "") + (st.cond ? " " + st.cond : "");
-  return `${bought}<${tag} class="btn ghost small rv done" data-review="${esc(d.url)}" title="You reviewed this - tap to change">✓ ${esc(icons.trim() || "Reviewed")}</${end}>`;
+  const c = DC.map[d.url], listed = condCode((c && c.listed) || d._c0 || d.condition || ""), changed = st.cond && condCode(st.cond) !== listed;   // only when you changed the condition
+  const label = st.wrongEd ? (st.fault === "app" ? "✕ App Mismatch" : "✕ Seller Mislabeled") : "✓ Reviewed" + (changed ? " · " + st.cond : "");
+  return `${bought}<${tag} class="btn ghost small rv done" data-review="${esc(d.url)}" title="You reviewed this${changed ? ` and set the condition to ${esc(st.cond)} (listed ${esc(listed || "?")})` : ""} - tap to change">${esc(label)}</${end}>`;
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-review]"); if (!b) return; e.preventDefault(); e.stopPropagation(); seenDeal(b.dataset.review);
   const d = S.deals.find(x => x.url === b.dataset.review); if (d) openReview(d); }, true);
