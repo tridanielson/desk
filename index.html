@@ -413,7 +413,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:56 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:12 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4199,9 +4199,10 @@ function renderSETS(){
   }
   box.querySelectorAll("[data-goal]").forEach(b => b.addEventListener("click", () => { SETS.open = b.dataset.goal; SETS.q = ""; renderSETS(); window.scrollTo(0, 0); }));
 }
+document.addEventListener("click", () => { if (NA.pop && $("#naSetPop")){ NA.pop = false; $("#naSetPop").hidden = true; } });
 // ---- Everything I Need: every card still missing from every set you track, in one list - filter by set and price,
 // buy links, and a TCGplayer Mass Entry copy for buying the cheap ones in one cart
-const NA = {set: "", price: "", sort: "price-desc", q: ""};
+const NA = {sets: new Set(), price: "", sort: "price-desc", q: "", pop: false};
 function renderNeedAll(goals){
   const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
   const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
@@ -4210,7 +4211,8 @@ function renderNeedAll(goals){
   live.forEach(g => { const pr = goalProgress(g); if (pr) pr.need.forEach(r => all.push({c: r.c, price: r.price, g, fin: g.finish || "nonfoil", key: goalKey(g)})); });
   const band = {u1: [null, 1], u5: [null, 5], "5-50": [5, 50], o50: [50, null], none: "none"}[NA.price];
   const q = NA.q.trim().toLowerCase();
-  let rows = all.filter(r => (!NA.set || r.key === NA.set) && (!q || r.c.name.toLowerCase().includes(q)) &&
+  [...NA.sets].forEach(k => { if (!live.some(g => goalKey(g) === k)) NA.sets.delete(k); });
+  let rows = all.filter(r => (!NA.sets.size || NA.sets.has(r.key)) && (!q || r.c.name.toLowerCase().includes(q)) &&
     (!band || (band === "none" ? r.price == null : r.price != null && (band[0] == null || r.price >= band[0]) && (band[1] == null || r.price < band[1]))));
   const [sk, sd] = NA.sort.split("-"), dir = sd === "asc" ? 1 : -1;
   rows.sort((a, b) => sk === "name" ? a.c.name.localeCompare(b.c.name) * dir : sk === "set" ? (a.c.set_name + a.c.collector_number.padStart(5, "0")).localeCompare(b.c.set_name + b.c.collector_number.padStart(5, "0")) * dir : ((a.price ?? -1) - (b.price ?? -1)) * dir);
@@ -4226,14 +4228,16 @@ function renderNeedAll(goals){
       <div class="stat"><span>Cost to buy these</span><b>${money(total)}</b><span>${unpriced ? unpriced + " without a price" : "at NM market"}</span></div>
     </div>
     <div class="panel row"><input id="naQ" placeholder="Search card name…" value="${esc(NA.q)}" style="flex:1;min-width:160px">
-      <select id="naSet"><option value="">All Sets</option>${live.map(g => `<option value="${esc(goalKey(g))}">${esc(label(g))}</option>`).join("")}</select>
+      <span class="msel"><button type="button" class="btn ghost${NA.sets.size ? " on" : ""}" id="naSetBtn">${NA.sets.size ? (NA.sets.size === 1 ? esc(label(live.find(g => NA.sets.has(goalKey(g))))) : NA.sets.size + " Sets") : "All Sets"} ▾</button>
+        <div class="msel-pop" id="naSetPop"${NA.pop ? "" : " hidden"}><div class="msel-top"><b>Sets</b><a href="#" id="naSetClear">Clear</a></div>${live.map(g => { const k = goalKey(g), n = all.filter(r => r.key === k).length;
+          return `<label><input type="checkbox" value="${esc(k)}"${NA.sets.has(k) ? " checked" : ""}> ${esc(label(g))} <span class="mut">${n}</span></label>`; }).join("")}</div></span>
       <select id="naPrice"><option value="">Any Price</option><option value="u1">Under $1</option><option value="u5">Under $5</option><option value="5-50">$5 – $50</option><option value="o50">Over $50</option><option value="none">No price yet</option></select>
       <select id="naSort"><option value="price-desc">Price: High to Low</option><option value="price-asc">Price: Low to High</option><option value="set-asc">Set &amp; Number</option><option value="name-asc">Name A–Z</option></select></div>
     <div class="panel row" style="gap:10px;align-items:center"><button class="btn small" id="naCopy" ${rows.length ? "" : "disabled"}>📋 Copy ${rows.length} for TCGplayer Mass Entry</button>
       <a class="btn ghost small" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a>
       <span class="mut" style="font-size:12px">Copy, open Mass Entry, paste, Add to Cart. Check foil vs non-foil and the exact art in the cart - Mass Entry picks by name and set.</span></div>
     <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable" class="desk-table"></table></div>`;
-  $("#naSet").value = live.some(g => goalKey(g) === NA.set) ? NA.set : ""; $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
+  $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
   const show = rows.slice(0, 600);
   const acts = r => `<button class="btn small" data-nagot="${esc(r.c.id)}|${esc(r.key)}">Got It</button> <a class="btn ghost small" href="${esc(ebay(r.c))}" target="_blank" rel="noopener">eBay</a> <a class="btn ghost small" href="${esc(tcg(r.c))}" target="_blank" rel="noopener">TCGplayer</a>`;
   $("#naTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort">Set</th><th class="r nosort">Price (NM)</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -4246,7 +4250,14 @@ function renderNeedAll(goals){
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">Nothing here.</p>';
   $("#naBack").addEventListener("click", () => { SETS.needAll = false; renderSETS(); });
   $("#naQ").addEventListener("input", e => { NA.q = e.target.value; const pos = e.target.selectionStart; renderNeedAll(goals); const f = $("#naQ"); f.focus(); f.setSelectionRange(pos, pos); });
-  [["#naSet", "set"], ["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
+  const place = () => { const pop = $("#naSetPop"); if (!pop || pop.hidden) return; pop.style.left = "0px";   // keep it on screen
+    const r = pop.getBoundingClientRect(), over = r.right - (document.documentElement.clientWidth - 12); if (over > 0) pop.style.left = -Math.min(over, r.left - 12) + "px"; };
+  place();
+  $("#naSetBtn").addEventListener("click", e => { e.stopPropagation(); NA.pop = !NA.pop; $("#naSetPop").hidden = !NA.pop; place(); });
+  $("#naSetPop").addEventListener("click", e => e.stopPropagation());
+  $("#naSetPop").addEventListener("change", e => { const x = e.target; if (!x.value) return; x.checked ? NA.sets.add(x.value) : NA.sets.delete(x.value); renderNeedAll(goals); });
+  $("#naSetClear").addEventListener("click", e => { e.preventDefault(); NA.sets.clear(); renderNeedAll(goals); });
+  [["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
   $("#naCopy").addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET]" per line
     const counts = new Map(); rows.forEach(r => { const k = `${r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}]`; counts.set(k, (counts.get(k) || 0) + 1); });
     copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${rows.length} cards. Paste them into TCGplayer Mass Entry.`); });
