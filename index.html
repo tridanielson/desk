@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:36 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:39 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2321,7 +2321,10 @@ function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, mode === "queue" ? 6 : 3);
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
-  const s = RV.sel = reviewStart(d), c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
+  const s = RV.sel = reviewStart(d);
+  { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
+    if (!s.reasons.length && s.reason) s.reasons = [s.reason]; s.reasons = [...new Set(s.reasons)]; }
+  const c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition), d) || 1;
@@ -2351,8 +2354,8 @@ function reviewHTML(d, mode){
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
     <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
-    <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason"><button type="button" class="btn small${s.reason ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reason === k ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
-    <div class="mut" style="font-size:12px;margin-top:2px">Optional. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
+    <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="mut" style="font-size:12px;margin-top:2px">Optional - pick as many as apply. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
@@ -2387,6 +2390,11 @@ function wireReview(root, d, done){
   if (root.querySelector("#rvMarkRow:not([hidden])")) markPhotos(root, d);
   if (RV.sel && RV.sel.edition === "edition") fillEditions(root, d);
   root.querySelectorAll(".seg").forEach(sg => sg.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return;
+    if (sg.dataset.multi){   // "Anything else wrong?": several can apply (e.g. not a single card AND a stock photo)
+      const v = b.dataset.v, r = RV.sel.reasons = (RV.sel.reasons || []).filter(x => x !== v);
+      if (!v) r.length = 0; else if (b.classList.contains("ghost")) r.push(v);
+      RV.sel.reason = r[0] || "";
+      sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v ? !r.includes(x.dataset.v) : r.length > 0)); return; }
     RV.sel[sg.dataset.k] = b.dataset.v; sg.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x !== b));
     const q = sg.closest(".aud-q"); if (q) q.classList.remove("need");
     if (sg.dataset.k === "edition"){ const w = isWrong(b.dataset.v); root.querySelector("#rvRest").hidden = w && b.dataset.v !== "edition";   // wrong card / fake: condition doesn't apply
@@ -2509,6 +2517,8 @@ function saveReview(d, sel, note, done, agreeAI){
     FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
       fault: isWrong(sel.edition) ? (sel.fault || "seller") : sel.reason === "condition" ? (sel.cfault || "seller") : sel.reason === "price" ? "app"
         : ["stock", "verify", "lot", "language", "seller"].includes(sel.reason) ? "seller" : ""});
+    if (verdict === "bad") (sel.reasons || []).filter(r => r && r !== sel.reason).forEach(r => FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: r, note: "", title: (d.title || "").slice(0, 150),
+      fault: r === "price" ? "app" : ["stock", "verify", "lot", "language", "seller"].includes(r) ? "seller" : ""}));   // every other thing you ticked
     markDirty("feedback");
   }
   // 2. condition (re-prices the deal, teaches grading, flags sellers who overstate)
