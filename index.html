@@ -165,7 +165,7 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 .big-spin{width:42px;height:42px;margin:0 auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:bigspin .9s linear infinite}@keyframes bigspin{to{transform:rotate(360deg)}}
 #colWaiting .bdl-list{grid-template-columns:minmax(0,1fr)}#colWaiting .bdl-row{flex-wrap:wrap;gap:4px 10px;align-items:center}#colWaiting .bdl-row>span:first-child{flex:1 1 220px;min-width:0}
 body:has(#busy.on) .loadmsg{visibility:hidden}
-body.booting main{visibility:hidden}body.booting #busy .busy-msg{background:transparent;backdrop-filter:none}   /* the big "Refreshing… please wait" card says it - no second, smaller "Loading…" behind it */
+body.booting main{visibility:hidden}body.booting #busy{display:block}body.booting #busy .busy-msg{background:transparent;backdrop-filter:none}   /* the big "Refreshing… please wait" card says it - no second, smaller "Loading…" behind it */
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:26 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:31 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -906,14 +906,14 @@ new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = se
 
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
-const BUSY_TEXT = {loadAll: "Loading prices and deals - the first load can take 10-20 seconds.", loadSecretLair: "Loading Secret Lair…",
+const BUSY_TEXT = {loadAll: "Loading your latest data…", loadSecretLair: "Loading Secret Lair…",
   readFiles: "Loading your latest data…", saveFile: "", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…", checkListing: "Checking the listing on eBay…", setMute: "Saving…", accountsSet: "Saving…", accountReset: "Saving…", accountRemove: "Saving…"};
 const BUSY_HEAD = {login: "Signing in… please wait", signUp: "Creating your account… please wait", changePassword: "Saving… please wait", runWorkflow: "Starting… please wait"};
 function busy(on, fn){
   if (on){ BUSY.n++; BUSY.labels.push(fn); } else { BUSY.n = Math.max(0, BUSY.n - 1); const i = BUSY.labels.indexOf(fn); if (i >= 0) BUSY.labels.splice(i, 1); }
   clearTimeout(BUSY.t);
   const show = () => { const f = BUSY.labels.find(f => BUSY_TEXT[f]), txt = f ? BUSY_TEXT[f] : "";   // background checks (no text) stay quiet
-    $("#busy").classList.toggle("on", BUSY.n > 0 && !!txt); $("#busyMsg").textContent = txt || ""; $("#busyHead").textContent = BUSY_HEAD[f] || "Refreshing… please wait"; };
+    $("#busy").classList.toggle("on", BUSY.n > 0 && !!txt); if (txt || !document.body.classList.contains("booting")){ $("#busyMsg").textContent = txt || ""; $("#busyHead").textContent = BUSY_HEAD[f] || "Refreshing… please wait"; } };
   if (BUSY.n > 0) BUSY.t = setTimeout(show, 250); else show();
 }
 async function server(fn, ...args){
@@ -936,10 +936,13 @@ async function startApp(){
     const t0 = savedTab();
     if (tabOK(t0)) switchTab(t0);   // show the page you were on right away, while the data loads
     else if (document.getElementById("tab-" + t0)) document.querySelectorAll("section.tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + t0));   // (Setup & Help etc: just show it - it fills in after loading)
-    try{ await loadAll(); } finally { document.body.classList.remove("booting", "starting"); }
+    try{ await loadAll(); } catch(e){ document.body.classList.remove("booting"); throw e; } finally { document.body.classList.remove("starting"); }
     $("#signOutBtn").hidden = false;
     const t1 = savedTab();
     switchTab(tabOK(t1) || (t1 === "connect" && !READONLY) ? t1 : "mine");   // Setup & Help works once you're signed in
+    // one loading screen, not two: stay on it until the page you're on has its data too (collection, Secret Lair...)
+    for (let i = 0; i < 120; i++){ await new Promise(r => setTimeout(r, 250)); if (!BUSY.n && !COL.loading && !SL.loading) break; }
+    document.body.classList.remove("booting");
     openDealFromHash();
   }catch(e){
     if (/Please sign in/.test(e.message)) return;
