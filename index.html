@@ -413,7 +413,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:55 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:56 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4232,7 +4232,7 @@ function renderNeedAll(goals){
     <div class="panel row" style="gap:10px;align-items:center"><button class="btn small" id="naCopy" ${rows.length ? "" : "disabled"}>📋 Copy ${rows.length} for TCGplayer Mass Entry</button>
       <a class="btn ghost small" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a>
       <span class="mut" style="font-size:12px">Copy, open Mass Entry, paste, Add to Cart. Check foil vs non-foil and the exact art in the cart - Mass Entry picks by name and set.</span></div>
-    <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable"></table></div>`;
+    <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable" class="desk-table"></table></div>`;
   $("#naSet").value = live.some(g => goalKey(g) === NA.set) ? NA.set : ""; $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
   const show = rows.slice(0, 600);
   const acts = r => `<button class="btn small" data-nagot="${esc(r.c.id)}|${esc(r.key)}">Got It</button> <a class="btn ghost small" href="${esc(ebay(r.c))}" target="_blank" rel="noopener">eBay</a> <a class="btn ghost small" href="${esc(tcg(r.c))}" target="_blank" rel="noopener">TCGplayer</a>`;
@@ -4295,7 +4295,7 @@ function renderSetDetail(g){
       <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
       <label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>
       <span class="status">${rows.length} cards</span></div>
-    <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable"></table></div>
+    <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable" class="desk-table"></table></div>
     <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - <b>Add &amp; Add Another</b> keeps the card filled in for the next copy (e.g. a different condition). Cards you have show <b>+ Add</b> for more copies.</p>`;
   box.innerHTML = L;
   $("#setView").value = SETS.view;
