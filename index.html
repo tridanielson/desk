@@ -164,6 +164,8 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 *{scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent}
 .big-spin{width:42px;height:42px;margin:0 auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:bigspin .9s linear infinite}@keyframes bigspin{to{transform:rotate(360deg)}}
 #colWaiting .bdl-list{grid-template-columns:minmax(0,1fr)}#colWaiting .bdl-row{flex-wrap:wrap;gap:4px 10px;align-items:center}#colWaiting .bdl-row>span:first-child{flex:1 1 220px;min-width:0}
+body:has(#busy.on) .loadmsg{visibility:hidden}
+body.booting main{visibility:hidden}body.booting #busy .busy-msg{background:transparent;backdrop-filter:none}   /* the big "Refreshing… please wait" card says it - no second, smaller "Loading…" behind it */
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -413,10 +415,10 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:14 AM</b></p>
-    <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:22 AM</b></p>
+    <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
-    <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
+    <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <details class="panel" style="margin-top:14px"><summary><b>What Each Tab Does &amp; Words Used</b></summary>
       <dl class="guide">
@@ -494,7 +496,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     </ol>
   </div>
   <details class="panel owner-only" id="dNearWrap"><summary><b>🚧 Blocked by Your Rules</b> <span class="mut" style="font-size:13px" id="dNearCount">- deals on price that a rule passed on</span></summary>
-    <div id="dNear" style="margin-top:10px"><p class="mut">Loading…</p></div></details>
+    <div id="dNear" style="margin-top:10px"><p class="mut loadmsg">Loading…</p></div></details>
   <details class="panel owner-only" id="dLearnWrap"><summary><b>Learning &amp; Scorecards</b> <span class="mut" style="font-size:13px">- rules from your comments, AI teaching, sniper scorecard</span></summary>
     <div id="dLearned" style="margin-top:10px"></div>
     <div id="dElse" style="margin-top:12px"></div>
@@ -524,18 +526,18 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     </div>
   </div>
-  <div class="panel scroll"><div class="tiles" id="dealsTiles"><p class="empty">Loading deals…</p></div><table id="dealsTable" class="desk-table"><tr><td class="empty">Loading deals…</td></tr></table></div>
+  <div class="panel scroll"><div class="tiles" id="dealsTiles"><p class="empty loadmsg">Loading deals…</p></div><table id="dealsTable" class="desk-table"><tr><td class="empty">Loading deals…</td></tr></table></div>
 </section>
 
 <!-- SECRET LAIR -->
 <section class="tab" id="tab-audit">
   <h2 style="margin:0">Review Queue</h2>
   <p class="sub">The same Review as on eBay Deals, one deal after another. Right edition? Condition? Good deal? Each save teaches the filters and the AI, becomes training data, and counts toward the accuracy score. "Random Sample" keeps that score honest.</p>
-  <div id="audBody"><p class="empty">Loading…</p></div>
+  <div id="audBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
 <section class="tab" id="tab-sl">
-  <div id="slBody"><p class="empty">Loading Secret Lair drops…</p></div>
+  <div id="slBody"><p class="empty loadmsg">Loading Secret Lair drops…</p></div>
 </section>
 
 <!-- COLLECTION -->
@@ -617,11 +619,11 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 </section>
 
 <section class="tab" id="tab-sealed">
-  <div id="sdBody"><p class="empty">Loading…</p></div>
+  <div id="sdBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
 <section class="tab" id="tab-sets">
-  <div id="setsBody"><p class="empty">Loading…</p></div>
+  <div id="setsBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
 <!-- RULES -->
@@ -682,6 +684,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   </form>
 </div>
 <div class="lightbox" id="lightbox" role="dialog" aria-label="Card image"><img id="lightboxImg" alt=""></div>
+<script>(function(){try{var h=(location.hash||"").slice(1),t=document.getElementById("tab-"+h)?h:(localStorage.getItem("pd_tab")||"mine");   // reloading: show the page you were on, not the Watchlist, while it loads
+if(t!=="detail"&&document.getElementById("tab-"+t)){document.querySelectorAll("section.tab").forEach(function(x){x.classList.toggle("on",x.id==="tab-"+t);});}}catch(e){}})();</script>
 <div class="modal-bg" id="colModalBg"></div>
 <div class="modal" id="colModal" role="dialog" aria-modal="true"><div id="colModalBody"></div></div>
 <div class="toast" id="toast"></div>
@@ -924,12 +928,15 @@ function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBt
 const savedTab = () => { const h = (location.hash || "").slice(1); return (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; };
 const tabOK = t => !["detail", "connect"].concat(READONLY ? ["settings"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
+  document.body.classList.add("booting");   // first load: header stays, the page below is blank until your data is in (just the loading card)
   try{
     const t0 = savedTab();
     if (tabOK(t0)) switchTab(t0);   // show the page you were on right away, while the data loads
-    await loadAll(); $("#signOutBtn").hidden = false;
+    else if (document.getElementById("tab-" + t0)) document.querySelectorAll("section.tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + t0));   // (Setup & Help etc: just show it - it fills in after loading)
+    try{ await loadAll(); } finally { document.body.classList.remove("booting"); }
+    $("#signOutBtn").hidden = false;
     const t1 = savedTab();
-    switchTab(tabOK(t1) ? t1 : "mine");
+    switchTab(tabOK(t1) || (t1 === "connect" && !READONLY) ? t1 : "mine");   // Setup & Help works once you're signed in
     openDealFromHash();
   }catch(e){
     if (/Please sign in/.test(e.message)) return;
@@ -1340,7 +1347,7 @@ $("#acInput").addEventListener("keydown", e => {
 $("#acInput").addEventListener("blur", () => setTimeout(() => $("#acList").hidden = true, 150));
 async function pickName(name){
   $("#acList").hidden = true; $("#acInput").value = name; const box = $("#printPick");
-  box.innerHTML = `<p class="mut">Loading printings of ${esc(name)}…</p>`;
+  box.innerHTML = `<p class="mut loadmsg">Loading printings of ${esc(name)}…</p>`;
   try{
     const j = await sf("/cards/search?unique=prints&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" -is:digital`)); const prints = j.data || [];
     box.innerHTML = `<p style="margin:12px 0 0"><b>Which printing?</b> <span class="mut">Oldest first. Click one to add it.</span></p><div class="prints"></div>`;
@@ -2603,7 +2610,7 @@ function audBoard(){
 // ---- one listing at a time
 function renderAudit(){
   const box = $("#audBody"); if (!box) return;
-  if (!FB.loaded){ box.innerHTML = `<p class="empty">Loading…</p>`; loadFB(); return; }
+  if (!FB.loaded){ box.innerHTML = `<p class="empty loadmsg">Loading…</p>`; loadFB(); return; }
   const q = audQueue(); AUD.i = Math.max(0, Math.min(AUD.i, q.length - 1));
   const models = [...new Set(S.deals.map(d => d.ai_model).filter(Boolean))];
   const d = q[AUD.i];
@@ -3154,7 +3161,7 @@ async function loadSL(force){
 }
 function renderSL(){
   const box = $("#slBody"); if (!box) return;
-  if (SL.loading){ box.innerHTML = '<p class="empty">Loading Secret Lair drops…</p>'; return; }
+  if (SL.loading){ box.innerHTML = '<p class="empty loadmsg">Loading Secret Lair drops…</p>'; return; }
   if (SL.error){ box.innerHTML = `<p class="empty">${esc(SL.error)}</p>`; return; }
   if (SL.detail){ renderSLDetail(); return; }
   const D = (SL.data && SL.data.drops) || [];
@@ -4164,7 +4171,7 @@ async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) a
 function renderSETS(){
   const box = $("#setsBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("sets"); wireJoin(box); return; }
-  if (!COL.loaded){ box.innerHTML = COL.error ? `<p class="empty">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p>` : '<p class="empty">Loading…</p>'; return; }
+  if (!COL.loaded){ box.innerHTML = COL.error ? `<p class="empty">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p>` : '<p class="empty loadmsg">Loading…</p>'; return; }
   const goals = COL.goals.filter(g => g.set);
   goals.forEach(loadSetCards);
   if (SETS.needAll) return renderNeedAll(goals);
@@ -4187,7 +4194,7 @@ function renderSETS(){
         ${pr ? `<div class="bar" style="margin:12px 0 6px"><span style="width:${pct}%"></span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px"><span><b>${pr.have}</b> / ${pr.total} (${pct}%)</span><span>${pr.need.length ? `need ${pr.need.length}` : "<b>Complete!</b>"}</span></div>
           <div class="mut" style="font-size:12px;margin-top:4px">${pr.need.length ? `About <b>${money(pr.cost)}</b> to finish (NM)${pr.unpriced ? ` + ${pr.unpriced} unpriced` : ""}` : ""}</div>`
-          : SETS.err[k] ? `<p class="mut">${esc(SETS.err[k])}</p>` : '<p class="mut" style="margin:12px 0 0">Loading cards…</p>'}</button>`; }).join("") + "</div>";
+          : SETS.err[k] ? `<p class="mut">${esc(SETS.err[k])}</p>` : '<p class="mut loadmsg" style="margin:12px 0 0">Loading cards…</p>'}</button>`; }).join("") + "</div>";
   }
   box.innerHTML = L;
   if ($("#setNeedAll")) $("#setNeedAll").addEventListener("click", () => { SETS.needAll = true; renderSETS(); window.scrollTo(0, 0); });
@@ -4267,7 +4274,7 @@ function renderNeedAll(goals){
 }
 async function showSetHits(q){
   const hits = $("#setHits"); if (!hits) return;
-  if (!SETS.allSets){ hits.innerHTML = '<p class="mut">Loading sets…</p>';
+  if (!SETS.allSets){ hits.innerHTML = '<p class="mut loadmsg">Loading sets…</p>';
     try{ const j = await sf("/sets"); SETS.allSets = (j.data || []).filter(x => !x.digital && x.card_count > 0 && !["token", "memorabilia", "minigame", "alchemy"].includes(x.set_type)); }
     catch(e){ hits.innerHTML = `<p class="mut">Couldn't load the set list: ${esc(e.message)}</p>`; return; } }
   const t = q.trim().toLowerCase();
@@ -4284,7 +4291,7 @@ async function showSetHits(q){
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
-  if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
+  if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty loadmsg">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
   const deal = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
   const tracked = new Map(S.cards.map(x => [x.s.toLowerCase() + "|" + x.num + "|" + x.f, x]));
   const q = SETS.q.trim().toLowerCase();
@@ -4448,6 +4455,7 @@ const tabBtn = t => document.querySelector(`#nav [data-tab="${t}"]`);
 const tabShown = b => b && getComputedStyle(b).display !== "none" && !b.hidden;
 function groupTabs(g){ return [...document.querySelectorAll(`#nav [data-group="${g}"]`)].filter(b => { b.classList.remove("off"); return tabShown(b); }); }
 function renderGroups(tab){
+  document.body.classList.add("ui-ready");   // first: before ui-ready only the pre-marked buttons show, which hid whole sections after a reload
   const g = (tabBtn(tab) || {}).dataset ? tabBtn(tab).dataset.group : "prices";
   document.querySelectorAll("#navGroups button").forEach(b => { b.hidden = !groupTabs(b.dataset.group).length; b.classList.toggle("on", b.dataset.group === g); });
   const vis = groupTabs(g);
