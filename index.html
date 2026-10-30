@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:55 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 01:29 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2711,7 +2711,7 @@ async function printsOf(name){
     const j = await sf(url); (j.data || []).forEach(c => {
       const k = `${c.name}|${String(c.set || "").toUpperCase()}|${c.collector_number}|nonfoil`, pr = c.prices || {};
       const card = S.byKey.get(k) || {k, n: c.name, s: String(c.set || "").toUpperCase(), sn: c.set_name, num: c.collector_number,
-        p: +(pr.usd || pr.usd_foil || 0) || 0, img: (c.image_uris || (c.card_faces || [{}])[0].image_uris || {}).small || ""};
+        p: +(pr.usd || pr.usd_foil || 0) || 0, pf: +(pr.usd_foil || pr.usd || 0) || 0, img: (c.image_uris || (c.card_faces || [{}])[0].image_uris || {}).small || ""};
       card.sn = card.sn || c.set_name; card.yr = (c.released_at || "").slice(0, 4); EXTRA[k] = card; out.push(card); });
     url = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : "";
   }
@@ -2720,16 +2720,17 @@ async function printsOf(name){
 const printing = (key, e) => S.byKey.get(key) || EXTRA[key] || (e && +e.vp ? (([n, s, num]) => ({k: key, n, s, num, p: +e.vp}))(String(key).split("|")) : null);
 async function fillEditions(root, d){
   const box = root.querySelector("#rvEdPick"); if (!box || box.dataset.done) return; box.dataset.done = "1";
-  const nm = String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || [];
-  try{
-    const all = (await printsOf(nm[1])).filter(c => c.s !== nm[2]);
+  const nm = String(d.card || "").match(/^(.*?) \[([A-Z0-9]+)\]/) || [];   // "Krang, Utrom Warlord [TMT] (foil)" too
+  const myNum = String(d.key || "").split("|")[2] || "";
+  try{   // every other printing - other sets, and other versions in the same set (Borderless #221 vs Showcase #300)
+    const all = (await printsOf(nm[1])).filter(c => !(c.s === nm[2] && (!myNum || c.num === myNum)));
     if (!all.length){ box.innerHTML = `<span class="mut" style="font-size:13px">${esc(nm[1] || "This card")} was only ever printed in ${esc(nm[2] || "this set")} (in paper), so there's no other edition to pick. If it's a fake or proxy, choose that under "Is It the Right Card?"; if it's foreign or something else, say so in the note.</span>`; return; }
     box.innerHTML = all.map(v => `<button type="button" class="btn small${RV.sel.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.sn || v.s)} ${esc(v.yr || "")} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${esc(v.s)} #${esc(v.num)}${v.yr ? " · " + esc(v.yr) : ""}</span><span>${v.p ? money(+v.p) : "no price"}</span></button>`).join("");
   }catch(e){ box.innerHTML = `<span class="mut" style="font-size:13px">Couldn't load the printings (${esc(e.message)}).</span>`; }
 }
 function fairAt(d, cond, vc){
-  const card = vc || floorCard(d);
-  const nm = card && +card.p ? +card.p : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition), d) || 1);
+  const card = vc || floorCard(d), foil = /\((foil|etched)\)/i.test(d.card || ""), cp = card ? +(foil && card.pf ? card.pf : card.p) : 0;
+  const nm = cp ? cp : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition), d) || 1);
   return {v: nm * condMult(cond, d), src: isVintageDeal(d) ? "vintage" : "standard"};
 }
 function vinTag(d){   // which condition table priced this deal - tap for the math
