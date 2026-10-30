@@ -404,7 +404,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:43 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3805,7 +3805,7 @@ function openSDEdit(id, pre){
       <div><label for="sdeLoc">Storage location (optional)</label><input id="sdeLoc" value="${esc(r.location)}"></div>
       <div><label for="sdeNotes">Notes</label><input id="sdeNotes" value="${esc(r.notes)}"></div>
     </div><div class="mut" id="sdeHint" style="font-size:12px;margin-top:6px"></div>
-    <div class="acts">${id && !r.ref ? '<button class="btn ghost" id="sdeDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="sdeCancel" type="button">Cancel</button>${id ? "" : '<button class="btn ghost" id="sdeMore" type="button" title="Save this and keep the form open for the next one">Add &amp; Add Another</button>'}<button class="btn" id="sdeOk" type="button">${id ? "Save" : "Add"}</button></div>`);
+    <div class="acts">${id && !r.ref ? '<button class="btn ghost" id="sdeDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="sdeCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="sdeMore" type="button" title="Save this and keep the form open for the next one">Add &amp; Add Another</button>'}<button class="btn" id="sdeOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
   $("#sdeKind").value = SD_KINDS[r.kind] ? r.kind : "other"; $("#sdeFin").value = r.finish === "foil" ? "foil" : "nonfoil";
   const pick = {tcg: r.tcg_id || "", drop: r.drop || ""};
   const msrp = () => { const v = $("#sdeKind").value === "secret_lair" ? sdMSRP($("#sdeName").value.trim(), $("#sdeFin").value, pick.drop) : null, b = $("#sdeMsrp");
@@ -4063,7 +4063,7 @@ function openColEdit(id, pre){
       <div><label for="eList">Listed at ($)</label><input id="eList" inputmode="decimal" value="${esc(r.list_price)}"></div>
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
     </div>
-    <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn ghost" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Add &amp; Add Another</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add"}</button></div>`);
+    <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Add &amp; Add Another</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
   $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
   let t; $("#eName").addEventListener("input", e => { clearTimeout(t); const q = e.target.value.trim(); if (q.length < 2 || isSL) return;
     t = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); $("#eNames").innerHTML = (j.data || []).slice(0, 12).map(n => `<option value="${esc(n)}">`).join(""); }catch{} }, 200); });
