@@ -231,8 +231,9 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 .mk-svg path{fill:none;stroke:rgba(255,236,0,.62);stroke-linecap:round;stroke-linejoin:round}
 .mk-svg path.mk-under{stroke:rgba(0,0,0,.35)}
 #mkLive{stroke:rgba(255,236,0,.75)}
-.mk-lab{position:absolute;transform:translate(-50%,-130%);display:flex;align-items:center;gap:2px;pointer-events:none}
-.mk-lab span{background:#111;color:#ffe600;border:1px solid #ffe600;font-size:11px;padding:1px 5px;border-radius:4px;white-space:nowrap}
+.mk-lab{position:absolute;transform:translate(-50%,-130%);display:flex;align-items:center;gap:3px;pointer-events:none;white-space:nowrap}.mk-lab button{flex:none}
+.mk-lab .mk-t{flex:none;width:auto;min-width:0;height:auto;line-height:1.3;margin:0;pointer-events:auto;background:#111;color:#ffe600;border:1px solid #ffe600;font:inherit;font-size:11px;padding:2px 6px;border-radius:4px;white-space:nowrap;cursor:pointer}.mk-lab .mk-t:disabled{cursor:default;opacity:1}
+#mkView .mk-hint{font-size:12px;color:#bbb;align-self:center;line-height:1.3;min-width:0}#mkView .mk-tags{align-items:center;min-height:42px}#mkCrease{flex:none}#mkCrease .mk-chk{display:inline-block;width:1.1em;visibility:hidden}#mkCrease[aria-pressed="true"] .mk-chk{visibility:visible}
 .mk-lab button{pointer-events:auto;width:22px;height:22px;border-radius:999px;border:0;background:#fff;color:#000;font-size:12px;cursor:pointer}
 .mk-sep{width:1px;background:#555;margin:0 4px;flex:none}
 .mk-dot{display:inline-block;border-radius:999px;background:#ffe600;margin-right:5px;vertical-align:middle}
@@ -418,7 +419,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 02:00 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 02:59 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2421,9 +2422,23 @@ function wireReview(root, d, done){
 }
 // ---- "Show me where": when you change a deal's condition, draw boxes on the listing photos around the damage.
 // The boxes (with a tag each) save with your review in deal_condition.csv and teach the AI photo check what you look for.
-const MK = {d: null, marks: [], imgs: null, cur: 0, tag: "Whitening", hist: []};
-const MK_TAGS = ["Whitening", "Corner", "Edge", "Scratch", "Crease", "Dent", "Print Line", "Stain", "Other"];
-const markSummary = ms => { const n = {}; ms.forEach(m => n[m.t] = (n[m.t] || 0) + 1); return Object.entries(n).map(([t, k]) => (k > 1 ? k + " x " : "") + t.toLowerCase()).join(", "); };
+// Each stroke is sorted by WHERE it is: near the photo's border = Edges & corners, inside = Surface; "Crease / Dent" is the one toggle.
+const MK = {d: null, marks: [], imgs: null, cur: 0, crease: false, hist: []};
+const MK_EDGE = 0.14;   // a stroke reaching within 14% of the photo's border counts as edge / corner wear
+const mkGroup = t => /^(edge|corner|whitening)$/i.test(t || "") ? "edge" : /^(crease|dent)$/i.test(t || "") ? "crease" : /^(surface|scratch|print line|stain)$/i.test(t || "") ? "surface" : "other";
+const mkSides = m => { const xs = m.p.map(q => q[0]), ys = m.p.map(q => q[1]);
+  return [Math.min(...ys) < MK_EDGE && "top", Math.max(...ys) > 1 - MK_EDGE && "bottom", Math.min(...xs) < MK_EDGE && "left", Math.max(...xs) > 1 - MK_EDGE && "right"].filter(Boolean); };
+const mkAuto = m => mkSides(m).length ? "Edge" : "Surface";
+function mkWhere(m){   // plain words for where a mark is: "top-left corner", "right edge", "center"
+  const sd = m.p ? mkSides(m) : [];
+  if (mkGroup(m.t) === "edge" && sd.length){ const v = sd.find(x => x === "top" || x === "bottom"), h = sd.find(x => x === "left" || x === "right");
+    return v && h ? v + "-" + h + " corner" : (v || h) + " edge"; }
+  const cx = m.x + m.w / 2, cy = m.y + m.h / 2, v = cy < 0.34 ? "upper" : cy > 0.66 ? "lower" : "", h = cx < 0.34 ? "left" : cx > 0.66 ? "right" : "";
+  return v && h ? v + "-" + h : v || h ? (v || h) + (v ? " middle" : " side") : "center";
+}
+const MK_WORD = {edge: "edge mark", surface: "surface mark", crease: "crease / dent", other: "other mark"};
+const markSummary = ms => ["edge", "surface", "crease", "other"].map(g => { const l = ms.filter(m => mkGroup(m.t) === g); if (!l.length) return "";
+  return l.length + " " + MK_WORD[g] + (l.length > 1 ? "s" : "") + " (" + [...new Set(l.map(mkWhere))].join(", ") + ")"; }).filter(Boolean).join(", ");
 async function markPhotos(root, d){
   const box = root.querySelector("#rvMarks"); if (!box) return;
   if (!MK.imgs){
@@ -2446,23 +2461,23 @@ async function markPhotos(root, d){
 function openMarker(i, onClose){   // highlighter: paint over the wear (strokes saved as points, 0-1 of the photo)
   MK.cur = i; MK.hist = []; MK.zoom = 1;
   let v = $("#mkView"); if (!v){ v = document.createElement("div"); v.id = "mkView"; document.body.appendChild(v); }
-  const SIZES = [["Fine", 0.012], ["Medium", 0.025], ["Thick", 0.045]];
-  if (!MK.size) MK.size = 0.025;
+  const brush = () => 0.025 / (MK.zoom || 1);   // one brush: thinner when zoomed in, so it looks the same on screen
   const pathD = m => m.p.map((q, k) => (k ? "L" : "M") + (q[0] * 1000).toFixed(1) + " " + (q[1] * 1000).toFixed(1)).join(" ");
   const strokes = () => MK.marks.map((m, k) => [m, k]).filter(([m]) => m.i === MK.cur);
   const draw = () => {
     v.innerHTML = `<div class="mk-top"><b>Highlight the wear</b><span class="grow"></span><button class="btn ghost small" id="mkZoom" type="button">${MK.zoom > 1 ? "Zoom Out" : "🔍 Zoom In"}</button>${MK.zoom > 1 ? `<button class="btn${MK.pan ? "" : " ghost"} small" id="mkPan" type="button" title="Move around the zoomed photo">${MK.pan ? "✋ Moving" : "✋ Move"}</button>` : ""}<button class="btn ghost small" id="mkUndo" type="button"${MK.hist.length ? "" : " disabled"}>↶ Undo</button><button class="btn small" id="mkDone" type="button">Done</button></div>
-      <div class="mk-tags">${MK_TAGS.map(t => `<button type="button" class="btn small${MK.tag === t ? "" : " ghost"}" data-tag="${esc(t)}">${esc(t)}</button>`).join("")}<span class="mk-sep"></span>${SIZES.map(([n, w]) => `<button type="button" class="btn small${MK.size === w ? "" : " ghost"}" data-size="${w}" title="Highlighter size"><i class="mk-dot" style="width:${Math.round(w * 300)}px;height:${Math.round(w * 300)}px"></i>${n}</button>`).join("")}</div>
+      <div class="mk-tags"><button type="button" class="btn small${MK.crease ? "" : " ghost"}" id="mkCrease" aria-pressed="${MK.crease}" title="Turn on before marking a bend, crease or dent"><span class="mk-chk">✓</span>Crease / Dent</button><span class="mk-hint">Edge or surface is picked from where you mark · tap a label to flip it</span></div>
       <div class="mk-stage" id="mkStage"><div class="mk-wrap${MK.zoom > 1 ? " zoomed" : ""}${MK.pan && MK.zoom > 1 ? " pan" : ""}" id="mkWrap"><img id="mkImg" src="${esc(MK.imgs[MK.cur])}" alt="" draggable="false">
-        <svg class="mk-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">${strokes().map(([m]) => `<path class="mk-under" d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000 + 8}"/><path d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000}"/>`).join("")}<path id="mkLive" d="" stroke-width="${MK.size * 1000}"/></svg>
-        ${strokes().map(([m, k]) => `<div class="mk-lab" style="left:${Math.min(0.92, Math.max(0.08, m.p[0][0])) * 100}%;top:${Math.max(0.06, m.p[0][1]) * 100}%"><span>${esc(m.t)}</span><button type="button" data-del="${k}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
+        <svg class="mk-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">${strokes().map(([m]) => `<path class="mk-under" d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000 + 8}"/><path d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000}"/>`).join("")}<path id="mkLive" d="" stroke-width="${brush() * 1000}"/></svg>
+        ${strokes().map(([m, k]) => `<div class="mk-lab" style="left:${Math.min(0.92, Math.max(0.08, m.p[0][0])) * 100}%;top:${Math.max(0.06, m.p[0][1]) * 100}%"><button type="button" class="mk-t" data-flip="${k}"${mkGroup(m.t) === "crease" ? " disabled" : ""}>${esc(mkGroup(m.t) === "edge" ? "Edge" : mkGroup(m.t) === "surface" ? "Surface" : mkGroup(m.t) === "crease" ? "Crease" : m.t)}</button><button type="button" data-del="${k}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
       ${MK.imgs.length > 1 ? `<div class="mk-thumbs">${MK.imgs.map((u, k) => { const n = MK.marks.filter(m => m.i === k).length; return `<button type="button" class="mk-th${k === MK.cur ? " on" : ""}" data-go="${k}"><img src="${esc(u.replace(/s-l\d+\./, "s-l140."))}" alt="">${n ? `<b>${n}</b>` : ""}</button>`; }).join("")}</div>` : ""}`;
     v.querySelector("#mkDone").addEventListener("click", () => { v.remove(); onClose && onClose(); });
     v.querySelector("#mkUndo").addEventListener("click", () => { const h = MK.hist.pop(); if (h) MK.marks = h; draw(); });
     v.querySelector("#mkZoom").addEventListener("click", () => { if (MK.zoom === 1) MK.baseW = v.querySelector("#mkWrap").getBoundingClientRect().width; MK.zoom = MK.zoom > 1 ? 1 : 2.5; MK.pan = false; MK.scroll = null; draw(); });
     const pb = v.querySelector("#mkPan"); if (pb) pb.addEventListener("click", () => { MK.pan = !MK.pan; draw(); });
-    v.querySelectorAll("[data-tag]").forEach(b => b.addEventListener("click", () => { MK.tag = b.dataset.tag; draw(); }));
-    v.querySelectorAll("[data-size]").forEach(b => b.addEventListener("click", () => { MK.size = +b.dataset.size; draw(); }));
+    v.querySelector("#mkCrease").addEventListener("click", () => { MK.crease = !MK.crease; draw(); });
+    v.querySelectorAll("[data-flip]").forEach(b => b.addEventListener("pointerdown", e => { e.stopPropagation(); const m = MK.marks[+b.dataset.flip]; if (!m || mkGroup(m.t) === "crease") return;
+      MK.hist.push(MK.marks.map(x => Object.assign({}, x))); m.t = mkGroup(m.t) === "edge" ? "Surface" : "Edge"; m.where = mkWhere(m); draw(); }));
     v.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => { MK.cur = +b.dataset.go; draw(); }));
     v.querySelectorAll("[data-del]").forEach(b => b.addEventListener("pointerdown", e => { e.stopPropagation(); MK.hist.push(MK.marks.slice()); MK.marks.splice(+b.dataset.del, 1); draw(); }));
     const wrap = v.querySelector("#mkWrap"), live = v.querySelector("#mkLive"), stage = v.querySelector("#mkStage"); let pts = null;
@@ -2471,7 +2486,7 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
     stage.addEventListener("scroll", () => { MK.scroll = [stage.scrollLeft, stage.scrollTop]; });
     const pt = e => { const r = wrap.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
     // zoomed in: one finger paints; the stage scrolls with two fingers / the scroll bars
-    wrap.addEventListener("pointerdown", e => { if (e.target.closest("[data-del]") || (e.pointerType === "touch" && !e.isPrimary) || (MK.pan && MK.zoom > 1)) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); pts = [pt(e)];
+    wrap.addEventListener("pointerdown", e => { if (e.target.closest("[data-del],[data-flip]") || (e.pointerType === "touch" && !e.isPrimary) || (MK.pan && MK.zoom > 1)) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); pts = [pt(e)];
       live.setAttribute("d", "M" + pts[0].map(n => (n * 1000).toFixed(1)).join(" ")); });
     wrap.addEventListener("pointermove", e => { if (!pts) return; const q = pt(e), l = pts[pts.length - 1];
       if (Math.hypot(q[0] - l[0], q[1] - l[1]) < 0.003) return; pts.push(q); live.setAttribute("d", pathD({p: pts})); });
@@ -2480,8 +2495,10 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
       const r3 = n => Math.round(n * 1000) / 1000, xs = p.map(q => q[0]), ys = p.map(q => q[1]);
       const x = Math.min(...xs), y = Math.min(...ys);
       MK.hist.push(MK.marks.slice());
-      MK.marks.push({i: MK.cur, u: MK.imgs[MK.cur], t: MK.tag, s: MK.size, p: p.slice(0, 400).map(q => [r3(q[0]), r3(q[1])]),
-        x: r3(x), y: r3(y), w: r3(Math.max(...xs) - x), h: r3(Math.max(...ys) - y)});   // the outline box, for the AI's "where" words
+      const m = {i: MK.cur, u: MK.imgs[MK.cur], t: "", s: r3(brush()) || 0.001, p: p.slice(0, 400).map(q => [r3(q[0]), r3(q[1])]),
+        x: r3(x), y: r3(y), w: r3(Math.max(...xs) - x), h: r3(Math.max(...ys) - y)};   // the outline box, for the AI's "where" words
+      m.t = MK.crease ? "Crease" : mkAuto(m); m.where = mkWhere(m);
+      MK.marks.push(m);
       draw(); };
     wrap.addEventListener("pointerup", end); wrap.addEventListener("pointercancel", () => { pts = null; draw(); });
   };
