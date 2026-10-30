@@ -413,7 +413,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:54 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:32 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4151,7 +4151,7 @@ function goalProgress(g){
   COL.inv.forEach(r => { const n = left.get(r.id); if (!n || (r.set || "").toLowerCase() !== code || (r.finish || "nonfoil") !== fin) return;
     if (r.number) byNum[r.number] = (byNum[r.number] || 0) + n; else { const k = (r.name || "").toLowerCase(); byName[k] = (byName[k] || 0) + n; } });
   const pool = Object.assign({}, byName), pk = fin === "foil" ? "usd_foil" : fin === "etched" ? "usd_etched" : "usd";
-  const rows = cards.map(c => { let have = byNum[c.collector_number] || 0; const k = c.name.toLowerCase();
+  const rows = cards.filter(c => (c.finishes || ["nonfoil"]).includes(fin)).map(c => {   // only printings made in this finish let have = byNum[c.collector_number] || 0; const k = c.name.toLowerCase();
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
     const price = c.prices && c.prices[pk] != null ? +c.prices[pk] : null;
     return {c, have, price}; });
