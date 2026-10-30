@@ -19,13 +19,13 @@
 :root{
   --bg:#f6f4ef;--panel:#fffdf8;--ink:#1d1b17;--muted:#6f6a5f;--line:#e2ddd1;--soft:#efeadf;
   --accent:#8a3b12;--accent-ink:#fff;--up:#1f7a4d;--down:#b3261e;--gold:#a87b13;--focus:#c56a2a;
-  --chip:#f1e6d8;
+  --chip:#f1e6d8;color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;
   --bg:#15130f;--panel:#1d1a15;--ink:#ece6da;--muted:#a39b8c;--line:#332e26;--soft:#26221b;
   --accent:#e08a4f;--accent-ink:#1a1009;--up:#5cc28d;--down:#f0776d;--gold:#e0b44a;--focus:#e08a4f;--chip:#2c251c;
 }}
-:root[data-theme="dark"]{
+:root[data-theme="dark"]{color-scheme:dark;
   --bg:#15130f;--panel:#1d1a15;--ink:#ece6da;--muted:#a39b8c;--line:#332e26;--soft:#26221b;
   --accent:#e08a4f;--accent-ink:#1a1009;--up:#5cc28d;--down:#f0776d;--gold:#e0b44a;--focus:#e08a4f;--chip:#2c251c;
 }
@@ -157,6 +157,11 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .added-so-far{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(46,160,67,.14);border:1px solid rgba(46,160,67,.5);font-size:13px;font-weight:600}
 .added-so-far.flash{animation:addflash .9s ease}@keyframes addflash{0%{background:rgba(46,160,67,.55)}100%{background:rgba(46,160,67,.14)}}
 tr.held td,.tile.held{opacity:.5}
+/* form controls follow the theme: number arrows, date pickers, checkboxes and scrollbars stay dark in dark mode */
+input,select,textarea{accent-color:var(--accent)}
+input[type=number]::-webkit-inner-spin-button{opacity:.45;cursor:pointer}input[type=number]:hover::-webkit-inner-spin-button,input[type=number]:focus::-webkit-inner-spin-button{opacity:.9}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
+*{scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
