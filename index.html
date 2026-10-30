@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:31 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:36 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2334,7 +2334,7 @@ function reviewHTML(d, mode){
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
       <div>${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
-      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.35">Should be: <b>${esc(c.sn || setOf(d) || "?")}</b>${condCode(d._c0 || d.condition || "") ? ` · <b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
+      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">Should be:</span><br><b class="up">${esc(c.sn || setOf(d) || "?")}</b>${condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
     ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
