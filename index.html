@@ -419,7 +419,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:45 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 04:01 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3672,6 +3672,14 @@ function renderSD(){
 // when a row was added: its id carries the time it was created (newId)
 const sdTs = r => { const m = /^sd-([0-9a-z]{8,9})[0-9a-z]{4}$/.exec(r.id || ""); return m ? parseInt(m[1], 36) : 0; };
 const sdAddedAt = r => { const t = sdTs(r); return t > 1.7e12 && t < Date.now() + 864e5 ? new Date(t).toLocaleDateString("en-CA", {timeZone: "America/Phoenix"}) : ""; };
+// "Where From" suggestions: real sellers / places only - not the notes the app writes itself ("Opened: <product>", "Set: ...", set imports)
+function whereFrom(list){
+  const seen = new Map();
+  for (const v of list){ const t = String(v || "").trim();
+    if (!t || /^(opened|set|from|received|split from)\b\s*:?|^already owned|\(set import\)/i.test(t)) continue;
+    const k = t.toLowerCase(); if (!seen.has(k) || /[A-Z]/.test(t) && !/[A-Z]/.test(seen.get(k))) seen.set(k, t); }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b)).slice(0, 40);
+}
 function sdRecentHTML(){
   const cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
   const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : r.ref ? "" : sdAddedAt(r);   // received Secret Lairs have their own list on that tab
@@ -3680,7 +3688,7 @@ function sdRecentHTML(){
   if (!rec.length) return "";
   return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently added, opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span>
     <div class="bdl-list" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
-      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px">${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
+      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px;display:flex;gap:6px;align-items:center"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdedit="${esc(r.id)}" title="Change the price, quantity, where from, date...">✎ Edit</span>${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
         : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></div>`;
 }
 function renderSDList(){
@@ -3858,7 +3866,7 @@ function sdMSRP(product, finish, drop){
 function openSDEdit(id, pre){
   const r = id ? SD.rows.find(x => x.id === id) : Object.assign({id: "", product: "", kind: "booster_box", set: "", finish: "nonfoil", qty: "1", cost_each: "", acquired: todayAZ(), source: "", notes: "", location: "", status: "sealed", ref: "", tcg_id: "", drop: "", account: "", order: ""}, pre || {});
   if (!r) return;
-  const srcs = [...new Set(SD.rows.map(x => x.source).concat(COL.inv.map(x => x.source)).filter(Boolean))].slice(0, 40);
+  const srcs = whereFrom(SD.rows.map(x => x.source).concat(COL.inv.map(x => x.source)));
   openModal(`<h3>${id ? "Edit Sealed" : pre ? "Add another: " + esc(r.product) : "+ Add Sealed"}</h3>${pre ? '<div class="mut" style="font-size:13px">Saved as its own entry with its own price, shown together with the ones you already have.</div>' : ""}${r.ref ? `<div class="mut" style="font-size:13px">From your Secret Lair order${r.order ? " #" + esc(r.order) : ""} - to un-receive it, use ↩ Undo on the Secret Lair tab.</div>` : pre ? "" : '<div class="mut" style="font-size:13px">Search a Secret Lair drop or any sealed Magic product (TCGplayer list), or type your own name.</div>'}
     <div class="grid">
       <div class="full" style="position:relative"><label for="sdeName">Product</label><input id="sdeName" value="${esc(r.product)}" autocomplete="off" ${r.ref ? "readonly" : ""} placeholder="e.g. Dominaria United Draft Booster Box">
@@ -4114,7 +4122,7 @@ function openSell(id){
 function openColEdit(id, pre){
   const r = id ? COL.inv.find(x => x.id === id) : Object.assign({id: "", name: "", set: "", number: "", finish: "nonfoil", condition: "NM", language: "EN", qty: "1", cost_each: "", acquired: todayAZ(), source: "", status: "owned", list_price: "", notes: "", scryfall_id: "", kind: "card", ref: ""}, pre || {});
   if (!r) return;
-  const srcs = [...new Set(COL.inv.map(x => x.source).filter(Boolean))];
+  const srcs = whereFrom(COL.inv.map(x => x.source).concat(SD.rows.map(x => x.source)));
   const isSL = (r.kind || "") === "secret_lair";
   openModal(`<h3>${id ? "Edit" : "Add card"}</h3>${isSL ? '<div class="mut" style="font-size:13px">Secret Lair item - valued from its drop.</div>' : '<div class="mut" style="font-size:13px">Set code and collector number are optional but pick the exact printing (shown on Scryfall).</div>'}
     <div class="grid">
