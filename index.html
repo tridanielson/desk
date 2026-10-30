@@ -404,7 +404,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:22 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -511,7 +511,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + Unsigned</option><option value="hide">Hide Signed</option><option value="only">Signed Only</option></select>
     <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top Picks Only</label>
     <label><input type="checkbox" id="dUSA"> USA Sellers Only</label>
-    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended &amp; Bought</label>
+    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended, Bought &amp; Ignored</label>
     <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     </div>
@@ -1038,6 +1038,9 @@ async function saveAll(){
     if (S.dirty.has("gone")){ S.dirty.delete("gone");   // deletions (↩ Not Sold) win over the copy on GitHub: rebuild from what's on screen
       GONE.sha = await putMerged("collection/gone.csv", GONE.sha, () => toCSV(GONE_COLS, Object.values(GONE.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.item_id && !GONE.rows[r.item_id] && !(S.deals.find(d => itemId(d) === r.item_id) || {})._unGone) GONE.rows[r.item_id] = r; }), "Marked sold / gone (Price Desk)"); }
+    if (S.dirty.has("ignored")){ S.dirty.delete("ignored");   // rebuilt from what's on screen (an Unignore wins)
+      IGN.sha = await putMerged("collection/ignored.csv", IGN.sha, () => toCSV(IGN_COLS, Object.values(IGN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
+        rows => rows.forEach(r => { if (r.item_id && !IGN.rows[r.item_id] && !IGN.un.has(r.item_id)) IGN.rows[r.item_id] = r; }), "Ignored listings (Price Desk)"); }
     if (S.dirty.has("snipes")){ S.dirty.delete("snipes");
       SN.sha = await putMerged("collection/snipes.csv", SN.sha, () => toCSV(SN_COLS, Object.values(SN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.item_id && !SN.rows[r.item_id]) SN.rows[r.item_id] = r; }), "Snipes set (Price Desk)"); }
@@ -1557,7 +1560,7 @@ const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "e
 function dealExtraOK(d){
   const ty0 = $("#dType") ? $("#dType").value : "";
   if (ty0 === "sniped"){ const s = snipeOf(d); if (!s || s.result) return false; }   // My Snipes: live ones + ended ones waiting for Won/Lost
-  else if ((isEnded(d) || (FB.loaded && boughtFor(d))) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now
+  else if ((isEnded(d) || (FB.loaded && boughtFor(d)) || isIgnored(d)) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now; ignored ones are out of sight
   const lg = $("#dLang") ? $("#dLang").value : "";
   if (lg === "en" && langOf(d)) return false;
   if (lg === "foreign" && !langOf(d)) return false;
@@ -1696,7 +1699,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv"]); loadIGN(f["collection/ignored.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
@@ -1856,7 +1859,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed${d._held ? " held" : ""}" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : d._held ? ' class="held"' : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${isIgnored(d) ? '<span class="badge b-out">IGNORED</span> ' : ""}${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2226,12 +2229,30 @@ function reviewedState(d){
   if (!f && !a && !c) return null;
   return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
-function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + goneBtnHTML(d, tile) : r; }
+function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + goneBtnHTML(d, tile) + ignoreBtnHTML(d, tile) : r; }
 // ---- "Sold / Gone": a Buy It Now you can see has sold - hide it now; the scan marks it ended without spending an eBay check (collection/gone.csv)
 const GONE_COLS = ["item_id", "url", "card", "at"];
 const GONE = {rows: {}, sha: null, loaded: false};
 function loadGONE(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) GONE.rows[r.item_id] = r; }); }catch(e){} GONE.sha = x ? x.sha : null; GONE.loaded = true; applyGone(); }
 function applyGone(){ S.deals.forEach(d => { if (GONE.rows[itemId(d)] && d.status !== "ended"){ d._preGone = d.status || "live"; d.status = "ended"; d._gone = true; } else if (GONE.rows[itemId(d)]) d._gone = true; }); }
+// 🙈 Ignore: "not interested in this one" - hides one listing for good, teaches nothing (collection/ignored.csv)
+const IGN_COLS = ["item_id", "url", "card", "at"];
+const IGN = {rows: {}, sha: null, loaded: false, un: new Set()};
+function loadIGN(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) IGN.rows[r.item_id] = r; }); }catch(e){} IGN.sha = x ? x.sha : null; IGN.loaded = true; }
+const isIgnored = d => !!IGN.rows[itemId(d)];
+function ignoreBtnHTML(d, tile){
+  if (READONLY || !IGN.loaded || !itemId(d)) return "";
+  const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
+  return isIgnored(d) ? ` <${tag} class="btn ghost small" data-ign="undo" data-u="${esc(d.url)}" title="Show this listing again">↩ Unignore</${end}>`
+    : ` <${tag} class="btn ghost small" data-ign="yes" data-u="${esc(d.url)}" title="Not interested in this one - hide it for good (doesn't teach the filters or the AI)">🙈 Ignore</${end}>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-ign]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.u); if (!d) return; const id = itemId(d); if (!id) return;
+  if (b.dataset.ign === "yes"){ IGN.un.delete(id); IGN.rows[id] = {item_id: id, url: "https://www.ebay.com/itm/" + id, card: d.card || "", at: new Date().toISOString().slice(0, 16)}; if (DFREEZE.order) DFREEZE.order.delete(d.url);
+    toastHTML(`🙈 ${esc(d.card)} ignored. <a href="#" id="ignUndo">Undo</a> · find it again with More Filters → Include Ended, Bought &amp; Ignored.`, 7000);
+    const a = $("#ignUndo"); if (a) a.addEventListener("click", ev => { ev.preventDefault(); delete IGN.rows[id]; IGN.un.add(id); markDirty("ignored"); renderDeals(); toast("Back on your list.", 2500); }); }
+  else { delete IGN.rows[id]; IGN.un.add(id); toast("Back on your list.", 2500); }
+  markDirty("ignored"); renderDeals(); });
 function goneBtnHTML(d, tile){
   if (READONLY || !GONE.loaded || (isAuction(d) && !/buy it now/i.test(d.type || ""))) return "";
   const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
