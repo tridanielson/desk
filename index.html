@@ -409,7 +409,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 07:43 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:10 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4168,7 +4168,7 @@ function renderSETS(){
     <button class="btn small" id="setAdd">+ Add a Set</button></div>`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
-      <label><input type="checkbox" id="setNB" checked> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
+      <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
   if (!goals.length) L += `<div class="panel"><p class="empty" style="margin:0">No sets yet. Tap <b>+ Add a set</b> and pick the sets you want to complete.</p></div>`;
   else {
     L += `<div class="sl-grid" style="margin-top:14px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
@@ -4221,7 +4221,7 @@ function renderSetDetail(g){
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
       <h2 style="margin-top:10px">${esc(title)}${(g.finish || "nonfoil") !== "nonfoil" ? " (" + esc(g.finish) + ")" : ""}</h2>
       <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
-      <div class="row"><button class="btn ghost small" id="setPause">${paused ? "Resume tracking" : "Pause"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
+      <div class="row"><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause">${paused ? "Resume tracking" : "Pause"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       <div class="stat"><span>Progress</span><b>${pr.have} / ${pr.total}</b><span>${pct}% complete</span></div>
       <div class="stat"><span>Still need</span><b>${pr.need.length} cards</b><span>${pr.unpriced ? pr.unpriced + " without a price" : ""}</span></div>
@@ -4253,6 +4253,7 @@ function renderSetDetail(g){
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g); const f = $("#setFind"); f.focus(); f.setSelectionRange(pos, pos); });
   $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
+  $("#setNBt").addEventListener("click", () => { g.skip_basics = isNB ? "no" : "yes"; markDirty("collection"); loadSetCards(g); renderSetDetail(g); toast(isNB ? "Basic lands now count toward this set." : "Basic lands left out of this set."); });
   $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
   $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
     COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
