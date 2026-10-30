@@ -419,7 +419,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 02:59 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:07 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2345,6 +2345,7 @@ function reviewHTML(d, mode){
     ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
+    ${photoCheckLine(d)}
     <div class="aud-q"><span>Is It the Right Card?</span>${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]]))}</div>
     ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>Which One Is It?</span><div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
@@ -2576,6 +2577,11 @@ function openReview(d){
 //  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
 //  - becomes a labelled example for a future custom model (training.py)
 //  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
+// free photo check (testing): which printing the photos look like - shown on the review screen only, never hides anything
+function photoCheckLine(d){
+  if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
+  return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📷 Free photo check (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
+}
 const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
