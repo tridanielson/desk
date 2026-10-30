@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:22 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:26 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4214,6 +4214,7 @@ document.addEventListener("click", () => { if (NA.pop && $("#naSetPop")){ NA.pop
 // buy links, and a TCGplayer Mass Entry copy for buying the cheap ones in one cart
 const NA = {sets: new Set(), price: "", sort: "price-desc", q: "", pop: false};
 function renderNeedAll(goals){
+  if (!NA.tcg && !NA.tcgLoading && ROLE === "owner"){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); }
   const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
   const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
   const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + ((g.finish || "nonfoil") !== "nonfoil" ? " (" + g.finish + ")" : ""); };
@@ -4275,7 +4276,8 @@ function renderNeedAll(goals){
   [["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
   box.querySelectorAll("[data-nacopy]").forEach(b => b.addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET] 216" per line (number = exact art)
     const f = b.dataset.nacopy, list = rows.filter(r => r.fin === f), counts = new Map();
-    list.forEach(r => { const k = `${r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
+    const tn = r => (((NA.tcg || {}).sets || {})[r.c.set] || {names: {}}).names[String(r.c.collector_number).replace(/^0+/, "").toLowerCase()];   // TCGplayer's own name ("… (Borderless)") - Mass Entry only finds that
+    list.forEach(r => { const k = `${tn(r) || r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
     const lbl = f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Normal";
     copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${list.length} ${lbl === "Normal" ? "non-foil" : lbl.toLowerCase()} cards. In Mass Entry: paste, ⚙ gear → Printing: ${lbl} only, then Add to Cart.`); }));
   box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k] = b.dataset.nagot.split("|"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
