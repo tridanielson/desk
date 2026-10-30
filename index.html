@@ -156,6 +156,7 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 @media (max-width:700px){.modal .oc-row{grid-template-columns:20px minmax(0,1fr) auto 50px}.oc-row img{display:none}.modal .oc-row input[type=number]{width:50px}}
 .added-so-far{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(46,160,67,.14);border:1px solid rgba(46,160,67,.5);font-size:13px;font-weight:600}
 .added-so-far.flash{animation:addflash .9s ease}@keyframes addflash{0%{background:rgba(46,160,67,.55)}100%{background:rgba(46,160,67,.14)}}
+tr.held td,.tile.held{opacity:.5}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -401,7 +402,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:35 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:50 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -871,7 +872,7 @@ document.addEventListener("click", e => {
   const th = e.target.closest("thead th"); if (!th || e.target.closest("input,select,button,a")) return;
   const tbl = th.closest("table"), h = thText(th);
   if (!tbl || !h || tbl.id === "allTable") return;               // All prices has its own sorting
-  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / Ends" ? 1 : -1); DSORT.k = h; renderDeals(); return; }
+  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / Ends" ? 1 : -1); DSORT.k = h; store.set("pd_dsort", h + "|" + DSORT.dir); DFREEZE.order = null; renderDeals(); return; }
   const k = tableKey(tbl), cur = TSORT[k];
   const dir = cur && cur.h === h ? -cur.dir : 1;
   TSORT[k] = {h, dir}; sortTable(tbl, th.cellIndex, dir); markSorted(tbl, h, dir);
@@ -1778,7 +1779,11 @@ function wireFB(box, rows){
     openFB(d, b.dataset.fb); }));
 }
 // click a column title to sort the deals (again to flip); the phone view follows the same order
-const DSORT = {k: "", dir: -1};
+const DSORT = (() => { try{ const v = (localStorage.getItem("pd_dsort") || "").split("|"); return v[0] ? {k: v[0], dir: +v[1] || -1} : {k: "", dir: -1}; }catch(e){ return {k: "", dir: -1}; } })();   // your sort survives a reload
+// While you work through the list (open a deal in an eBay tab, come back), it holds still: same order, sold/ended ones stay
+// put (greyed) instead of vanishing, new finds go on top. It re-sorts when you change a filter or sort, or tap "Re-sort now".
+const DFREEZE = {order: null, at: 0, changed: 0};
+function freezeDeals(){ if (!DFREEZE.order && S._dealRows && S._dealRows.length){ DFREEZE.order = new Map(S._dealRows.map((d, i) => [d.url, i])); DFREEZE.at = Date.now(); DFREEZE.changed = 0; } }
 const COND_ORDER = {NM: 5, LP: 4, MP: 3, HP: 2, DMG: 1};
 const DEAL_KEYS = {"Found": d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0, "Card": d => (d.card || "").toLowerCase(),
   "% Off": d => +d.discount_pct || 0, "Price + Ship": d => +d.total || 0, "Condition": d => COND_ORDER[(d.condition || "").replace("?", "").toUpperCase()] ?? (/psa|bgs|cgc|sgc|grade/i.test(d.condition) ? 6 : 0),
@@ -1835,12 +1840,21 @@ function renderDeals_(){
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
-  $("#dCount").textContent = `${rows.length} deals`; S._dealRows = rows; showActiveFilters();
+  if (DFREEZE.order){   // hold the order you were looking at
+    const O = DFREEZE.order, inRows = new Set(rows), byUrl = new Map(S.deals.map(d => [d.url, d]));
+    const kept = [...O.keys()].map(u => byUrl.get(u)).filter(d => d && (inRows.has(d) || !(d.hidden || d.ai_verdict === "reject" || GONE.rows[itemId(d)])));   // what you hid / marked gone yourself leaves right away
+    const fresh = rows.filter(d => !O.has(d.url));
+    kept.forEach(d => { d._held = !inRows.has(d); });
+    const n = fresh.length + kept.filter(d => d._held).length;
+    if (n !== DFREEZE.changed) DFREEZE.changed = n;
+    rows.length = 0; rows.push(...fresh, ...kept);
+  } else S.deals.forEach(d => { d._held = false; });
+  $("#dCount").innerHTML = `${rows.length} deals` + (DFREEZE.order ? ` · <a href="#" id="dResort" title="The list is holding still while you look${DFREEZE.changed ? " - " + DFREEZE.changed + " changed since" : ""}">${DFREEZE.changed ? DFREEZE.changed + " changed - " : ""}re-sort now</a>` : ""); S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or AI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
-    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+    rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed${d._held ? " held" : ""}" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : d._held ? ' class="held"' : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
+      <td><div class="cname">${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${d.cond_note && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(d.cond_note)}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -2841,8 +2855,13 @@ async function checkPageVersion(){
 const PV = {newer: false, lastInput: Date.now()};
 ["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { PV.lastInput = Date.now(); }, {passive: true, capture: true}));
 const busyNow = () => S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open], #mkView") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
+document.addEventListener("click", e => { if (!e.target.closest("#dResort")) return; e.preventDefault(); DFREEZE.order = null; renderDeals(); window.scrollTo({top: ($("#dealsTable").closest(".panel") || document.body).offsetTop - 80}); });
+["input", "change"].forEach(t => document.addEventListener(t, e => { if (e.target.closest && e.target.closest("#dDays, #dMin, #dBuy, #dSus, #dSearch, #dRej, #dSigned, #dWhy, #dBy, #dSet, #dType, #dSetPop")) DFREEZE.order = null; }, true));
+document.addEventListener("visibilitychange", () => { if (document.hidden && document.querySelector("#tab-deals.on")) freezeDeals();
+  else if (!document.hidden && DFREEZE.order && Date.now() - DFREEZE.at > 3 * 3600e3){ DFREEZE.order = null; renderDeals(); } });   // gone for hours: start fresh
 async function softReload(){
   if (!PV.newer || busyNow()) return;
+  if (DFREEZE.order && document.querySelector("#tab-deals.on") && Date.now() - DFREEZE.at < 3 * 3600e3) return;   // don't reshuffle what you're working through
   if (!document.hidden && Date.now() - PV.lastInput < 60000) return;
   PV.newer = false; try{ await flushSaves(); }catch(e){}
   try{ sessionStorage.setItem("pd_scroll", String(scrollY)); }catch(e){}
@@ -2907,6 +2926,7 @@ function showNewDeals(){ switchTab("deals"); setTimeout(() => { const el = docum
 document.addEventListener("click", e => {
   const x = e.target.closest("[data-seen]"); if (x){ e.preventDefault(); e.stopPropagation(); seenDeal(x.dataset.seen); renderDeals(); return; }
   const t = e.target.closest("#dealsTiles .tile, #dealsTable tr"); if (!t) return;   // tapping / opening a deal counts as seeing it
+  if (e.target.closest("a[href^='http'], .tile")) freezeDeals();   // you're working the list: hold it still
   const u = (t.querySelector("[data-seen]") || {}).dataset; if (u && u.seen && seenDeal(u.seen)) setTimeout(renderDeals, 400); }, true);
 // ---- browser tab warning while you're looking at something else: "(2) 🆕 Sinkhole 38% off" flashing in the tab + a red count on the icon
 const TABA = {n: 0, base: "Havoth Price Desk", flip: null, href: null, img: null};
@@ -3017,7 +3037,7 @@ function renderDealsTiles(){
   if (!rows.length){ box.innerHTML = `<p class="empty">${S.deals.length ? "No deals match these filters." : "No deals logged yet."}</p>`; return; }
   box.innerHTML = rows.slice(0, 300).map(d => {
     const url = ebayLink(d);
-    return `<a class="tile" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${isNewDeal(d) ? '<span class="flag must newtag" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
+    return `<a class="tile${d._held ? " held" : ""}" href="${esc(url)}" target="_blank" rel="noopener"><div class="t-main"><div class="t-name">${d._held ? `<span class="badge b-out">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d, true)}</div>${d.need ? `<div class="t-sub"><b>NEED</b> · ${esc(d.need)}</div>` : ""}
       <div class="t-sub">${money(d.total)}${+d.ship ? ` (${money(d.price)} + ${money(d.ship)} ship)` : ""} · <span class="condChip${d._adj ? " adj" : ""}" role="button" data-review="${esc(d.url)}" title="Tap to review / change the condition">${esc(d._adj ? d.condition : d._c0)} ✎</span> · fair ${money(d.fair)}${vinTag(d)}${d._adj ? ` <span class="mut">(was ${money(d._f0)})</span>` : ""}</div>
       <div class="t-sub">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? ", " + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""} · ${esc(dealWhen(d))}</div>
       ${isMustBuy(d) ? `<div class="t-chips"><span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now">🚨 MUST BUY</span></div>` : ""}
@@ -4492,7 +4512,7 @@ function costConfirm(title, lines, okLabel){
 const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$/i.test(A.enabled || "yes");
   return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
 // phones have no column titles to tap - these drop-downs do the same sorting
-$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; store.set("pd_dsort_phone", e.target.value || "new"); renderDeals(); });
+$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; DFREEZE.order = null; store.set("pd_dsort_phone", e.target.value || "new"); renderDeals(); });
 if (matchMedia("(max-width:700px)").matches){   // phones: Biggest % Off first unless you picked another sort
   const v0 = store.get("pd_dsort_phone"), v = !v0 ? "% Off|-1" : v0 === "new" ? "" : v0;
   if ([...$("#dSortSel").options].some(o => o.value === v)){ $("#dSortSel").value = v; const [k, dir] = v.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; }
