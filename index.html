@@ -401,7 +401,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:32 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:35 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4177,7 +4177,7 @@ function renderSetDetail(g){
   $("#setView").value = SETS.view;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + (g.finish || "nonfoil"));
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}" title="Add more copies (any condition)">+ Add</button>` :
+  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
@@ -4198,6 +4198,29 @@ function renderSetDetail(g){
   box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const c = (SETS.cards[k] || []).find(x => x.id === b.dataset.got); if (!c) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
+  box.querySelectorAll("[data-srem]").forEach(b => b.addEventListener("click", () => { const c = (SETS.cards[k] || []).find(x => x.id === b.dataset.srem); if (c) openSetRemove(g, c); }));
+}
+// Sets → Remove: your copies of one card (each Collection row), take one off or remove a row
+function openSetRemove(g, c){
+  const fin = g.finish || "nonfoil", code = g.set.toLowerCase();
+  const mine = () => COL.inv.filter(r => (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
+    (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
+  const draw = () => {
+    const rows = mine();
+    openModal(`<h3>Remove: ${esc(c.name)}</h3><div class="mut" style="font-size:13px">${esc(g.set.toUpperCase())} #${esc(c.collector_number)} · ${esc(fin)} - your copies in Collection. Sold one? Use <b>Sell</b> on the Collection tab instead, so the profit is recorded.</div>
+      <div class="bdl-list" style="margin-top:10px">${rows.map(r => `<div class="bdl-row"><span>×${esc(r.qty)} · <b>${esc(r.condition || "NM")}</b> · paid ${money(numOrNull(r.cost_each) || 0)} each${r.source ? " · " + esc(r.source) : ""}${r.acquired ? " · " + esc(r.acquired) : ""}</span>
+        <span style="margin-left:auto;white-space:nowrap">${(parseInt(r.qty) || 0) > 1 ? `<span class="btn ghost small" role="button" data-rm1="${esc(r.id)}">−1</span> ` : ""}<span class="btn ghost small" role="button" data-rmall="${esc(r.id)}">Remove${(parseInt(r.qty) || 0) > 1 ? " all " + esc(r.qty) : ""}</span></span></div>`).join("") || '<div class="mut">None left.</div>'}</div>
+      <div class="acts"><button class="btn" id="srDone" type="button">Done</button></div>`);
+    $("#srDone").addEventListener("click", closeModal);
+    $("#colModalBody").querySelectorAll("[data-rm1], [data-rmall]").forEach(b => b.addEventListener("click", e => {
+      const r = COL.inv.find(x => x.id === (b.dataset.rm1 || b.dataset.rmall)); if (!r) return;
+      if (COL.sales.some(x => x.item_id === r.id)) return toast("This row has a sale recorded - change it on the Collection tab.", 5000);
+      if (b.dataset.rmall && !b.dataset.armed){ b.dataset.armed = 1; b.textContent = "Tap again to remove"; return; }
+      if (b.dataset.rm1) r.qty = String((parseInt(r.qty) || 1) - 1); else COL.inv = COL.inv.filter(x => x !== r);
+      markDirty("collection"); renderSetDetail(g); if (mine().length) draw(); else { closeModal(); toast(`${c.name} removed from your Collection.`); }
+    }));
+  };
+  draw();
 }
 
 // ---------------------------------------------------------------- last updated
