@@ -418,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:39 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:55 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2967,7 +2967,7 @@ function mergeLive(r){
 const NEWD = (() => { try{ const o = JSON.parse(store.get("pd_newdeals") || "{}"), cut = Date.now() - 86400000; Object.keys(o).forEach(k => { if (o[k] < cut) delete o[k]; }); return o; }catch(e){ return {}; } })();
 const LAST_SEEN = +store.get("pd_lastseen") || 0;
 const saveNew = () => store.set("pd_newdeals", JSON.stringify(NEWD));
-const isNewDeal = d => !!NEWD[d.url];
+const isNewDeal = d => !!NEWD[d.url] && !reviewedByMe(d);   // reviewed on any device = not new any more (NEW is remembered per device)
 function markNew(d){ if (!NEWD[d.url]){ NEWD[d.url] = Date.now(); saveNew(); } }
 function seenDeal(url){ if (NEWD[url]){ delete NEWD[url]; saveNew(); return true; } return false; }
 function markNewSinceLastVisit(){   // deals found after you last had the page open
