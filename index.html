@@ -419,7 +419,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:31 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:45 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1579,11 +1579,18 @@ function ebayLink(d){
   const v = (u.match(/[?&]var=(\d+)/) || [])[1];
   return `https://www.ebay.com/itm/${m[1]}?nordt=true${v ? "&var=" + v : ""}`;
 }
+// a plain auction (no Buy It Now any more) that ends after your "Auction Ending Within (Hours)" setting - nothing to do yet
+function longAuction(d){
+  if (!isAuction(d) || /buy it now/i.test(d.type || "")) return false;
+  const e = endAt(d), h = +((S.ini && S.ini.deals || {}).auction_hours) || 12;
+  return e != null && e - Date.now() > h * 3600000;
+}
 const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "ended");
 function dealExtraOK(d){
   const ty0 = $("#dType") ? $("#dType").value : "";
   if (ty0 === "sniped"){ const s = snipeOf(d); if (!s || s.result) return false; }   // My Snipes: live ones + ended ones waiting for Won/Lost
   else if ((isEnded(d) || (FB.loaded && boughtFor(d)) || isIgnored(d)) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now; ignored ones are out of sight
+  if (ty0 !== "sniped" && longAuction(d) && !snipeOf(d)) return false;   // a bid took its Buy It Now away: back when it's inside the auction window
   const lg = $("#dLang") ? $("#dLang").value : "";
   if (lg === "en" && langOf(d)) return false;
   if (lg === "foreign" && !langOf(d)) return false;
