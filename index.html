@@ -402,7 +402,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:50 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 06:12 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3117,7 +3117,7 @@ async function loadSL(force){
   SL.loading = true; SL.error = ""; renderSL();
   try{ const r = await GH.loadSL(); SL.data = r.data ? JSON.parse(r.data) : null; SL.upcoming = r.upcoming && r.upcoming.text ? parseCSV(r.upcoming.text) : []; SL.upSha = r.upcoming ? r.upcoming.sha : null; SL.orders = r.orders ? JSON.parse(r.orders) : null; }
   catch(e){ SL.error = e.message; }
-  SL.loading = false; renderSL();
+  SL.loading = false; renderSL(); if (document.querySelector("#tab-col.on")) renderColWaiting();
 }
 function renderSL(){
   const box = $("#slBody"); if (!box) return;
@@ -3470,6 +3470,7 @@ function markLines(lines, n){
   const what = lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders of " + lines[0].product.slice(0, 40);
   toast(`${what} - received and added to Sealed. ↩ Undo is next to it.`, 5000);
   renderSLOrders();
+  if (document.querySelector("#tab-col.on")) renderCOL();
 }
 // one line with more than one coming: ask how many arrived (orders often ship in parts)
 function markReceived(lineId){
@@ -3857,77 +3858,77 @@ function renderCOL(){
   if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
   if (COL.loading && !COL.loaded){ box.innerHTML = '<p class="empty">Loading your collection…</p>'; return; }
   if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try Again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
-  const items = colItems(), sales = colSales();
-  const held = items.filter(i => i.left > 0), priced = held.filter(i => i.value != null);
+  const all = colAll(), held = all.filter(i => !i.ordered), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
-  const yr = todayAZ().slice(0, 4), mo = todayAZ().slice(0, 7);
   const stat = (label, v, sub) => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
-  const pend = items.filter(i => i.pending).length;
-  const srcs = [...new Set(items.map(i => i.source))].sort();
-  let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
-      <p class="sub" style="margin:0">What you own, what it's worth, and what you've made selling. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run (or Run a Scan Now in Setup & Help).` : ""}</p></div>
-      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
+  const pend = all.filter(i => i.pending).length, singles = held.filter(i => i.kind === "card"), sealed = held.filter(i => i.kind === "sealed");
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
+      <p class="sub" style="margin:0">Everything you own and what it's worth - singles and sealed product. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run.` : ""}</p></div>
+      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><button class="btn ghost small" id="colAddS">+ Add Sealed</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
-      ${stat("Held", `${sum(held, i => i.left)} items`, `${held.length} rows`)}
-      ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you still have")}
+      ${stat("You have", `${sum(held, i => i.left)} items`, `${sum(singles, i => i.left)} singles · ${sum(sealed, i => i.left)} sealed`)}
+      ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you have")}
       ${stat("Worth Now", money(sum(priced, i => i.value)), held.length - priced.length ? `${held.length - priced.length} rows not priced yet` : "")}
-      ${stat("Unrealized gain", gainHTML(sum(priced, i => i.value - i.cost_left), sum(priced, i => i.cost_left)), "if you sold at market")}
-      ${stat("Profit this month", gainHTML(sum(sales.filter(x => (x.date || "").startsWith(mo)), x => x.profit)), "after fees & shipping")}
-      ${stat("Profit this year", gainHTML(sum(sales.filter(x => (x.date || "").startsWith(yr)), x => x.profit)), `${sales.length} sales all-time`)}
-      ${SD.loaded && SD.rows.length ? (() => { const h = sdItems().filter(i => i.status === "sealed" && i.qty > 0); return stat('Sealed <a href="#sealed" data-gotab="sealed" style="font-size:11px">open</a>', money(sum(h.filter(i => i.value != null), i => i.value)), `${sum(h, i => i.qty)} items · not in the totals here`); })() : ""}
+      ${stat("Gain", gainHTML(sum(priced, i => i.value - i.cost_left), sum(priced, i => i.cost_left)), "if you sold at market")}
     </div>
+    <div id="colWaiting"></div>
     <div class="panel row"><input id="colQ" placeholder="Search your collection…" value="${esc(COL.q)}" style="flex:1;min-width:180px">
-      <select id="colSrc"><option value="">All Sources</option>${srcs.map(x => `<option>${esc(x)}</option>`).join("")}</select>
-      <select id="colStatus"><option value="held">Still Have</option><option value="ordered">Ordered (On the Way)</option><option value="listed">Listed</option><option value="sold">Sold Out</option><option value="">Everything</option></select>
-      <select id="colKind"><option value="">Cards + Secret Lair</option><option value="card">Cards</option><option value="secret_lair">Secret Lair</option></select>
+      <select id="colKind"><option value="">Everything</option><option value="card">Singles</option><option value="sealed">Sealed Product</option></select>
       <span class="status" id="colCount"></span></div>
     <div class="panel scroll"><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table>
       <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show More</button></div></div>`;
-  // sales + breakdowns
-  L += `<div class="row" style="justify-content:space-between;margin-top:22px"><h3 style="margin:0;font-size:16px">Sales</h3><button class="btn ghost small" id="colSalesToggle">${COL.showSales ? "Hide" : "Show"} sales (${sales.length})</button></div>`;
-  if (COL.showSales){
-    L += `<div class="panel scroll" style="margin-top:10px"><table><thead><tr><th class="nosort">Date</th><th class="nosort">Item</th><th class="r nosort">Qty</th><th class="r nosort">Sold For</th><th class="r nosort">Fees</th><th class="r nosort hide-sm">Ship Cost</th><th class="r nosort hide-sm">Paid</th><th class="r nosort">Profit</th><th class="nosort"></th></tr></thead><tbody>` +
-      (sales.map(x => `<tr><td style="white-space:nowrap">${esc(x.date)}</td><td><div class="cname">${esc(x.name)}</div><div class="cset">${esc(x.platform)} · ${esc(x.source)}</div></td><td class="r">${x.qty}</td><td class="r">${money(x.revenue)}</td>
-        <td class="r">${x.est ? '<span title="Estimated from your fee settings">~</span>' : ""}${money(x.fee)}</td><td class="r hide-sm">${money(x.ship)}</td><td class="r hide-sm">${money(x.cost)}</td><td class="r">${gainHTML(x.profit)}</td>
-        <td><button class="btn ghost small" data-delsale="${esc(x.id)}">Undo</button></td></tr>`).join("") || '<tr><td colspan="9" class="empty">No sales yet - use Sell on an item.</td></tr>') + "</tbody></table></div>";
-    const months = {}; sales.forEach(x => { const m = (x.date || "").slice(0, 7) || "undated"; const a = months[m] = months[m] || {n: 0, rev: 0, fee: 0, p: 0}; a.n++; a.rev += x.revenue; a.fee += x.fee; a.p += x.profit; });
-    const bySrc = {}; items.forEach(i => { const a = bySrc[i.source] = bySrc[i.source] || {cards: 0, paid: 0, value: 0, realized: 0}; a.cards += i.left; a.paid += i.cost_left; a.value += i.value || 0; });
-    sales.forEach(x => { const a = bySrc[x.source] = bySrc[x.source] || {cards: 0, paid: 0, value: 0, realized: 0}; a.realized += x.profit; });
-    L += `<div class="grid2" style="margin-top:6px"><div class="panel scroll"><b>By month</b><table style="margin-top:6px"><thead><tr><th class="nosort">Month</th><th class="r nosort">Sales</th><th class="r nosort">Revenue</th><th class="r nosort">Fees</th><th class="r nosort">Profit</th></tr></thead><tbody>` +
-      Object.entries(months).sort((a, b) => b[0].localeCompare(a[0])).map(([m, a]) => `<tr><td>${esc(m)}</td><td class="r">${a.n}</td><td class="r">${money(a.rev)}</td><td class="r">${money(a.fee)}</td><td class="r">${gainHTML(a.p)}</td></tr>`).join("") + `</tbody></table></div>
-      <div class="panel scroll"><b>By source</b><table style="margin-top:6px"><thead><tr><th class="nosort">Source</th><th class="r nosort">Held</th><th class="r nosort">Worth</th><th class="r nosort">Sold Profit</th></tr></thead><tbody>` +
-      Object.entries(bySrc).sort((a, b) => b[1].value - a[1].value).map(([k, a]) => `<tr><td>${esc(k)}</td><td class="r">${a.cards}</td><td class="r">${money(a.value)}</td><td class="r">${gainHTML(Math.round(a.realized * 100) / 100)}</td></tr>`).join("") + "</tbody></table></div></div>";
-  }
-  box.innerHTML = L;
-  $("#colStatus").value = COL.status; $("#colSrc").value = COL.src; $("#colKind").value = COL.kind;
-  [["#colQ", "q"], ["#colSrc", "src"], ["#colStatus", "status"], ["#colKind", "kind"]].forEach(([sel, k]) => $(sel).addEventListener("input", e => { COL[k] = e.target.value; COL.limit = 150; renderCOLList(); }));
+  $("#colKind").value = ["", "card", "sealed"].includes(COL.kind) ? COL.kind : "";
+  [["#colQ", "q"], ["#colKind", "kind"]].forEach(([sel, k]) => $(sel).addEventListener("input", e => { COL[k] = e.target.value; COL.limit = 150; renderCOLList(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
-  $("#colSalesToggle").addEventListener("click", () => { COL.showSales = !COL.showSales; renderCOL(); });
   $("#colAdd").addEventListener("click", () => openColEdit(null));
+  $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
-  box.querySelectorAll("[data-delsale]").forEach(b => b.addEventListener("click", () => { const i = COL.sales.findIndex(x => x.id === b.dataset.delsale); if (i >= 0){ COL.sales.splice(i, 1); markDirty("collection"); renderCOL(); } }));
-  renderCOLList();
+  renderColWaiting(); renderCOLList();
 }
+// singles (Collection rows) + sealed product (Sealed tab rows still sealed), in one list
+function colAll(){
+  const cards = colItems().filter(i => i.left > 0).map(i => Object.assign(i, {kind: i.kind === "secret_lair" ? "card" : i.kind, ordered: i.status === "ordered"}));
+  const sealed = (SD.loaded ? sdItems() : []).filter(i => i.status === "sealed" && i.qty > 0).map(i => ({id: i.id, kind: "sealed", name: i.product, left: i.qty, qty: i.qty,
+    cost_each: i.cost_each, cost_left: i.cost, value_each: i.each, value: i.value, approx: i.est, pending: i.each == null, url: i.url, source: i.row.source || "",
+    notes: i.row.notes || "", meta: sdKindLabel(i.kind) + (i.kind === "secret_lair" ? " · " + (i.finish === "foil" ? "Foil" : "Non-Foil") : ""), ordered: false}));
+  return cards.concat(sealed);
+}
+// not received yet: eBay buys still "Ordered" + Secret Lair orders that shipped but aren't marked received
+function renderColWaiting(){
+  const box = $("#colWaiting"); if (!box) return;
+  const ebay = colItems().filter(i => i.status === "ordered" && i.left > 0);
+  const sl = (SL.orders && SL.orders.lines || []).filter(l => !l.dead && /shipped|delivered/i.test(l.status) && !isReceived(l));
+  if (!ebay.length && !sl.length){ box.innerHTML = ""; return; }
+  const row = (name, sub, btn) => `<div class="bdl-row"><span><b>${esc(name)}</b> <span class="mut">${sub}</span></span><span style="margin-left:auto;white-space:nowrap">${btn}</span></div>`;
+  box.innerHTML = `<div class="panel" style="border-left:4px solid #d08a2c"><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span>
+    <div class="bdl-list" style="margin-top:8px;max-height:320px;overflow:auto">
+      ${ebay.map(i => row(i.name, `${esc(i.set)} · ${esc(i.condition)} · eBay buy · paid ${money(i.cost_each)}${i.acquired ? " · " + esc(i.acquired) : ""}`, `<span class="btn small" role="button" data-recv="${esc(i.id)}">Mark Received</span>`)).join("")}
+      ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
+    </div></div>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-colmark]"); if (!b) return; e.preventDefault(); markReceived(b.dataset.colmark); setTimeout(renderCOL, 50); });
 function renderCOLList(){
   const q = COL.q.trim().toLowerCase();
-  const rows = colItems().filter(i => (!q || (i.name + " " + i.set + " " + i.set_name + " " + i.notes).toLowerCase().includes(q)) && (!COL.src || i.source === COL.src) && (!COL.kind || i.kind === COL.kind) &&
-    (COL.status === "" || (COL.status === "held" ? i.left > 0 : COL.status === "sold" ? i.left === 0 : i.status === COL.status && i.left > 0)))
+  const rows = colAll().filter(i => !i.ordered && (!COL.kind || i.kind === COL.kind) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
     .sort((a, b) => (b.value || 0) - (a.value || 0));
   $("#colCount").textContent = `${rows.length} rows`;
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
-  const meta = i => `${i.kind === "secret_lair" ? "Secret Lair" : esc(i.set_name || i.set) + (i.number ? " #" + esc(i.number) : "")} · ${esc(i.finish)}${i.kind === "card" ? " · " + esc(i.condition) : ""}`;
-  const acts = i => (i.status === "ordered" ? `<button class="btn small" data-recv="${esc(i.id)}">Mark Received</button> ` : i.left > 0 ? `<button class="btn small" data-sell="${esc(i.id)}">Sell</button> ` : "") + `<button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
-  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="nosort hide-sm">Source</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
-    (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}${i.status === "listed" ? ' <span class="badge b-up">LISTED</span>' : ""}${i.status === "ordered" ? ' <span class="badge b-up" title="Bought, not received yet">ORDERED</span>' : ""}</div><div class="cset">${meta(i)}</div></td>
-      <td class="hide-sm mut" style="font-size:12px">${esc(i.source)}</td><td class="r">${i.left}${i.left !== i.qty ? `<span class="mut">/${i.qty}</span>` : ""}</td><td class="r">${money(i.cost_each)}</td>
-      <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${i.value == null ? "–" : gainHTML(i.value - i.cost_left)}</td><td class="mk">${acts(i)}</td></tr>`).join("") ||
-     '<tr><td colspan="8" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
-  $("#colTiles").innerHTML = show.map(i => `<div class="tile"><div class="t-main"><div class="t-name">${esc(i.name)}</div><div class="t-sub">${meta(i)} · ${esc(i.source)}</div>
-      <div class="t-sub">Have ${i.left}${i.left !== i.qty ? "/" + i.qty : ""} · paid ${money(i.cost_each)} each</div><div class="t-chips mk">${acts(i)}</div></div>
+  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}`;
+  const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
+    : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
+  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
+    (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}</div><div class="cset">${meta(i)}</div></td>
+      <td class="r">${i.left}</td><td class="r">${money(i.cost_each)}</td>
+      <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${i.value == null ? "–" : gainHTML(i.value - i.cost_left)}</td><td class="mk" style="white-space:nowrap">${acts(i)}</td></tr>`).join("") ||
+     '<tr><td colspan="7" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
+  $("#colTiles").innerHTML = show.map(i => `<div class="tile"><div class="t-main"><div class="t-name">${esc(i.name)}</div><div class="t-sub">${meta(i)}</div>
+      <div class="t-sub">Have ${i.left} · paid ${money(i.cost_each)} each</div><div class="t-chips mk">${acts(i)}</div></div>
       <div class="t-right"><div class="t-price">${worth(i)}</div>${i.value == null ? "" : `<div style="font-size:12px">${gainHTML(i.value - i.cost_left)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
   $("#colMore").hidden = rows.length <= COL.limit;
-  document.querySelectorAll("#colBody [data-sell]").forEach(b => b.addEventListener("click", () => openSell(b.dataset.sell)));
+  document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
+  document.querySelectorAll("#colBody [data-crem]").forEach(b => b.addEventListener("click", () => openColRemove(b.dataset.crem)));
+  document.querySelectorAll("#colBody [data-tosealed]").forEach(b => b.addEventListener("click", () => { SD.q = b.dataset.tosealed.slice(0, 40); SD.status = "sealed"; switchTab("sealed"); }));
   document.querySelectorAll("#colBody [data-recv]").forEach(b => b.addEventListener("click", async () => {
     const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return;
     if (/^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "")) return openReceiveCheck(r);
@@ -3935,7 +3936,18 @@ function renderCOLList(){
     try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
     catch(e){ r.status = "ordered"; toast("Couldn't save: " + e.message, 6000); }
   }));
-  document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
+}
+// Remove copies of one Collection row: −1, or the whole row (tap twice)
+function openColRemove(id){
+  const r = COL.inv.find(x => x.id === id); if (!r) return;
+  if (COL.sales.some(x => x.item_id === r.id)) return toast("This row has a sale recorded from before - it can't be removed here.", 5000);
+  const q = parseInt(r.qty) || 1;
+  openModal(`<h3>Remove: ${esc(r.name)}</h3><div class="mut" style="font-size:13px">${esc((r.set || "").toUpperCase())}${r.number ? " #" + esc(r.number) : ""} · ${esc(r.finish || "nonfoil")} · ${esc(r.condition || "NM")} · you have ${q}</div>
+    <div class="acts">${q > 1 ? '<button class="btn ghost" id="crOne" type="button">Remove 1</button>' : ""}<button class="btn ghost" id="crAll" type="button">${q > 1 ? "Remove all " + q : "Remove it"}</button><button class="btn" id="crCancel" type="button">Cancel</button></div>`);
+  $("#crCancel").addEventListener("click", closeModal);
+  if ($("#crOne")) $("#crOne").addEventListener("click", () => { r.qty = String(q - 1); markDirty("collection"); closeModal(); renderCOL(); toast(`Removed 1 ${r.name} - ${q - 1} left.`); });
+  $("#crAll").addEventListener("click", e => { if (q > 1 && !e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove all " + q; return; }
+    COL.inv = COL.inv.filter(x => x !== r); markDirty("collection"); closeModal(); renderCOL(); toast(`${r.name} removed from your Collection.`); });
 }
 // ---- "Verified in hand": when an eBay buy arrives, record what it really is - the most reliable label the AI can get
 async function openReceiveCheck(r){
@@ -4453,7 +4465,7 @@ function switchTab(name){
   const stale = k => Date.now() - (TABLOAD[k] || Date.now()) > 15 * 6e4;   // reopened after a while: quietly fetch fresh data (no Refresh buttons)
   if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!READONLY) loadCOL(); }
   if (name === "sealed" && typeof loadCOL === "function"){ loadCOL(stale("sealed") && !S.dirty.has("collection")); TABLOAD.sealed = Date.now(); if (typeof loadSL === "function") loadSL(); renderSD(); }
-  if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); }
+  if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); if (!READONLY && typeof loadSL === "function") loadSL(); }
   if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "audit" && !READONLY) renderAudit();
