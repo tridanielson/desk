@@ -163,6 +163,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.45;cursor:pointer}input[t
 input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 *{scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent}
 .big-spin{width:42px;height:42px;margin:0 auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:bigspin .9s linear infinite}@keyframes bigspin{to{transform:rotate(360deg)}}
+#colWaiting .bdl-list{grid-template-columns:minmax(0,1fr)}#colWaiting .bdl-row{flex-wrap:wrap;gap:4px 10px;align-items:center}#colWaiting .bdl-row>span:first-child{flex:1 1 220px;min-width:0}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -195,7 +196,9 @@ input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 #busy.on{display:block}
 #busy .busy-bar{height:3px;background:linear-gradient(90deg,transparent,var(--accent),transparent);background-size:40% 100%;background-repeat:no-repeat;animation:busybar 1.1s linear infinite}
 @keyframes busybar{from{background-position:-40% 0}to{background-position:140% 0}}
-#busy .busy-msg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;display:flex;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+#busy .busy-msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--bg) 55%,transparent);backdrop-filter:blur(2px);pointer-events:auto}
+#busy .busy-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:30px 34px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);max-width:calc(100vw - 32px);min-width:260px}
+#busy .busy-card h2{margin:16px 0 6px;font-size:20px}#busy .busy-card p{margin:0;color:var(--muted);font-size:14px}
 #busy .spin{width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex:none}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#busy .busy-bar,#busy .spin{animation:none}}
@@ -410,7 +413,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:21 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:30 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -684,7 +687,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 <div class="modal" id="colModal" role="dialog" aria-modal="true"><div id="colModalBody"></div></div>
 <div class="toast" id="toast"></div>
 <div id="ptr" aria-hidden="true">↓ Pull to refresh</div>
-<div id="busy" role="status" aria-live="polite"><div class="busy-bar"></div><div class="busy-msg"><span class="spin"></span><span id="busyMsg"></span></div></div>
+<div id="busy" role="status" aria-live="polite"><div class="busy-bar"></div><div class="busy-msg"><div class="busy-card"><div class="big-spin"></div><h2 id="busyHead">Refreshing… please wait</h2><p id="busyMsg"></p></div></div></div>
 
 <script>
 "use strict";
@@ -897,13 +900,14 @@ new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = se
 
 // "working on it" bar + message whenever the page is waiting on the server
 const BUSY = {n: 0, labels: [], t: null};
-const BUSY_TEXT = {loadAll: "Loading prices and deals… (the first load can take 10-20 seconds)", loadSecretLair: "Loading Secret Lair…",
-  readFiles: "Loading…", saveFile: "", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…"};
+const BUSY_TEXT = {loadAll: "Loading prices and deals - the first load can take 10-20 seconds.", loadSecretLair: "Loading Secret Lair…",
+  readFiles: "Loading your latest data…", saveFile: "", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…", checkListing: "Checking the listing on eBay…", setMute: "Saving…", accountsSet: "Saving…", accountReset: "Saving…", accountRemove: "Saving…"};
+const BUSY_HEAD = {login: "Signing in… please wait", signUp: "Creating your account… please wait", changePassword: "Saving… please wait", runWorkflow: "Starting… please wait"};
 function busy(on, fn){
   if (on){ BUSY.n++; BUSY.labels.push(fn); } else { BUSY.n = Math.max(0, BUSY.n - 1); const i = BUSY.labels.indexOf(fn); if (i >= 0) BUSY.labels.splice(i, 1); }
   clearTimeout(BUSY.t);
-  const show = () => { const txt = BUSY.labels.map(f => BUSY_TEXT[f] ?? "Working…").filter(Boolean)[0];
-    $("#busy").classList.toggle("on", BUSY.n > 0 && !!txt); $("#busyMsg").textContent = txt || ""; };
+  const show = () => { const f = BUSY.labels.find(f => BUSY_TEXT[f]), txt = f ? BUSY_TEXT[f] : "";   // background checks (no text) stay quiet
+    $("#busy").classList.toggle("on", BUSY.n > 0 && !!txt); $("#busyMsg").textContent = txt || ""; $("#busyHead").textContent = BUSY_HEAD[f] || "Refreshing… please wait"; };
   if (BUSY.n > 0) BUSY.t = setTimeout(show, 250); else show();
 }
 async function server(fn, ...args){
@@ -1006,7 +1010,7 @@ async function putMerged(path, sha, build, merge, msg){
   try{ return await putIfChanged(path, build(), sha, msg); }
   catch(e){
     if (!/changed on GitHub/i.test(e.message)) throw e;
-    const f = (await GH.readFiles([path]))[path] || {};
+    const f = (await rawServer("readFiles", AUTH.token, [path]))[path] || {};
     merge(f.text ? parseCSV(f.text) : []);
     delete AUTOSAVE.last[path];
     return await putIfChanged(path, build(), f.sha, msg);
@@ -3770,7 +3774,7 @@ function openSDOpen(g){
 // + Add Sealed / Edit. Search covers every Secret Lair drop plus TCGplayer's sealed Magic catalog.
 async function sdCatalog(){
   if (SD.cat || SD.catLoading) return SD.cat; SD.catLoading = true;
-  try{ const f = await GH.readFiles(["data/sealed_catalog.json"]); const t = f["data/sealed_catalog.json"].text; SD.cat = t ? (JSON.parse(t).items || []) : []; }catch{ SD.cat = []; }
+  try{ const f = await rawServer("readFiles", AUTH.token, ["data/sealed_catalog.json"]); const t = f["data/sealed_catalog.json"].text; SD.cat = t ? (JSON.parse(t).items || []) : []; }catch{ SD.cat = []; }
   SD.catLoading = false; return SD.cat;
 }
 const sdGuessKind = n => /secret lair/i.test(n) ? "secret_lair" : /collector.*(box|display)/i.test(n) ? "collector_box" : /booster (box|display)|draft booster box|set booster box|play booster box/i.test(n) ? "booster_box"
