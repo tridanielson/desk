@@ -420,7 +420,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 04:05 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 04:12 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -676,8 +676,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <div id="lmUp" hidden style="display:grid;gap:10px">
       <label for="loginInv">Invite Code</label><input id="loginInv" autocomplete="off" autocapitalize="off" spellcheck="false">
     </div>
-    <label for="loginUser" id="loginUserL">Username <span class="mut" style="font-weight:400" id="loginUserOpt">(leave blank for the shared view password)</span></label>
-    <input id="loginUser" name="username" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <label for="loginUser" id="loginUserL">Username <span id="loginUserOpt"></span></label>
+    <input id="loginUser" name="username" autocomplete="username" autocapitalize="off" spellcheck="false" required>
     <label for="loginPw">Password</label>
     <input id="loginPw" name="password" type="password" autocomplete="current-password" required>
     <div id="lmUp2" hidden style="display:grid;gap:10px">
@@ -955,7 +955,7 @@ let LOGIN_MODE = "in";
 function setLoginMode(m){
   LOGIN_MODE = m; const up = m === "up";
   document.querySelectorAll("[data-lm]").forEach(b => b.classList.toggle("on", b.dataset.lm === m));
-  $("#lmUp").hidden = $("#lmUp2").hidden = !up; $("#loginUserOpt").hidden = up; $("#loginUser").required = up;
+  $("#lmUp").hidden = $("#lmUp2").hidden = !up; $("#loginUserOpt").hidden = up; $("#loginUser").required = true;
   $("#loginPw").autocomplete = up ? "new-password" : "current-password"; $("#loginPw2").required = up;
   $("#loginBtn").textContent = up ? "Create Account" : "Sign In"; $("#loginMsg").textContent = "";
   setTimeout(() => (up ? $("#loginInv") : $("#loginPw")).focus(), 30);
@@ -998,7 +998,7 @@ const S = {runs: {},
   deals: [],
   dirty: new Set(), selected: null,
 };
-let READONLY = false, ROLE = "";   // ROLE: owner | user (an account - own Collection & Sets) | viewer (shared guest password)
+let READONLY = false, ROLE = "";   // ROLE: owner | user (an account - own Collection & Sets) | viewer (username "guest")
 const MYCOL = () => ROLE === "owner" || ROLE === "user";
 function lockIfReadonly(){
   if (!READONLY) return;
@@ -4613,7 +4613,7 @@ async function loadAccounts(){
 }
 function renderAccounts(){
   const box = $("#acctBody"), a = ACC.info; if (!box || !a) return;
-  box.innerHTML = `<p class="mut" style="font-size:13px;margin:6px 0 10px">Friends and beta testers make their own account with your invite code. Each account gets its own private Collection and Sets, and sees prices, Secret Lair, the guide${a.dealsPublic ? " and eBay Deals" : ""}. They never see your collection, settings, reviews or alerts. The shared guest password still works for a quick look.</p>
+  box.innerHTML = `<p class="mut" style="font-size:13px;margin:6px 0 10px">Friends and beta testers make their own account with your invite code. Each account gets its own private Collection and Sets, and sees prices, Secret Lair, the guide${a.dealsPublic ? " and eBay Deals" : ""}. They never see your collection, settings, reviews or alerts. For a quick look without an account, they can sign in with the username <b>guest</b>.</p>
     <div class="row" style="align-items:flex-end;gap:10px">
       <label style="display:grid;gap:4px;font-weight:600">Invite Code<input id="accInv" value="${esc(a.invite)}" placeholder="blank = sign-ups closed" style="min-width:200px"></label>
       <button class="btn small" id="accInvSave">Save Code</button><button class="btn ghost small" id="accInvGen">Make a New Code</button></div>
