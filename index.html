@@ -400,7 +400,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:09 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:13 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4162,12 +4162,12 @@ function renderSetDetail(g){
       <label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>
       <span class="status">${rows.length} cards</span></div>
     <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable"></table></div>
-    <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid). It then counts here and stops being flagged as needed.</p>`;
+    <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - you can enter several copies in different conditions at once. Cards you have show <b>+ Add</b> for more copies.</p>`;
   box.innerHTML = L;
   $("#setView").value = SETS.view;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + (g.finish || "nonfoil"));
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>` :
+  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}" title="Add more copies (any condition)">+ Add</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
