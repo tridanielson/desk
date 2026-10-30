@@ -413,7 +413,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:32 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 08:55 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -4151,7 +4151,8 @@ function goalProgress(g){
   COL.inv.forEach(r => { const n = left.get(r.id); if (!n || (r.set || "").toLowerCase() !== code || (r.finish || "nonfoil") !== fin) return;
     if (r.number) byNum[r.number] = (byNum[r.number] || 0) + n; else { const k = (r.name || "").toLowerCase(); byName[k] = (byName[k] || 0) + n; } });
   const pool = Object.assign({}, byName), pk = fin === "foil" ? "usd_foil" : fin === "etched" ? "usd_etched" : "usd";
-  const rows = cards.filter(c => (c.finishes || ["nonfoil"]).includes(fin)).map(c => {   // only printings made in this finish let have = byNum[c.collector_number] || 0; const k = c.name.toLowerCase();
+  // only printings made in this finish count (a foil-only card can't be needed for a non-foil set)
+  const rows = cards.filter(c => (c.finishes || ["nonfoil"]).includes(fin)).map(c => { let have = byNum[c.collector_number] || 0; const k = c.name.toLowerCase();
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
     const price = c.prices && c.prices[pk] != null ? +c.prices[pk] : null;
     return {c, have, price}; });
@@ -4166,11 +4167,12 @@ function renderSETS(){
   if (!COL.loaded){ box.innerHTML = COL.error ? `<p class="empty">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p>` : '<p class="empty">Loading…</p>'; return; }
   const goals = COL.goals.filter(g => g.set);
   goals.forEach(loadSetCards);
+  if (SETS.needAll) return renderNeedAll(goals);
   if (SETS.open && goals.some(g => goalKey(g) === SETS.open)) return renderSetDetail(goals.find(g => goalKey(g) === SETS.open));
   SETS.open = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
     <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
-    <button class="btn small" id="setAdd">+ Add a Set</button></div>`;
+    <div class="row">${goals.length ? '<button class="btn ghost small" id="setNeedAll">📋 Everything I Need</button>' : ""}<button class="btn small" id="setAdd">+ Add a Set</button></div></div>`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
       <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
@@ -4188,6 +4190,7 @@ function renderSETS(){
           : SETS.err[k] ? `<p class="mut">${esc(SETS.err[k])}</p>` : '<p class="mut" style="margin:12px 0 0">Loading cards…</p>'}</button>`; }).join("") + "</div>";
   }
   box.innerHTML = L;
+  if ($("#setNeedAll")) $("#setNeedAll").addEventListener("click", () => { SETS.needAll = true; renderSETS(); window.scrollTo(0, 0); });
   $("#setAdd").addEventListener("click", () => { SETS.adding = true; renderSETS(); setTimeout(() => $("#setQ") && $("#setQ").focus(), 30); });
   if (SETS.adding){
     $("#setCancel").addEventListener("click", () => { SETS.adding = false; renderSETS(); });
@@ -4195,6 +4198,61 @@ function renderSETS(){
     showSetHits("");
   }
   box.querySelectorAll("[data-goal]").forEach(b => b.addEventListener("click", () => { SETS.open = b.dataset.goal; SETS.q = ""; renderSETS(); window.scrollTo(0, 0); }));
+}
+// ---- Everything I Need: every card still missing from every set you track, in one list - filter by set and price,
+// buy links, and a TCGplayer Mass Entry copy for buying the cheap ones in one cart
+const NA = {set: "", price: "", sort: "price-desc", q: ""};
+function renderNeedAll(goals){
+  const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
+  const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
+  const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + ((g.finish || "nonfoil") !== "nonfoil" ? " (" + g.finish + ")" : ""); };
+  let all = [];
+  live.forEach(g => { const pr = goalProgress(g); if (pr) pr.need.forEach(r => all.push({c: r.c, price: r.price, g, fin: g.finish || "nonfoil", key: goalKey(g)})); });
+  const band = {u1: [null, 1], u5: [null, 5], "5-50": [5, 50], o50: [50, null], none: "none"}[NA.price];
+  const q = NA.q.trim().toLowerCase();
+  let rows = all.filter(r => (!NA.set || r.key === NA.set) && (!q || r.c.name.toLowerCase().includes(q)) &&
+    (!band || (band === "none" ? r.price == null : r.price != null && (band[0] == null || r.price >= band[0]) && (band[1] == null || r.price < band[1]))));
+  const [sk, sd] = NA.sort.split("-"), dir = sd === "asc" ? 1 : -1;
+  rows.sort((a, b) => sk === "name" ? a.c.name.localeCompare(b.c.name) * dir : sk === "set" ? (a.c.set_name + a.c.collector_number.padStart(5, "0")).localeCompare(b.c.set_name + b.c.collector_number.padStart(5, "0")) * dir : ((a.price ?? -1) - (b.price ?? -1)) * dir);
+  const total = rows.reduce((t, r) => t + (r.price || 0), 0), unpriced = rows.filter(r => r.price == null).length;
+  const tcg = c => (c.purchase_uris && c.purchase_uris.tcgplayer) || "https://www.tcgplayer.com/search/magic/product?q=" + encodeURIComponent(c.name);
+  const ebay = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
+  const fin = r => r.fin === "foil" ? "Foil" : r.fin === "etched" ? "Etched" : "Non-Foil";
+  box.innerHTML = `<button class="btn ghost small" id="naBack">← All Sets</button>
+    <div class="row" style="justify-content:space-between;align-items:flex-end;margin-top:10px"><div><h2 style="margin:0">Everything I Need</h2>
+      <p class="sub" style="margin:4px 0 0">Every card still missing from the sets you track${loading ? ` · <b>loading ${loading} set${loading > 1 ? "s" : ""}…</b>` : ""}. Paused sets are left out. Prices are TCGplayer market (NM).</p></div></div>
+    <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
+      <div class="stat"><span>Showing</span><b>${rows.length} cards</b><span>of ${all.length} needed</span></div>
+      <div class="stat"><span>Cost to buy these</span><b>${money(total)}</b><span>${unpriced ? unpriced + " without a price" : "at NM market"}</span></div>
+    </div>
+    <div class="panel row"><input id="naQ" placeholder="Search card name…" value="${esc(NA.q)}" style="flex:1;min-width:160px">
+      <select id="naSet"><option value="">All Sets</option>${live.map(g => `<option value="${esc(goalKey(g))}">${esc(label(g))}</option>`).join("")}</select>
+      <select id="naPrice"><option value="">Any Price</option><option value="u1">Under $1</option><option value="u5">Under $5</option><option value="5-50">$5 – $50</option><option value="o50">Over $50</option><option value="none">No price yet</option></select>
+      <select id="naSort"><option value="price-desc">Price: High to Low</option><option value="price-asc">Price: Low to High</option><option value="set-asc">Set &amp; Number</option><option value="name-asc">Name A–Z</option></select></div>
+    <div class="panel row" style="gap:10px;align-items:center"><button class="btn small" id="naCopy" ${rows.length ? "" : "disabled"}>📋 Copy ${rows.length} for TCGplayer Mass Entry</button>
+      <a class="btn ghost small" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a>
+      <span class="mut" style="font-size:12px">Copy, open Mass Entry, paste, Add to Cart. Check foil vs non-foil and the exact art in the cart - Mass Entry picks by name and set.</span></div>
+    <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable"></table></div>`;
+  $("#naSet").value = live.some(g => goalKey(g) === NA.set) ? NA.set : ""; $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
+  const show = rows.slice(0, 600);
+  const acts = r => `<button class="btn small" data-nagot="${esc(r.c.id)}|${esc(r.key)}">Got It</button> <a class="btn ghost small" href="${esc(ebay(r.c))}" target="_blank" rel="noopener">eBay</a> <a class="btn ghost small" href="${esc(tcg(r.c))}" target="_blank" rel="noopener">TCGplayer</a>`;
+  $("#naTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort">Set</th><th class="r nosort">Price (NM)</th><th class="nosort"></th></tr></thead><tbody>` +
+    (show.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
+      <td><div class="cname">${esc(r.c.name)}</div><div class="cset">${esc(fin(r))} · #${esc(r.c.collector_number)} · <span style="text-transform:capitalize">${esc(r.c.rarity)}</span></div></td>
+      <td class="mut" style="font-size:13px">${esc(r.c.set_name)}</td><td class="r">${r.price == null ? '<span class="mut">–</span>' : money(r.price)}</td><td class="mk" style="white-space:nowrap">${acts(r)}</td></tr>`).join("") ||
+     `<tr><td colspan="5" class="empty">${all.length ? "Nothing matches these filters." : loading ? "Loading…" : "Nothing needed - every set is complete!"}</td></tr>`) + "</tbody>";
+  $("#naTiles").innerHTML = show.map(r => `<div class="tile"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:44px;border-radius:3px;margin-right:10px" data-zoom="${esc(r.c.id)}">
+      <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">${esc(r.c.set_name)} · #${esc(r.c.collector_number)} · ${esc(fin(r))}</div><div class="t-chips mk">${acts(r)}</div></div>
+      <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">Nothing here.</p>';
+  $("#naBack").addEventListener("click", () => { SETS.needAll = false; renderSETS(); });
+  $("#naQ").addEventListener("input", e => { NA.q = e.target.value; const pos = e.target.selectionStart; renderNeedAll(goals); const f = $("#naQ"); f.focus(); f.setSelectionRange(pos, pos); });
+  [["#naSet", "set"], ["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
+  $("#naCopy").addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET]" per line
+    const counts = new Map(); rows.forEach(r => { const k = `${r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}]`; counts.set(k, (counts.get(k) || 0) + 1); });
+    copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${rows.length} cards. Paste them into TCGplayer Mass Entry.`); });
+  box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k] = b.dataset.nagot.split("|"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
+    openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
+  box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
 }
 async function showSetHits(q){
   const hits = $("#setHits"); if (!hits) return;
