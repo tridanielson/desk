@@ -338,6 +338,9 @@ select option{background:var(--panel);color:var(--ink)}
 
 /* ---- two-level nav + artwork ---- */
 .brandwrap{display:flex;align-items:center;gap:10px}
+@media (min-width:701px){.brandwrap{width:410px;flex:none;min-width:0}.brandwrap .brand{min-width:0}.brand small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}   /* fixed width: the tabs don't jump when the status line fills in */
+#signOutBtn[hidden],body.starting #muteBtn[hidden]{display:inline-flex!important;visibility:hidden}   /* keep their place while loading, so nothing below jumps */
+@media (max-width:700px){.brandwrap{flex:1 1 0;min-width:0}.brandwrap>div,.brand{min-width:0;white-space:nowrap}.brand small{white-space:normal;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.6em;line-height:1.3}}   /* status gets 2 lines, always reserved - no jump */
 .logo{width:34px;height:34px;flex:none}.logo.big{width:56px;height:56px;margin:0 auto 4px;display:block}
 .navs{display:flex;flex-direction:column;gap:4px;min-width:0}
 #navGroups button{font-weight:600;color:var(--ink);opacity:.72;padding:7px 12px;border-radius:999px}
@@ -366,7 +369,7 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
   .hero{height:78px}.hero-t{font-size:20px}.hero-s{display:none}.hero-txt{padding:0 12px 10px}}
 </style>
 </head>
-<body>
+<body class="starting">
 <header>
   <div class="brandwrap"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><path d="M20 2 35 10.5v19L20 38 5 29.5v-19z" fill="none" stroke="url(#lg)" stroke-width="2.4"/><path d="M20 7.5 30.5 13.5v13L20 32.5 9.5 26.5v-13z" fill="url(#lg)" opacity=".16"/><path d="M14 12v16M26 12v16M14 20h12" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.3" fill="var(--gold)"/></svg><div class="brand">Havoth Price Desk<small id="updated">Not connected</small></div></div>
   <div class="navs">
@@ -415,7 +418,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:05 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 11:22 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -933,7 +936,7 @@ async function startApp(){
     const t0 = savedTab();
     if (tabOK(t0)) switchTab(t0);   // show the page you were on right away, while the data loads
     else if (document.getElementById("tab-" + t0)) document.querySelectorAll("section.tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + t0));   // (Setup & Help etc: just show it - it fills in after loading)
-    try{ await loadAll(); } finally { document.body.classList.remove("booting"); }
+    try{ await loadAll(); } finally { document.body.classList.remove("booting", "starting"); }
     $("#signOutBtn").hidden = false;
     const t1 = savedTab();
     switchTab(tabOK(t1) || (t1 === "connect" && !READONLY) ? t1 : "mine");   // Setup & Help works once you're signed in
@@ -4746,7 +4749,7 @@ window.addEventListener("beforeunload", e => { if (S.dirty.size){ e.preventDefau
 // tell desk.havothcards.com (if we're shown inside it) that the app loaded fine
 try{ if (window.top !== window) window.top.postMessage({pricedesk: "ready"}, "*"); }catch{}
 renderMine(); renderSettings();
-if (AUTH.token) startApp(); else { $("#updated").textContent = "Signed out"; showLogin(); }
+if (AUTH.token) startApp(); else { document.body.classList.remove("starting"); $("#updated").textContent = "Signed out"; showLogin(); }
 </script>
 </body>
 </html>
