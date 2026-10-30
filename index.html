@@ -415,7 +415,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:22 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:24 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4240,9 +4240,10 @@ function renderNeedAll(goals){
           return `<label><input type="checkbox" value="${esc(k)}"${NA.sets.has(k) ? " checked" : ""}> ${esc(label(g))} <span class="mut">${n}</span></label>`; }).join("")}</div></span>
       <select id="naPrice"><option value="">Any Price</option><option value="u1">Under $1</option><option value="u5">Under $5</option><option value="5-50">$5 – $50</option><option value="o50">Over $50</option><option value="none">No price yet</option></select>
       <select id="naSort"><option value="price-desc">Price: High to Low</option><option value="price-asc">Price: Low to High</option><option value="set-asc">Set &amp; Number</option><option value="name-asc">Name A–Z</option></select></div>
-    <div class="panel row" style="gap:10px;align-items:center"><button class="btn small" id="naCopy" ${rows.length ? "" : "disabled"}>📋 Copy ${rows.length} for TCGplayer Mass Entry</button>
-      <a class="btn ghost small" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a>
-      <span class="mut" style="font-size:12px">Copy, open Mass Entry, paste, Add to Cart. Check foil vs non-foil and the exact art in the cart - Mass Entry picks by name and set.</span></div>
+    <div class="panel"><div class="row" style="gap:10px;align-items:center">${["nonfoil", "foil", "etched"].map(f => { const n = rows.filter(r => r.fin === f).length;
+        return n ? `<button class="btn small" data-nacopy="${f}">📋 Copy ${n} ${f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Non-Foil"}</button>` : ""; }).join("") || '<button class="btn small" disabled>📋 Nothing to copy</button>'}
+      <a class="btn ghost small" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a></div>
+      <p class="mut" style="font-size:12px;margin:8px 0 0">Mass Entry can't tell foil from non-foil in the list itself, so copy each finish separately: paste one list, tap the <b>⚙ gear</b> in Mass Entry and set <b>Printing</b> to Foil (or Normal) only, then Add to Cart - then do the other list. Each line includes the card number, so you get the exact art.</p></div>
     <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable" class="desk-table"></table></div>`;
   $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
   const show = rows.slice(0, 600);
@@ -4265,9 +4266,11 @@ function renderNeedAll(goals){
   $("#naSetPop").addEventListener("change", e => { const x = e.target; if (!x.value) return; x.checked ? NA.sets.add(x.value) : NA.sets.delete(x.value); renderNeedAll(goals); });
   $("#naSetClear").addEventListener("click", e => { e.preventDefault(); NA.sets.clear(); renderNeedAll(goals); });
   [["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
-  $("#naCopy").addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET]" per line
-    const counts = new Map(); rows.forEach(r => { const k = `${r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}]`; counts.set(k, (counts.get(k) || 0) + 1); });
-    copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${rows.length} cards. Paste them into TCGplayer Mass Entry.`); });
+  box.querySelectorAll("[data-nacopy]").forEach(b => b.addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET] 216" per line (number = exact art)
+    const f = b.dataset.nacopy, list = rows.filter(r => r.fin === f), counts = new Map();
+    list.forEach(r => { const k = `${r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
+    const lbl = f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Normal";
+    copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${list.length} ${lbl === "Normal" ? "non-foil" : lbl.toLowerCase()} cards. In Mass Entry: paste, ⚙ gear → Printing: ${lbl} only, then Add to Cart.`); }));
   box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k] = b.dataset.nagot.split("|"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
