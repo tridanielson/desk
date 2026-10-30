@@ -419,7 +419,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:07 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 03:31 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1704,6 +1704,7 @@ function qualityHTML(d){
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
+  if (d.qty && d.qty !== "1" && !isEnded(d)) h += `<span class="flag" title="The seller has ${esc(d.qty)} of these for sale in one listing, so the photo may not be the actual copy you'd get. Condition and price aren't changed - ask the seller or check the listing.">${esc(d.qty)} available · photo may not be the copy</span> `;
   if (d.multi === true || d.multi === "yes" || d.multi === "True") h += `<span class="flag" title="This listing has a drop-down of conditions. This deal is for the ${esc(d.condition)} option at its own price - pick that option on eBay.">1 of several conditions</span> `;
   if (d.below_min) h += `<span class="flag" title="Below your minimum condition (Settings → Loud Alerts Only at or Above). Still listed in case it's worth it - just no loud alert.">below your ${esc(d.below_min)}+ minimum</span> `;
   h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". The AI photo check says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
