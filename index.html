@@ -415,7 +415,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 09:24 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:05 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4216,7 +4216,7 @@ function renderNeedAll(goals){
   const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + ((g.finish || "nonfoil") !== "nonfoil" ? " (" + g.finish + ")" : ""); };
   let all = [];
   live.forEach(g => { const pr = goalProgress(g); if (pr) pr.need.forEach(r => all.push({c: r.c, price: r.price, g, fin: g.finish || "nonfoil", key: goalKey(g)})); });
-  const band = {u1: [null, 1], u5: [null, 5], "5-50": [5, 50], o50: [50, null], none: "none"}[NA.price];
+  const band = {u1: [null, 1], u5: [null, 5], u50: [null, 50.005], o50: [50.005, null], none: "none"}[NA.price];
   const q = NA.q.trim().toLowerCase();
   [...NA.sets].forEach(k => { if (!live.some(g => goalKey(g) === k)) NA.sets.delete(k); });
   let rows = all.filter(r => (!NA.sets.size || NA.sets.has(r.key)) && (!q || r.c.name.toLowerCase().includes(q)) &&
@@ -4235,10 +4235,10 @@ function renderNeedAll(goals){
       <div class="stat"><span>Cost to buy these</span><b>${money(total)}</b><span>${unpriced ? unpriced + " without a price" : "at NM market"}</span></div>
     </div>
     <div class="panel row"><input id="naQ" placeholder="Search card name…" value="${esc(NA.q)}" style="flex:1;min-width:160px">
-      <span class="msel"><button type="button" class="btn ghost${NA.sets.size ? " on" : ""}" id="naSetBtn">${NA.sets.size ? (NA.sets.size === 1 ? esc(label(live.find(g => NA.sets.has(goalKey(g))))) : NA.sets.size + " Sets") : "All Sets"} ▾</button>
+      <span class="msel"><button type="button" class="btn ghost${NA.sets.size ? " on" : ""}" id="naSetBtn" style="min-width:110px">${NA.sets.size ? NA.sets.size + (NA.sets.size === 1 ? " Set" : " Sets") : "All Sets"} ▾</button>
         <div class="msel-pop" id="naSetPop"${NA.pop ? "" : " hidden"}><div class="msel-top"><b>Sets</b><a href="#" id="naSetClear">Clear</a></div>${live.map(g => { const k = goalKey(g), n = all.filter(r => r.key === k).length;
           return `<label><input type="checkbox" value="${esc(k)}"${NA.sets.has(k) ? " checked" : ""}> ${esc(label(g))} <span class="mut">${n}</span></label>`; }).join("")}</div></span>
-      <select id="naPrice"><option value="">Any Price</option><option value="u1">Under $1</option><option value="u5">Under $5</option><option value="5-50">$5 – $50</option><option value="o50">Over $50</option><option value="none">No price yet</option></select>
+      <select id="naPrice"><option value="">Any Price</option><option value="u1">Under $1</option><option value="u5">Under $5</option><option value="u50">$50 and Under</option><option value="o50">Over $50</option><option value="none">No price yet</option></select>
       <select id="naSort"><option value="price-desc">Price: High to Low</option><option value="price-asc">Price: Low to High</option><option value="set-asc">Set &amp; Number</option><option value="name-asc">Name A–Z</option></select></div>
     <div class="panel"><div class="row" style="gap:10px;align-items:center">${["nonfoil", "foil", "etched"].map(f => { const n = rows.filter(r => r.fin === f).length;
         return n ? `<button class="btn small" data-nacopy="${f}">📋 Copy ${n} ${f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Non-Foil"}</button>` : ""; }).join("") || '<button class="btn small" disabled>📋 Nothing to copy</button>'}
@@ -4258,10 +4258,14 @@ function renderNeedAll(goals){
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">Nothing here.</p>';
   $("#naBack").addEventListener("click", () => { SETS.needAll = false; renderSETS(); });
   $("#naQ").addEventListener("input", e => { NA.q = e.target.value; const pos = e.target.selectionStart; renderNeedAll(goals); const f = $("#naQ"); f.focus(); f.setSelectionRange(pos, pos); });
-  const place = () => { const pop = $("#naSetPop"); if (!pop || pop.hidden) return; pop.style.left = "0px";   // keep it on screen
-    const r = pop.getBoundingClientRect(), over = r.right - (document.documentElement.clientWidth - 12); if (over > 0) pop.style.left = -Math.min(over, r.left - 12) + "px"; };
+  const place = fresh => { const pop = $("#naSetPop"); if (!pop || pop.hidden) return;   // keep it on screen - and in the same spot while you tick
+    if (!fresh && NA.popLeft != null){ pop.style.left = NA.popLeft + "px"; return; }
+    pop.style.left = "0px"; const r = pop.getBoundingClientRect(), over = r.right - (document.documentElement.clientWidth - 12);
+    NA.popLeft = over > 0 ? -Math.min(over, r.left - 12) : 0; pop.style.left = NA.popLeft + "px"; };
   place();
-  $("#naSetBtn").addEventListener("click", e => { e.stopPropagation(); NA.pop = !NA.pop; $("#naSetPop").hidden = !NA.pop; place(); });
+  if (NA.pop && NA.popTop != null) $("#naSetPop").scrollTop = NA.popTop;
+  $("#naSetPop").addEventListener("scroll", e => { NA.popTop = e.target.scrollTop; });
+  $("#naSetBtn").addEventListener("click", e => { e.stopPropagation(); NA.pop = !NA.pop; $("#naSetPop").hidden = !NA.pop; NA.popTop = 0; place(true); });
   $("#naSetPop").addEventListener("click", e => e.stopPropagation());
   $("#naSetPop").addEventListener("change", e => { const x = e.target; if (!x.value) return; x.checked ? NA.sets.add(x.value) : NA.sets.delete(x.value); renderNeedAll(goals); });
   $("#naSetClear").addEventListener("click", e => { e.preventDefault(); NA.sets.clear(); renderNeedAll(goals); });
