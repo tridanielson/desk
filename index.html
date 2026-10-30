@@ -162,6 +162,7 @@ input,select,textarea{accent-color:var(--accent)}
 input[type=number]::-webkit-inner-spin-button{opacity:.45;cursor:pointer}input[type=number]:hover::-webkit-inner-spin-button,input[type=number]:focus::-webkit-inner-spin-button{opacity:.9}
 input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 *{scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent}
+.big-spin{width:42px;height:42px;margin:0 auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:bigspin .9s linear infinite}@keyframes bigspin{to{transform:rotate(360deg)}}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -409,7 +410,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:17 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 08:21 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -537,7 +538,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- COLLECTION -->
 <section class="tab" id="tab-col">
-  <div id="colBody"><p class="empty">Loading your collection…</p></div>
+  <div id="colBody"></div>
 </section>
 
 <!-- SETS -->
@@ -3576,8 +3577,9 @@ async function loadSDFiles(){
 }
 function renderSD(){
   const box = $("#sdBody"); if (!box) return;
+  if (!ROLE && AUTH.token){ box.innerHTML = waitHTML(); return; }
   if (READONLY || ROLE !== "owner"){ box.innerHTML = '<p class="empty">Sealed product tracking is only for the owner for now.</p>'; return; }
-  if (!COL.loaded || !SD.loaded){ box.innerHTML = COL.error ? `<div class="panel"><b>Couldn't load</b><p class="sub">${esc(COL.error)}</p></div>` : '<p class="empty">Loading your sealed product…</p>'; return; }
+  if (!COL.loaded || !SD.loaded){ box.innerHTML = COL.error ? `<div class="panel"><b>Couldn't load</b><p class="sub">${esc(COL.error)}</p></div>` : waitHTML(); return; }
   const items = sdItems(), held = items.filter(i => i.status === "sealed" && i.qty > 0), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
   const sold = items.filter(i => i.status === "sold"), opened = items.filter(i => i.status === "opened");
@@ -3885,7 +3887,7 @@ function colSales(){
 function renderCOL(){
   const box = $("#colBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
-  if (COL.loading && !COL.loaded){ box.innerHTML = '<p class="empty">Loading your collection…</p>'; return; }
+  if (COL.loading && !COL.loaded){ box.innerHTML = waitHTML(); return; }
   if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try Again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
   const all = colAll(), held = all.filter(i => !i.ordered), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
@@ -4426,7 +4428,10 @@ new MutationObserver(() => { if (!$("#login").hidden) loginArt(); }).observe($("
 if (!$("#login").hidden) loginArt();
 
 // ---------------------------------------------------------------- accounts
+// signed in but the page is still loading: a big, clear "please wait" instead of the sign-up screen
+const waitHTML = () => '<div class="panel" style="text-align:center;padding:60px 20px"><div class="big-spin"></div><h2 style="margin:16px 0 6px">Refreshing… please wait</h2><p class="mut" style="margin:0">Loading your latest data.</p></div>';
 function joinHTML(what){
+  if (!ROLE && AUTH.token) return waitHTML();
   return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : "Track Your Own Collection"}</h3>
     <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
     It's private to your account - nobody else sees it, and you see nobody else's.</p>
