@@ -154,6 +154,8 @@ tr.removed td:first-child{box-shadow:inset 3px 0 0 var(--why-c,transparent)}
 .oc-row img{width:34px;border-radius:3px;display:block}.modal .oc-row input[type=checkbox]{width:18px;height:18px;margin:0;padding:0}
 .modal .oc-row select{width:auto;min-width:0;height:32px;padding:4px 6px;font-size:13px}.modal .oc-row input[type=number]{width:56px;height:32px;padding:4px 6px}
 @media (max-width:700px){.modal .oc-row{grid-template-columns:20px minmax(0,1fr) auto 50px}.oc-row img{display:none}.modal .oc-row input[type=number]{width:50px}}
+.added-so-far{margin:8px 0 4px;padding:8px 10px;border-radius:8px;background:rgba(46,160,67,.14);border:1px solid rgba(46,160,67,.5);font-size:13px;font-weight:600}
+.added-so-far.flash{animation:addflash .9s ease}@keyframes addflash{0%{background:rgba(46,160,67,.55)}100%{background:rgba(46,160,67,.14)}}
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .sd-opt{padding:8px 10px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}.sd-opt:hover{background:var(--hover,rgba(127,127,127,.12))}
 .modal label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
@@ -399,7 +401,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:26 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 29, 05:32 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut">Loading…</p></div></div>
@@ -3789,7 +3791,7 @@ function openSDEdit(id, pre){
     if (!r.ref){ upd.tcg_id = String(pick.tcg || ""); upd.drop = pick.drop || ""; upd.set = upd.kind === "secret_lair" ? "SLD" : ""; }
     if (id) Object.assign(r, upd); else SD.rows.push(Object.assign({}, r, upd, {id: newId("sd-")}));
     markDirty("collection"); renderSD();
-    if (more){ toast(`Added ${name.slice(0, 50)}.`); $("#sdeName").value = ""; $("#sdeQty").value = "1"; $("#sdeCost").value = ""; $("#sdeNotes").value = ""; pick.tcg = ""; pick.drop = ""; hint(); $("#sdeName").focus(); }
+    if (more){ addedNote(`${upd.qty} × ${name.slice(0, 60)}${upd.cost_each ? " · " + money(+upd.cost_each) + " each" : ""}`); $("#sdeName").value = ""; $("#sdeQty").value = "1"; $("#sdeCost").value = ""; $("#sdeNotes").value = ""; pick.tcg = ""; pick.drop = ""; hint(); $("#sdeName").focus(); }
     else { closeModal(); toast(id ? "Saved." : `Added ${name.slice(0, 50)} - priced on the next morning run.`); }
   };
   $("#sdeOk").addEventListener("click", () => save(false));
@@ -3948,6 +3950,14 @@ async function openReceiveCheck(r){
   $("#rcSkip").addEventListener("click", () => finish(false));
   $("#rcOk").addEventListener("click", () => finish(true));
 }
+// "Add & Add Another": a running list at the top of the window, so each press visibly lands
+function addedNote(text){
+  let box = $("#addedSoFar"); const h = $("#colModalBody h3");
+  if (!box){ box = document.createElement("div"); box.id = "addedSoFar"; box.className = "added-so-far"; h.insertAdjacentElement("afterend", box); }
+  box.insertAdjacentHTML("beforeend", `<div>✓ Added ${esc(text)}</div>`);
+  box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
+  $("#colModal").scrollTop = 0;
+}
 function openModal(html){ $("#colModalBody").innerHTML = html; $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
 function closeModal(){ $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); }
 $("#colModalBg").addEventListener("click", closeModal);
@@ -4014,7 +4024,7 @@ function openColEdit(id, pre){
     if (id) Object.assign(r, upd); else COL.inv.push(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
     if (more){   // keep the same card filled in for the next copy - usually just a different condition
-      toast(`Added ${upd.qty} × ${name}${upd.condition ? " (" + upd.condition + ")" : ""}. Now the next one.`, 3500);
+      addedNote(`${upd.qty} × ${name}${upd.condition ? " · " + upd.condition : ""}${upd.cost_each ? " · " + money(+upd.cost_each) + " each" : ""}`);
       $("#eQty").value = "1"; ($("#eCond") || $("#eQty")).focus(); return; }
     closeModal(); toast("Saved.");
   };
