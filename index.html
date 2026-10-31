@@ -420,7 +420,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 11:45 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 11:50 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1653,7 +1653,7 @@ document.addEventListener("click", e => { if (SF_HOVER) return; const a = e.targ
 // ---- reason categories (collection/reasons.csv - edit them under Settings) + who caught it
 const DEFAULT_REASONS = [["wrongcard","🔀","Wrong card","#1d5fa8"],["language","🌐","Foreign language","#0f7b6c"],["edition","🏷️","Wrong edition","#6b3fa0"],
   ["condition","🩹","Condition","#b45309"],["fake","❌","Not authentic","#b3261e"],["lot","📦","Not a single card","#7a5c2e"],["stock","🖼️","Stock photo","#4b6584"],["verify","📷","Can't verify","#5f6b7a"],
-  ["price","💲","Price","#1f7a4d"],["seller","🚫","Seller","#c2410c"],["prefs","⚙️","Your preferences","#a0136b"],["other","❔","Other","#6f6a5f"]]
+  ["price","💲","Price is wrong","#1f7a4d"],["seller","🚫","Seller","#c2410c"],["prefs","⚙️","Signed / graded - not what I want","#a0136b"],["other","❔","Other","#6f6a5f"]]
   .map(([key, icon, label, color]) => ({key, icon, label, color, keywords: ""}));
 const RS = {list: DEFAULT_REASONS, sha: null};
 const REASON_COLS = ["key", "icon", "label", "color", "keywords"];
@@ -2379,7 +2379,7 @@ function reviewHTML(d, mode){
       <div class="aud-q"><span>Back of Card</span>${seg("back", [["shown", "Shown"], ["missing", "Not Shown / Can't Tell"]])}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
     <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
-    <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition" && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" style="font-size:12px;margin-top:2px">Optional - pick as many as apply. Pick one only if something besides the card or condition makes it not worth buying - that hides it. Otherwise the numbers decide: if it's still past your deal % at your condition, it stays.</div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
