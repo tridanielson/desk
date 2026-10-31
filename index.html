@@ -423,7 +423,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 01:29 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 01:38 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -513,7 +513,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <div class="row">
     <input type="hidden" id="dDays" value="7"><input type="hidden" id="dMin" value="0"><!-- always the last 7 days (what the scanner re-checks), no minimum -->
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
-    <select id="dSortSel" class="phone-only" aria-label="Sort by"><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
+    <select id="dSortSel" aria-label="Sort by"><option value="Best Value|-1">Sort: Best Value</option><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
     <select id="dType" aria-label="Listing type" title="Auction Only = sorted by ending soonest, ended ones hidden"><option value="bin">Buy It Now Only</option><option value="auction">Auction Only</option><option value="">Buy It Now + Auction</option><option value="offer">🤝 Takes Offers</option><option value="sniped">🎯 My Snipes</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
@@ -894,7 +894,7 @@ document.addEventListener("click", e => {
   const th = e.target.closest("thead th"); if (!th || e.target.closest("input,select,button,a")) return;
   const tbl = th.closest("table"), h = thText(th);
   if (!tbl || !h || tbl.id === "allTable") return;               // All prices has its own sorting
-  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / Ends" ? 1 : -1); DSORT.k = h; store.set("pd_dsort", h + "|" + DSORT.dir); DFREEZE.order = null; renderDeals(); return; }
+  if (tbl.id === "dealsTable"){ if (!DEAL_KEYS[h]) return; DSORT.dir = DSORT.k === h ? -DSORT.dir : (h === "Card" || h === "Listing" || h === "Type / Ends" ? 1 : -1); DSORT.k = h; store.set("pd_dsort", h + "|" + DSORT.dir); DFREEZE.order = null; if (typeof syncSortSel === "function") syncSortSel(); renderDeals(); return; }
   const k = tableKey(tbl), cur = TSORT[k];
   const dir = cur && cur.h === h ? -cur.dir : 1;
   TSORT[k] = {h, dir}; sortTable(tbl, th.cellIndex, dir); markSorted(tbl, h, dir);
@@ -1830,13 +1830,17 @@ function wireFB(box, rows){
     openFB(d, b.dataset.fb); }));
 }
 // click a column title to sort the deals (again to flip); the phone view follows the same order
-const DSORT = (() => { try{ const v = (localStorage.getItem("pd_dsort") || "").split("|"); return v[0] ? {k: v[0], dir: +v[1] || -1} : {k: "", dir: -1}; }catch(e){ return {k: "", dir: -1}; } })();   // your sort survives a reload
+const DSORT = (() => { try{
+  if (!localStorage.getItem("pd_bv1")){ localStorage.setItem("pd_bv1", "1"); localStorage.setItem("pd_dsort", "Best Value|-1"); localStorage.removeItem("pd_dsort_phone"); }   // Best Value is the new default (once)
+  const v = (localStorage.getItem("pd_dsort") || "").split("|"); return v[0] ? {k: v[0], dir: +v[1] || -1} : {k: "Best Value", dir: -1}; }catch(e){ return {k: "Best Value", dir: -1}; } })();   // your sort survives a reload
 // While you work through the list (open a deal in an eBay tab, come back), it holds still: same order, sold/ended ones stay
 // put (greyed) instead of vanishing, new finds go on top. It re-sorts when you change a filter or sort, or tap "Re-sort now".
 const DFREEZE = {order: null, at: 0, changed: 0};
 function freezeDeals(){ if (!DFREEZE.order && S._dealRows && S._dealRows.length){ DFREEZE.order = new Map(S._dealRows.map((d, i) => [d.url, i])); DFREEZE.at = Date.now(); DFREEZE.changed = 0; } }
 const COND_ORDER = {NM: 5, LP: 4, MP: 3, HP: 2, DMG: 1};
-const DEAL_KEYS = {"Found": d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0, "Card": d => (d.card || "").toLowerCase(),
+// Best Value: % off x the square root of the dollars saved - a big discount on a pricey card beats the same % on a cheap one
+const bestValue = d => { const pct = +d.discount_pct || 0, saved = (+d.fair || 0) - (+d.total || 0); return pct > 0 && saved > 0 ? Math.round(pct * Math.sqrt(saved)) : 0; };
+const DEAL_KEYS = {"Best Value": bestValue, "Found": d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0, "Card": d => (d.card || "").toLowerCase(),
   "% Off": d => +d.discount_pct || 0, "Price + Ship": d => +d.total || 0, "Condition": d => COND_ORDER[(d.condition || "").replace("?", "").toUpperCase()] ?? (/psa|bgs|cgc|sgc|grade/i.test(d.condition) ? 6 : 0),
   "Fair Value": d => +d.fair || 0, "Type / Ends": d => { const e = endAt(d); return e == null ? 9e15 : e < Date.now() ? 9e15 + 1 : e; }, "Listing": d => (d.title || "").toLowerCase()};
 function dealCompare(a, b){
@@ -1906,7 +1910,7 @@ function renderDeals_(){
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed${d._held ? " held" : ""}" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : d._held ? ' class="held"' : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
       <td><div class="cname">${isIgnored(d) ? '<span class="badge b-out">IGNORED</span> ' : ""}${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${condWarn(d) && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(condWarn(d))}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
-      <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
+      <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%${bestValue(d) ? `<div class="mut" style="font-size:11px;font-weight:400;white-space:nowrap" title="Best Value: % off x the square root of the dollars saved, so big savings rank above the same % on a cheap card">value ${bestValue(d)}</div>` : ""}</td><td class="r">${money(d.total)}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap">${money(d.price)} + ${money(d.ship)} ship</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
   t.querySelectorAll("[data-snipe]").forEach(b => b.addEventListener("click", () => snipe(rows.find(x => x.url === b.dataset.snipe))));
@@ -4748,9 +4752,12 @@ function costConfirm(title, lines, okLabel){
 const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$/i.test(A.enabled || "yes");
   return on ? `AI photo checks on possible deals: up to <b>${esc(A.max_reviews_per_day || "40")}/day</b> (${esc((A.review_mode || "risky") === "all" ? "every deal" : "risky deals only")}; about 1-3¢ each)` : "AI checker is off - no AI cost"; };
 // phones have no column titles to tap - these drop-downs do the same sorting
-$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; DFREEZE.order = null; store.set("pd_dsort_phone", e.target.value || "new"); renderDeals(); });
+$("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; DFREEZE.order = null; store.set("pd_dsort_phone", e.target.value || "new"); store.set("pd_dsort", DSORT.k + "|" + DSORT.dir); renderDeals(); });
+function syncSortSel(){ const sel = $("#dSortSel"); if (!sel) return; const v = DSORT.k ? DSORT.k + "|" + DSORT.dir : "";
+  if ([...sel.options].some(o => o.value === v)) sel.value = v; else sel.selectedIndex = -1; }   // a column title you tapped: the menu shows nothing picked
+syncSortSel();
 if (matchMedia("(max-width:700px)").matches){   // phones: Biggest % Off first unless you picked another sort
-  const v0 = store.get("pd_dsort_phone"), v = !v0 ? "% Off|-1" : v0 === "new" ? "" : v0;
+  const v0 = store.get("pd_dsort_phone"), v = !v0 ? "Best Value|-1" : v0 === "new" ? "" : v0;
   if ([...$("#dSortSel").options].some(o => o.value === v)){ $("#dSortSel").value = v; const [k, dir] = v.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; }
 }
 $("#allSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); allSort = {k, dir: +dir}; renderAll(); });
