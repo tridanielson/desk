@@ -420,7 +420,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:52 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 11:39 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1718,6 +1718,9 @@ function qualityHTML(d){
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
+  { const bk = (AUD.rows[d.url] || {}).back, n = String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length;
+    if (bk === "missing" || bk === "unclear") h += `<span class="flag" title="${bk === "missing" ? "You checked the photos: the back of the card isn't shown" : "You checked the photos: the back can't be made out"} - the condition was judged from the front only.">no back photo</span> `;
+    else if (!bk && n === 1) h += `<span class="flag" title="This listing has a single photo, so the back of the card probably isn't shown - the condition is from the front only.">1 photo · probably no back</span> `; }
   if (d.qty && d.qty !== "1" && !isEnded(d)) h += `<span class="flag" title="The seller has ${esc(d.qty)} of these for sale in one listing, so the photo may not be the actual copy you'd get. Condition and price aren't changed - ask the seller or check the listing.">${esc(d.qty)} available · photo may not be the copy</span> `;
   if (d.multi === true || d.multi === "yes" || d.multi === "True") h += `<span class="flag" title="This listing has a drop-down of conditions. This deal is for the ${esc(d.condition)} option at its own price - pick that option on eBay.">1 of several conditions</span> `;
   if (d.below_min) h += `<span class="flag" title="Below your minimum condition (Settings → Loud Alerts Only at or Above). Still listed in case it's worth it - just no loud alert.">below your ${esc(d.below_min)}+ minimum</span> `;
@@ -2340,6 +2343,7 @@ function reviewHTML(d, mode){
   const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, mode === "queue" ? 6 : 3);
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = reviewStart(d);
+  if (!s.back) s.back = (AUD.rows[d.url] || {}).back || "shown";   // the back of the card: shown in the photos?
   { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
     if (!s.reasons.length && s.reason) s.reasons = [s.reason]; s.reasons = [...new Set(s.reasons)]; }
   const c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
@@ -2371,6 +2375,7 @@ function reviewHTML(d, mode){
     <div id="rvRest"${isWrong(s.edition) && s.edition !== "edition" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying.</span></div>`
       : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+      <div class="aud-q"><span>Back of Card</span>${seg("back", [["shown", "Shown"], ["missing", "Not Shown"], ["unclear", "Can't Tell"]])}</div>
         <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Who Got the Condition Wrong?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
     <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
     <div class="aud-q"><span>Anything Else Wrong?</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && k !== "condition").map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
@@ -2392,8 +2397,9 @@ function dealDetails(d){
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `AI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
+    `Photos: ${String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length || "not saved"}${a && a.back && a.back !== "shown" ? " · back of card: " + (a.back === "missing" ? "not shown" : "can't tell") : ""}`,
     `My reviews: ${f.length ? f.map(r => `${r.at} ${r.verdict}${r.reason ? " (" + r.reason + ")" : ""}${r.note ? ' "' + r.note + '"' : ""}`).join(" | ") : "none"}${a ? ` · audit: edition ${a.edition || "?"}, condition ${a.condition || "?"}${a.fault ? ", " + a.fault + "'s mistake" : ""}` : ""}`,
-    `Page version: ${($("#pageVer") || {}).textContent || "?"}`].filter(x => x !== "").join("\n");
+    `Page version: ${($("#pageVer") || {}).textContent || "?"}`].filter(x => x !== "").join("\n") + "\n\n";   // ends on a blank line: type your question right under it
 }
 document.addEventListener("click", e => { const b = e.target.closest(".rv-copy, [data-copydeal]"); if (!b) return; e.preventDefault();
   const d = S.deals.find(x => x.url === (b.dataset.copy || b.dataset.copydeal)); if (d) copyText(dealDetails(d), "Copied - paste it into your chat with Claude."); });
@@ -2562,12 +2568,13 @@ function saveReview(d, sel, note, done, agreeAI){
   else if (DC.map[d.url]) delete DC.map[d.url];
   if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (AI accuracy, AI examples, training labels) - also for deals the AI didn't check
-  if (sel.edition || sel.good || condChanged || COND_LIST.includes(sel.condition)){
+  if (sel.edition || sel.good || condChanged || COND_LIST.includes(sel.condition) || (sel.back && sel.back !== "shown")){
     AUD.rows[d.url] = {url: d.url, card: d.card, at, ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(), ai_model: d.ai_model || "",
       ai_reason: (d.ai_reason || "").slice(0, 200), verdict: sel.good === "up" ? "ok" : sel.good === "down" ? "reject" : "",
       edition: isWrong(sel.edition) ? "wrong" : (sel.edition || ""), condition: sel.condition || "",
       note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
-      fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted"};
+      fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted",
+      back: isWrong(sel.edition) ? "" : (sel.back || "shown")};
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
@@ -2597,7 +2604,7 @@ function photoCheckLine(d){
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
   return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📷 Free photo check (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
 }
-const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault"];
+const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
   ["MP", "Moderately Played", "Clear wear: surface marks, edge wear, light creases or bends; still structurally sound."],
