@@ -420,7 +420,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:25 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:52 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -938,7 +938,12 @@ async function startApp(){
     const t0 = savedTab();
     if (tabOK(t0)) switchTab(t0);   // show the page you were on right away, while the data loads
     else if (document.getElementById("tab-" + t0)) document.querySelectorAll("section.tab").forEach(x => x.classList.toggle("on", x.id === "tab-" + t0));   // (Setup & Help etc: just show it - it fills in after loading)
-    try{ await loadAll(); } catch(e){ document.body.classList.remove("booting"); throw e; } finally { document.body.classList.remove("starting"); }
+    try{
+      for (let k = 0; ; k++){   // a hiccup reaching the server: try again a couple of times before giving up
+        try{ await loadAll(); break; }
+        catch(e){ if (k >= 2 || /sign in|AUTH|password|Setup needed/i.test(e.message)) throw e; await new Promise(r => setTimeout(r, 2500 * (k + 1))); }
+      }
+    } catch(e){ document.body.classList.remove("booting"); throw e; } finally { document.body.classList.remove("starting"); }
     $("#signOutBtn").hidden = false;
     const t1 = savedTab();
     switchTab(tabOK(t1) || (t1 === "connect" && !READONLY) ? t1 : "mine");   // Setup & Help works once you're signed in
@@ -1176,8 +1181,8 @@ const SETTINGS = [
     ["LP", "Lightly Played From Grade", "num", 7, ""], ["MP", "Moderately Played From Grade", "num", 5, "e.g. a CGC 5.5 counts as MP."],
     ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
   {sec: "review", title: "Reviewing deals", fields: [
-    ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."]]},
-    ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks. When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."],
+    ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."],
+    ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks. When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -2608,7 +2613,15 @@ function loadAUD(x){
 const audCard = label => { if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c])); return S._cardByLabel.get(label); };
 const aiChecked = d => !!d.ai_verdict;
 // random order (fixed for this visit) so the honest score isn't skewed toward the ones that look wrong
-function audRank(d){ if (!AUD.order) AUD.order = {}; if (!(d.url in AUD.order)) AUD.order[d.url] = Math.random(); return AUD.order[d.url]; }
+function audRank(d){
+  if (!AUD.order){ try{ AUD.order = JSON.parse(sessionStorage.getItem("pd_audorder") || "null"); }catch(e){} if (!AUD.order) AUD.order = {}; }
+  if (!(d.url in AUD.order)){ AUD.order[d.url] = Math.random(); AUD._saveOrder = true; }
+  return AUD.order[d.url];
+}
+function audRemember(d){   // the random order and the deal you're on survive a page reload (this tab only)
+  try{ if (AUD._saveOrder){ sessionStorage.setItem("pd_audorder", JSON.stringify(AUD.order)); AUD._saveOrder = false; }
+    sessionStorage.setItem("pd_audat", JSON.stringify({f: AUD.filter, u: d ? d.url : ""})); }catch(e){}
+}
 function audQueue(){
   const f = AUD.filter, m = AUD.model;
   return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (
@@ -2662,9 +2675,13 @@ function audBoard(){
 function renderAudit(){
   const box = $("#audBody"); if (!box) return;
   if (!FB.loaded){ box.innerHTML = `<p class="empty loadmsg">Loading…</p>`; loadFB(); return; }
-  const q = audQueue(); AUD.i = Math.max(0, Math.min(AUD.i, q.length - 1));
+  let at = null;
+  if (!AUD.resumed){ AUD.resumed = true; try{ at = JSON.parse(sessionStorage.getItem("pd_audat") || "null"); if (at && at.f) AUD.filter = at.f; }catch(e){} }
+  const q = audQueue();
+  if (at && at.u){ const k = q.findIndex(x => x.url === at.u); if (k >= 0) AUD.i = k; }
+  AUD.i = Math.max(0, Math.min(AUD.i, q.length - 1));
   const models = [...new Set(S.deals.map(d => d.ai_model).filter(Boolean))];
-  const d = q[AUD.i];
+  const d = q[AUD.i]; audRemember(d);
   box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How Accurate Is the AI Checker?</b>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
     <div class="panel"><div class="row">
@@ -2954,7 +2971,8 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && doc
 async function softReload(){
   if (!PV.newer || busyNow()) return;
   if (DFREEZE.order && document.querySelector("#tab-deals.on") && Date.now() - DFREEZE.at < 3 * 3600e3) return;   // don't reshuffle what you're working through
-  if (!document.hidden && Date.now() - PV.lastInput < 60000) return;
+  if (Date.now() - PV.lastInput < (document.hidden ? 10 * 6e4 : 60000)) return;   // just stepped away to look at eBay: don't reload under you
+  if (document.querySelector("#tab-audit.on #audItem .aud-grid")) return;   // mid-review in the Review Queue
   PV.newer = false; try{ await flushSaves(); }catch(e){}
   try{ sessionStorage.setItem("pd_scroll", String(scrollY)); }catch(e){}
   location.reload();
