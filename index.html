@@ -420,7 +420,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 04:12 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 30, 10:25 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1177,6 +1177,7 @@ const SETTINGS = [
     ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
   {sec: "review", title: "Reviewing deals", fields: [
     ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."]]},
+    ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks. When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."],
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -1201,7 +1202,7 @@ const SETTINGS_LAYOUT = [
     {title: "Sniper", f: [["sniper", "enabled"], ["sniper", "min_listing_price"], ["sniper", "min_market_value"], ["sniper", "max_pages"], ["sniper", "item_details_per_day"], ["sniper", "max_alerts_per_sweep"]]}]},
   {group: "AI Photo Check", note: "Claude looks at the photos and description of possible deals before they alert.", panels: [
     {title: "When It Checks", f: [["ai", "enabled"], ["ai", "review_mode"], ["ai", "max_reviews_per_day"], ["ai", "min_fair_value"], ["ai", "risky_discount_pct"], ["ai", "always_review_over"]]},
-    {title: "Marking Damage on Photos", f: [["review", "photo_fetches_per_day"]]},
+    {title: "eBay Calls for Photos", f: [["review", "photo_fetches_per_day"], ["review", "training_lookups_per_day"]]},
     {title: "Models & Cost", f: [["ai", "model"], ["ai", "cheap_model"], ["ai", "cheap_below"]]},
     {title: "Learning From You", f: [["ai", "teach_examples"], ["ai", "overstate_after"], ["ai", "upside_checks_per_day"], ["ai", "upside_min_value"]]}]},
   {group: "Scan Size & eBay Usage", note: "How much the 3-hour scan covers. More cards = more of your 5,000 daily eBay calls.", panels: [
