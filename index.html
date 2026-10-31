@@ -299,6 +299,7 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
 .aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
 .aud-ph{position:relative;display:block}
+.sd-recent{max-height:260px;overflow-y:auto;padding-right:4px;scrollbar-gutter:stable}
 .ai-spot{position:absolute;border:2px dashed #ff3b30;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.85);pointer-events:none}
 .ai-spot i{position:absolute;left:-2px;bottom:100%;margin-bottom:2px;background:#ff3b30;color:#fff;font:600 10px/1.3 system-ui,sans-serif;font-style:normal;padding:1px 4px;border-radius:3px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .aud-ref{width:100%;max-width:260px;border-radius:10px;display:block}
@@ -423,7 +424,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 02:41 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 04:23 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3776,14 +3777,16 @@ function whereFrom(list){
     const k = t.toLowerCase(); if (!seen.has(k) || /[A-Z]/.test(t) && !/[A-Z]/.test(seen.get(k))) seen.set(k, t); }
   return [...seen.values()].sort((a, b) => a.localeCompare(b)).slice(0, 40);
 }
+const SL_RECENT_SINCE = Date.parse("2026-10-30T00:00:00Z");
 function sdRecentHTML(){
-  const cut = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
-  const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : r.ref ? "" : sdAddedAt(r);   // received Secret Lairs have their own list on that tab
+  const cut = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  // Secret Lairs you confirm as received count as added (not the ones moved over in bulk when the Sealed tab started)
+  const when = r => r.status === "opened" ? r.opened_at : r.status === "sold" ? r.sold_at : r.status === "given" ? r.given_at : r.ref && sdTs(r) < SL_RECENT_SINCE ? "" : sdAddedAt(r);
   const rec = SD.rows.filter(r => (when(r) || "") >= cut)
-    .sort((a, b) => (when(b) + "|" + sdTs(b)).localeCompare(when(a) + "|" + sdTs(a))).slice(0, 10);
+    .sort((a, b) => (when(b) + "|" + String(sdTs(b)).padStart(14, "0")).localeCompare(when(a) + "|" + String(sdTs(a)).padStart(14, "0"))).slice(0, 60);
   if (!rec.length) return "";
   return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently added, opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span>
-    <div class="bdl-list" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
+    <div class="bdl-list sd-recent" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
       return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px;display:flex;gap:6px;align-items:center"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdedit="${esc(r.id)}" title="Change the price, quantity, where from, date...">✎ Edit</span>${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
         : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></div>`;
 }
