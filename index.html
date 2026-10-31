@@ -423,7 +423,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 01:38 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 02:41 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -515,7 +515,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" aria-label="Sort by"><option value="Best Value|-1">Sort: Best Value</option><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
-    <select id="dType" aria-label="Listing type" title="Auction Only = sorted by ending soonest, ended ones hidden"><option value="bin">Buy It Now Only</option><option value="auction">Auction Only</option><option value="">Buy It Now + Auction</option><option value="offer">🤝 Takes Offers</option><option value="sniped">🎯 My Snipes</option></select>
+    <select id="dType" aria-label="Listing type" title="Auction Only = sorted by ending soonest, ended ones hidden"><option value="bin">Buy It Now Only</option><option value="auction">Auction Only</option><option value="">Buy It Now + Auction</option><option value="offer">🤝 Takes Offers</option><option value="sniped">🎯 My Snipes</option><option value="offers">🤝 My Offers</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
@@ -1073,6 +1073,9 @@ async function saveAll(){
     if (S.dirty.has("ignored")){ S.dirty.delete("ignored");   // rebuilt from what's on screen (an Unignore wins)
       IGN.sha = await putMerged("collection/ignored.csv", IGN.sha, () => toCSV(IGN_COLS, Object.values(IGN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.item_id && !IGN.rows[r.item_id] && !IGN.un.has(r.item_id)) IGN.rows[r.item_id] = r; }), "Ignored listings (Price Desk)"); }
+    if (S.dirty.has("offers")){ S.dirty.delete("offers");   // rebuilt from what's on screen (a removed offer wins)
+      OFR.sha = await putMerged("collection/offers.csv", OFR.sha, () => toCSV(OFR_COLS, Object.values(OFR.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
+        rows => rows.forEach(r => { if (r.item_id && !OFR.rows[r.item_id] && !OFR.un.has(r.item_id)) OFR.rows[r.item_id] = r; }), "Offers (Price Desk)"); }
     if (S.dirty.has("snipes")){ S.dirty.delete("snipes");
       SN.sha = await putMerged("collection/snipes.csv", SN.sha, () => toCSV(SN_COLS, Object.values(SN.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
         rows => rows.forEach(r => { if (r.item_id && !SN.rows[r.item_id]) SN.rows[r.item_id] = r; }), "Snipes set (Price Desk)"); }
@@ -1599,6 +1602,7 @@ const isEnded = d => d.status === "ended" || (isAuction(d) && endsText(d) === "e
 function dealExtraOK(d){
   const ty0 = $("#dType") ? $("#dType").value : "";
   if (ty0 === "sniped"){ const s = snipeOf(d); if (!s || s.result) return false; }   // My Snipes: live ones + ended ones waiting for Won/Lost
+  else if (ty0 === "offers"){ if (!offerOpen(d)) return false; }   // My Offers: still waiting on the seller (or countered)
   else if ((isEnded(d) || (FB.loaded && boughtFor(d)) || isIgnored(d)) && !($("#dEnded") && $("#dEnded").checked)) return false;   // bought ones live in Collection now; ignored ones are out of sight
   if (ty0 !== "sniped" && longAuction(d) && !snipeOf(d)) return false;   // a bid took its Buy It Now away: back when it's inside the auction window
   const lg = $("#dLang") ? $("#dLang").value : "";
@@ -1745,7 +1749,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv"]); loadIGN(f["collection/ignored.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv", "collection/offers.csv"]); loadIGN(f["collection/ignored.csv"]); loadOFR(f["collection/offers.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on")) renderAudit(); }
   catch(e){} FB.loading = false;
 }
@@ -1765,11 +1769,11 @@ async function saveCollectionNow(msg){
   COL.invSha = await GH.putFile("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, msg);
   S.dirty.delete("collection");
 }
-function openBought(d, done){
+function openBought(d, done, title){
   if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c]));
   const c = S._cardByLabel.get(d.card) || {};
   const cond = (d.condition || "").replace("?", "").toUpperCase();
-  openModal(`<h3>${done ? "🏆 I Won This Snipe" : "🛒 I Bought This"}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
+  openModal(`<h3>${title || (done ? "🏆 I Won This Snipe" : "🛒 I Bought This")}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
     <div class="grid">
       <div><label for="bPaid">Total paid each ($, incl. shipping & tax)</label><input id="bPaid" inputmode="decimal" value="${esc((+d.price_now && isAuction(d) ? +d.price_now + (+d.ship || 0) : +d.total || 0).toFixed(2))}"></div>
       <div><label for="bQty">Quantity</label><input id="bQty" type="number" min="1" value="1"></div>
@@ -2279,7 +2283,7 @@ function reviewedState(d){
   if (!f && !a && !c) return null;
   return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
-function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + goneBtnHTML(d, tile) + ignoreBtnHTML(d, tile) : r; }
+function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + offerBtnHTML(d, tile) + goneBtnHTML(d, tile) + ignoreBtnHTML(d, tile) : r; }
 // ---- "Sold / Gone": a Buy It Now you can see has sold - hide it now; the scan marks it ended without spending an eBay check (collection/gone.csv)
 const GONE_COLS = ["item_id", "url", "card", "at"];
 const GONE = {rows: {}, sha: null, loaded: false};
@@ -2315,6 +2319,53 @@ document.addEventListener("click", e => { const b = e.target.closest("[data-gone
   if (b.dataset.gone === "yes"){ GONE.rows[id] = {item_id: id, url: "https://www.ebay.com/itm/" + id, card: d.card || "", at: new Date().toISOString().slice(0, 16)}; d._preGone = d.status || "live"; d.status = "ended"; d._gone = true; toast(`${d.card}: marked sold / gone and hidden. To undo: More Filters → Include Ended & Bought → ↩ Not Sold.`, 5000); }
   else { delete GONE.rows[id]; d.status = d._preGone || "live"; delete d._gone; d._unGone = true; toast("Back on your list.", 3000); }
   markDirty("gone"); renderDeals(); });
+// ---- 🤝 offers you've made (collection/offers.csv): tag on the deal, 48-hour countdown, then Accepted / Declined / Countered
+const OFR_COLS = ["item_id", "url", "card", "amount", "at", "result", "result_at"];
+const OFR = {rows: {}, sha: null, loaded: false, un: new Set()};
+const OFFER_HOURS = 48;   // eBay offers expire after 48 hours
+function loadOFR(x){ try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.item_id) OFR.rows[r.item_id] = r; }); }catch(e){} OFR.sha = x ? x.sha : null; OFR.loaded = true; }
+const offerOf = d => OFR.rows[itemId(d)] || null;
+const offerOpen = d => { const o = offerOf(d); return !!o && (!o.result || o.result === "countered"); };   // still waiting on the seller
+function offerLeft(o){ const t = Date.parse(o.at + (/[zZ]$/.test(o.at) ? "" : "Z")); if (isNaN(t)) return ""; const ms = t + OFFER_HOURS * 3600e3 - Date.now();
+  if (ms <= 0) return "expired"; const h = Math.floor(ms / 3600e3); return h >= 24 ? Math.floor(h / 24) + "d " + (h % 24) + "h left" : h ? h + "h left" : Math.max(1, Math.round(ms / 6e4)) + "m left"; }
+function setOffer(d, patch){
+  const id = itemId(d); if (!id) return;
+  if (patch === null){ delete OFR.rows[id]; OFR.un.add(id); }
+  else { OFR.un.delete(id); OFR.rows[id] = Object.assign(OFR.rows[id] || {item_id: id, url: "https://www.ebay.com/itm/" + id, card: d.card || ""}, patch); }
+  markDirty("offers"); renderDeals();
+}
+function offerBtnHTML(d, tile){
+  if (READONLY || !OFR.loaded || !itemId(d)) return "";
+  const o = offerOf(d), tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
+  if (o && o.result === "accepted") return ` <span class="badge b-on" title="The seller accepted your offer">🤝 Offer accepted ${money(o.amount)}</span>`;
+  if (o && o.result === "declined") return isEnded(d) ? "" : ` <span class="mut" style="font-size:12px">🤝 ${money(o.amount)} declined</span> <${tag} class="btn ghost small" data-offer="new" data-u="${esc(d.url)}" title="Send another offer">Offer Again</${end}>`;
+  if (o){ const left = o.result === "countered" ? "seller countered" : offerLeft(o);
+    return ` <span class="flag buy" title="You offered ${esc(money(o.amount))} on ${esc(whenAZ(o.at + "Z"))}${o.result === "countered" ? " - the seller countered: check eBay" : " - eBay offers last 48 hours"}">🤝 Offered ${esc(money(o.amount))} · ${esc(left)}</span>`
+      + ` <${tag} class="btn small" data-offer="accepted" data-u="${esc(d.url)}" title="Seller accepted - record what you paid (goes to Collection as ordered)">Accepted</${end}>`
+      + (o.result === "countered" ? "" : ` <${tag} class="btn ghost small" data-offer="countered" data-u="${esc(d.url)}" title="The seller sent a counter-offer">Countered</${end}>`)
+      + ` <${tag} class="btn ghost small" data-offer="declined" data-u="${esc(d.url)}" title="Declined or expired">Declined</${end}>`
+      + ` <${tag} class="btn ghost small" data-offer="undo" data-u="${esc(d.url)}" title="Remove the offer mark (you didn't send it)">✕</${end}>`; }
+  if (!takesOffers(d) || isEnded(d)) return "";
+  return ` <${tag} class="btn ghost small" data-offer="new" data-u="${esc(d.url)}" title="You sent the seller an offer on eBay - note it here">🤝 I Made an Offer</${end}>`;
+}
+function openOfferModal(d){
+  const o = offerOf(d);
+  openModal(`<h3>🤝 I Made an Offer</h3><div class="mut" style="font-size:13px">${esc(d.card)} · listed ${money(d.total)} with shipping · ${esc((d.title || "").slice(0, 80))}</div>
+    <div style="margin-top:12px"><label for="ofrAmt">What did you offer? (the item price you typed on eBay)</label><input id="ofrAmt" type="number" inputmode="decimal" step="0.01" min="0" value="${esc(o && o.result !== "declined" ? o.amount : "")}" placeholder="e.g. 40.00" style="width:100%"></div>
+    <p class="mut" style="font-size:12px;margin:8px 0 0">The deal gets a 🤝 tag with eBay's 48-hour countdown. When you hear back, tap Accepted, Countered or Declined on the deal.</p>
+    <div class="row" style="justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn ghost" type="button" id="ofrCancel">Cancel</button><button class="btn" type="button" id="ofrSave">Save Offer</button></div>`);
+  const amt = $("#ofrAmt"); setTimeout(() => amt.focus(), 50);
+  const save = () => { const v = parseFloat(amt.value); if (!(v > 0)) { amt.focus(); return toast("Type the amount you offered.", 3000); }
+    setOffer(d, {amount: v.toFixed(2), at: new Date().toISOString().slice(0, 16), result: "", result_at: ""}); closeModal(); toast(`🤝 Offer of ${money(v)} noted - 48 hours to hear back.`, 4000); };
+  $("#ofrSave").addEventListener("click", save); amt.addEventListener("keydown", e => { if (e.key === "Enter") save(); });
+  $("#ofrCancel").addEventListener("click", closeModal);
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-offer]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.u); if (!d) return; const r = b.dataset.offer, now = new Date().toISOString().slice(0, 16);
+  if (r === "new") return openOfferModal(d);
+  if (r === "undo") return setOffer(d, null), toast("Offer mark removed.", 2500);
+  if (r === "accepted"){ if (FB.loaded && !boughtFor(d)) openBought(d, () => setOffer(d, {result: "accepted", result_at: now}), "🤝 Offer Accepted"); else setOffer(d, {result: "accepted", result_at: now}); return; }
+  setOffer(d, {result: r, result_at: now}); toast(r === "countered" ? "Marked countered - check the counter on eBay, then tap Accepted or Declined." : "Marked declined - you can offer again.", 4500); });
 function reviewBtnHTML0(d, tile){
   if (READONLY || !FB.loaded) return "";
   const st = reviewedState(d), tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
@@ -2401,6 +2452,7 @@ function dealDetails(d){
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"}${d.first_found && d.first_found !== d.found_at ? ` (first found ${d.first_found}${d.first_by ? " by the sniper" : ""})` : ""} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
     snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
+    offerOf(d) ? `My offer: $${offerOf(d).amount} sent ${offerOf(d).at} UTC${offerOf(d).result ? " · " + offerOf(d).result : " · waiting (" + offerLeft(offerOf(d)) + ")"}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - counts as raw " + gradeCondOf(d._c0 || d.condition) + ", no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
