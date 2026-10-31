@@ -298,6 +298,9 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
 .aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
+.aud-ph{position:relative;display:block}
+.ai-spot{position:absolute;border:2px dashed #ff3b30;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.85);pointer-events:none}
+.ai-spot i{position:absolute;left:-2px;bottom:100%;margin-bottom:2px;background:#ff3b30;color:#fff;font:600 10px/1.3 system-ui,sans-serif;font-style:normal;padding:1px 4px;border-radius:3px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .aud-ref{width:100%;max-width:260px;border-radius:10px;display:block}
 .aud-ai{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px;font-size:14px}
 .aud-q{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}.aud-q>span{min-width:120px;font-size:13px;color:var(--muted)}
@@ -420,7 +423,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 12:03 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 12:07 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2340,7 +2343,8 @@ function reviewStart(d){
 }
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
-  const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, mode === "queue" ? 6 : 3);
+  const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
+  const imgs = allImgs.slice(0, Math.max(mode === "queue" ? 6 : 3, ...spots.map(p => p.photo)));   // always show the photos the AI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = reviewStart(d);
   if (!s.back) s.back = (AUD.rows[d.url] || {}).back || "shown";
@@ -2358,11 +2362,11 @@ function reviewHTML(d, mode){
       <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a></div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
-      <div>${imgs.length ? `<div class="aud-photos">${imgs.map(u => `<a href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></a>`).join("")}</div>`
+      <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="AI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">Should be:</span><br><b class="up">${esc(c.sn || setOf(d) || "?")}</b>${condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
-    ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>
+    ${d.ai_verdict ? `<div class="aud-ai"><b>AI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from the AI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 The AI photo check didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     ${photoCheckLine(d)}
@@ -2611,6 +2615,8 @@ function photoCheckLine(d){
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
   return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📷 Free photo check (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
 }
+// where the AI saw each problem: [{photo (1 = first), x, y, w, h (0-1 of the photo), what}] - drawn on the review photos
+function aiSpots(d){ if (d._spots) return d._spots; let a = []; try{ a = JSON.parse(d.ai_spots || "[]"); }catch(e){} return d._spots = (Array.isArray(a) ? a : []).filter(p => p && p.photo >= 1); }
 const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
