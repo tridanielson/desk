@@ -424,7 +424,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 06:00 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 07:25 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3315,7 +3315,7 @@ function renderSL(){
   const up = D.filter(d => d.status === "upcoming").sort((a, b) => (a.on_sale_at || "9999").localeCompare(b.on_sale_at || "9999"));
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Secret Lair</h2>
     <p class="sub" style="margin:0">${SL.data ? `Updated ${esc(azFmt(SL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ · ${D.length} drops · times in Arizona time` : "No Secret Lair data yet - it appears after the next update run."}</p></div>
-    <div class="row"><button class="btn ghost small owner-only" id="slEditBtn">${SL.editing ? "Close editor" : "Edit upcoming dates"}</button></div></div>`;
+    <div class="row">${SL.orders && !READONLY ? '<button class="btn ghost small xls-btn" type="button" title="Download as an Excel file">⬇ Export to Excel</button>' : ""}<button class="btn ghost small owner-only" id="slEditBtn">${SL.editing ? "Close editor" : "Edit upcoming dates"}</button></div></div>`;
   if (SL.editing) L += slEditorHTML();
   if (SL.orders && !READONLY) L += slOrdersHTML();
   L += `<h3 style="margin:18px 0 10px;font-size:16px">Upcoming</h3>`;
@@ -3744,7 +3744,7 @@ function renderSD(){
   const kinds = [...new Set(items.map(i => i.kind))];
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sealed</h2>
       <p class="sub" style="margin:0">Unopened product you hold - Secret Lairs, booster boxes, packs, decks. Worth = TCGplayer market price${SD.vals ? `, from ${esc(azFmt(SD.vals.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ` : ""}. Only you can see this.</p></div>
-      <div class="row"><button class="btn small" id="sdAdd">+ Add Sealed</button></div></div>
+      <div class="row"><button class="btn small" id="sdAdd">+ Add Sealed</button><button class="btn ghost small xls-btn" type="button" title="Download as an Excel file">⬇ Export to Excel</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       ${stat("Sealed", `${sum(held, i => i.qty)} items`, `${sdGroups(held).length} products`)}
       ${stat("You paid", money(sum(held, i => i.cost)), "for what's still sealed")}
@@ -4043,7 +4043,7 @@ function openExport(){
     catch(e){ msg.textContent = "Couldn't build the file: " + e.message; document.querySelectorAll("[data-xls]").forEach(x => x.disabled = false); }
   }));
 }
-document.addEventListener("click", e => { if (e.target.closest("#colExport")){ e.preventDefault(); openExport(); } });
+document.addEventListener("click", e => { if (e.target.closest("#colExport, .xls-btn")){ e.preventDefault(); openExport(); } });
 let XLS_LIB = null;
 function excelLib(){   // ExcelJS, loaded only when you export
   if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
