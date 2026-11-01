@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 10:30 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 03:26 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1912,7 +1912,7 @@ function renderDeals_(){
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
-    .sort((a, b) => (isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
+    .sort((a, b) => (DSORT.k === "Type / Ends" ? 0 : isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   if (DFREEZE.order){   // hold the order you were looking at
     const O = DFREEZE.order, inRows = new Set(rows), byUrl = new Map(S.deals.map(d => [d.url, d]));
     const kept = [...O.keys()].map(u => byUrl.get(u)).filter(d => d && (inRows.has(d) || !(d.hidden || d.ai_verdict === "reject" || GONE.rows[itemId(d)])));   // what you hid / marked gone yourself leaves right away
@@ -2691,6 +2691,9 @@ function openReview(d){
 // Loupe (free photo check, testing): which printing the photos look like - shown on the review screen only, never hides anything
 function photoCheckLine(d){
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
+  const m = +d.photo_margin;
+  if (m < 0.02 && m !== 1)   // a near-tie: say so instead of making a call (it still lands in "Teach Loupe" for your answer)
+    return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe (testing): <b>can't tell</b> - close between ${esc(d.photo_pick)}${d.photo_second ? ` and ${esc(d.photo_second)}` : " and another printing"}${d.photo_border ? "" : " (border unreadable)"}</div>`;
   return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
 }
 // ---- tap a review photo: see it big, with SlaveAI's boxes, arrows between photos, and a link to the listing
