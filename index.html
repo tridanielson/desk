@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 11:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 06:44 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1166,7 +1166,8 @@ const SETTINGS = [
     ["teach_examples", "Your Corrections Shown to the AI Each Check", "num", 8, "Recent condition changes and thumbs-down comments, so it learns your standard. 0 = off. Each one adds a tiny bit of cost."],
     ["overstate_after", "Flag a Seller as Overstating After (Corrections)", "num", 2, "Their listings are valued one grade lower than they claim."],
     ["upside_checks_per_day", "Mislabeled-Bargain Photo Checks per Day", "num", 10, "New listings sold as Chronicles / Unlimited / Revised that would be a deal as the original printing get an AI photo check. 0 = off."],
-    ["upside_min_value", "Only for Originals Worth at Least ($)", "num", 50, ""]]},
+    ["upside_min_value", "Only for Originals Worth at Least ($)", "num", 50, ""],
+    ["always_tell", "Always Tell the AI", "note", "", "Lessons the AI follows on every check, one per line - e.g. \"The white dot on Arabian Nights cards is printed, not damage.\" Kept until you remove them."]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
     ["enabled", "Sniper On", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
     ["min_listing_price", "Ignore New Listings Under ($)", "num", 10, ""],
@@ -1225,7 +1226,7 @@ const SETTINGS_LAYOUT = [
     {title: "When It Checks", f: [["ai", "enabled"], ["ai", "review_mode"], ["ai", "max_reviews_per_day"], ["ai", "min_fair_value"], ["ai", "risky_discount_pct"], ["ai", "always_review_over"]]},
     {title: "eBay Calls for Photos", f: [["review", "photo_fetches_per_day"], ["review", "training_lookups_per_day"]]},
     {title: "Models & Cost", f: [["ai", "model"], ["ai", "cheap_model"], ["ai", "cheap_below"]]},
-    {title: "Learning From You", f: [["ai", "teach_examples"], ["ai", "overstate_after"], ["ai", "upside_checks_per_day"], ["ai", "upside_min_value"]]}]},
+    {title: "Learning From You", f: [["ai", "always_tell"], ["ai", "teach_examples"], ["ai", "overstate_after"], ["ai", "upside_checks_per_day"], ["ai", "upside_min_value"]]}]},
   {group: "Scan Size & eBay Usage", note: "How much the 3-hour scan covers. More cards = more of your 5,000 daily eBay calls.", panels: [
     {title: "3-Hour Scan", f: [["deals", "max_cards_per_scan"], ["sets", "need_min_value"]]}]},
   {group: "Selling Fees", note: "Used for profit on the Collection tab.", panels: [
@@ -1288,7 +1289,7 @@ function renderSettings_(){
     for (const [rsec, [k, label, type, def, help]] of P.rows){ g.sec = rsec;
       const cur = (S.ini[g.sec] || {})[k]; const val = cur ?? (type === "bool" ? (def ? "yes" : "no") : String(def));
       const id = `set_${g.sec}_${k}`; const f = document.createElement("div"); f.className = "field";
-      if (type === "list") f.style.gridColumn = "1 / -1";
+      if (type === "list" || type === "note") f.style.gridColumn = "1 / -1";
       let input;
       if (type === "bool") input = `<select id="${id}"><option value="yes">Yes</option><option value="no">No</option></select>`;
       else if (type === "cond") input = `<select id="${id}">${["NM","LP","MP","HP","DMG"].map(c => `<option>${c}</option>`).join("")}</select>`;
@@ -1299,12 +1300,14 @@ function renderSettings_(){
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
+      else if (type === "note") input = `<textarea id="${id}" rows="4" placeholder="One lesson per line"></textarea>`;
       else input = `<input id="${id}" type="number" step="any">`;
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
       el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals") ? val.toLowerCase() : val;
-      el.addEventListener("change", () => { (S.ini[rsec] = S.ini[rsec] || {})[k] = el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
+      if (type === "note") el.value = val.split(/\s*\|\|\s*/).filter(Boolean).join("\n");   // saved on one line, lessons split by ||
+      el.addEventListener("change", () => { (S.ini[rsec] = S.ini[rsec] || {})[k] = type === "note" ? el.value.split(/\n/).map(x => x.replace(/\|\|/g, "|").trim()).filter(Boolean).join(" || ") : el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
     sec.appendChild(panel);
     }
