@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 10:18 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 10:20 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1200,7 +1200,7 @@ const SETTINGS = [
     ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
   {sec: "review", title: "Reviewing deals", fields: [
     ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."],
-    ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks. When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."]]},
+    ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks (AI Inspector and Loupe). When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
     ["exclude_games", "Also Ignore These Card Games", "list", "", "On top of the built-in list (Pokémon, Yu-Gi-Oh, Lorcana, One Piece, Sorcery…)."],
@@ -2688,10 +2688,10 @@ function openReview(d){
 //  - is shown to the AI as an example on future checks (teach.py), so it moves toward your standard
 //  - becomes a labelled example for a future custom model (training.py)
 //  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
-// free photo check (testing): which printing the photos look like - shown on the review screen only, never hides anything
+// Loupe (free photo check, testing): which printing the photos look like - shown on the review screen only, never hides anything
 function photoCheckLine(d){
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
-  return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📷 Free photo check (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
+  return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
 }
 // ---- tap a review photo: see it big, with the AI's boxes, arrows between photos, and a link to the listing
 function openPhotoBig(d, i){
@@ -2794,9 +2794,9 @@ function pcBoard(){
   const sc = (PC.data || {}).score, v = sc && sc.vs_ai, L = (PC.data || {}).learning;
   if (!sc) return "";
   const learn = L ? (L.adopted ? ` · learning from your reviews: <b>${L.learned_pct}%</b> (plain ${L.plain_pct}%)` : ` · learning: ${esc(L.why || "")}`) : "";
-  return `<div class="honest" style="margin-top:8px"><b>📷 Photo check vs AI Inspector</b> <span class="mut" style="font-size:12px">(which printing it is, against your answers)</span><br>
-    ${v && v.n ? `On the same ${v.n} listings: photo check right <b>${v.matcher_pct}%</b> · AI Inspector right <b>${v.ai_pct}%</b>` : "Not enough listings checked by both yet."}
-    <span class="mut" style="font-size:12px"> · photo check overall ${sc.all && sc.all.pct != null ? sc.all.pct + "% of " + sc.all.n : "-"}${learn}</span></div>`;
+  return `<div class="honest" style="margin-top:8px"><b>🔍 Loupe vs AI Inspector</b> <span class="mut" style="font-size:12px">(which printing it is, against your answers)</span><br>
+    ${v && v.n ? `On the same ${v.n} listings: Loupe right <b>${v.matcher_pct}%</b> · AI Inspector right <b>${v.ai_pct}%</b>` : "Not enough listings checked by both yet."}
+    <span class="mut" style="font-size:12px"> · Loupe overall ${sc.all && sc.all.pct != null ? sc.all.pct + "% of " + sc.all.n : "-"}${learn}</span></div>`;
 }
 function audBoard(){
   const {all: a, random: rs, hand, models} = audStats();
@@ -2828,7 +2828,7 @@ function renderAudit(){
   box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How Accurate Is the AI Checker?</b>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
     <div class="panel"><div class="row">
-      <select id="audFilter"><option value="random">Random Sample (Honest Score)</option><option value="todo">Newest AI-Checked, Not Reviewed</option><option value="reject">AI Rejected (Not Reviewed)</option><option value="warn">AI Said "Check It" (Not Reviewed)</option><option value="matcher">📷 Teach the Photo Check (Unsure First)</option>
+      <select id="audFilter"><option value="random">Random Sample (Honest Score)</option><option value="todo">Newest AI-Checked, Not Reviewed</option><option value="reject">AI Rejected (Not Reviewed)</option><option value="warn">AI Said "Check It" (Not Reviewed)</option><option value="matcher">🔍 Teach Loupe (Unsure First)</option>
         <option value="nocheck">Not Checked by AI (Label for Training)</option><option value="done">Already Reviewed</option><option value="all">All AI-Checked</option></select>
       ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
