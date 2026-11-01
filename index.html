@@ -424,7 +424,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 04:23 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 06:00 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4031,6 +4031,110 @@ function colItems(){
       pending: !val.has(r.id) && !approxSL, approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || ""};
   });
 }
+// ---- ⬇ Export to Excel: My Cards / Sealed Product / Secret Lair orders, one sheet each (or all together with a Summary)
+const XLS_KINDS = [["all", "Everything (one file, a sheet each + Summary)"], ["cards", "My Cards"], ["sealed", "Sealed Product"], ["sl", "Secret Lair Orders"]];
+function openExport(){
+  openModal(`<h3>⬇ Export to Excel</h3><p class="mut" style="font-size:13px;margin:4px 0 12px">Values are today's, the same as on the desk. Opens in Excel, Google Sheets or Numbers.</p>
+    <div style="display:grid;gap:8px">${XLS_KINDS.map(([k, l]) => `<button class="btn${k === "all" ? "" : " ghost"}" type="button" data-xls="${k}">${esc(l)}</button>`).join("")}</div>
+    <p class="status" id="xlsMsg" style="min-height:18px;margin:10px 0 0"></p>`);
+  document.querySelectorAll("[data-xls]").forEach(b => b.addEventListener("click", async () => {
+    const msg = $("#xlsMsg"); document.querySelectorAll("[data-xls]").forEach(x => x.disabled = true); msg.textContent = "Building your file…";
+    try{ await exportXLS(b.dataset.xls); closeModal(); toast("Downloaded - check your Downloads folder.", 4000); }
+    catch(e){ msg.textContent = "Couldn't build the file: " + e.message; document.querySelectorAll("[data-xls]").forEach(x => x.disabled = false); }
+  }));
+}
+document.addEventListener("click", e => { if (e.target.closest("#colExport")){ e.preventDefault(); openExport(); } });
+let XLS_LIB = null;
+function excelLib(){   // ExcelJS, loaded only when you export
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  return XLS_LIB || (XLS_LIB = new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js";
+    sc.onload = () => window.ExcelJS ? ok(window.ExcelJS) : no(new Error("the Excel tool didn't load")); sc.onerror = () => { XLS_LIB = null; no(new Error("the Excel tool didn't load - check your connection")); }; document.head.appendChild(sc); }));
+}
+async function exportXLS(kind){
+  const X = await excelLib();
+  if (!COL.loaded && MYCOL()) await loadCOL();
+  if (!SD.loaded) await loadSDFiles();
+  if (!SL.orders && !READONLY) await loadSL();
+  const wb = new X.Workbook(); wb.creator = "Havoth Price Desk"; wb.created = new Date();
+  const MONEY = '"$"#,##0.00', today = todayAZ();
+  const num = v => v == null || v === "" || isNaN(+v) ? null : Math.round(+v * 100) / 100;
+  const titleCaseW = t => String(t || "").replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  // one sheet: title row, header row (dark, bold, frozen, filter), data, a totals row for the money columns
+  // Summary numbers: gain counts only rows that have a value (an unpriced item doesn't look like a loss)
+  function summ(rows, cols){ const ck = (cols.find(c => c.costTot) || {}).k, vk = (cols.find(c => c.valTot) || {}).k;
+    return {rows: rows.length, cost: rows.reduce((a, r) => a + (r[ck] || 0), 0), value: rows.reduce((a, r) => a + (r[vk] || 0), 0), gain: rows.reduce((a, r) => a + (r.gain || 0), 0),
+      unpriced: rows.filter(r => r[vk] == null).length}; }
+  const FIN = f => /^non/i.test(f || "") ? "Non-Foil" : titleCaseW(f);
+  function sheet(name, title, cols, rows){
+    const ws = wb.addWorksheet(name, {views: [{state: "frozen", ySplit: 2}], properties: {defaultRowHeight: 18}});
+    ws.columns = cols.map(c => ({key: c.k, width: c.w || 14}));
+    ws.mergeCells(1, 1, 1, cols.length);
+    const t = ws.getCell(1, 1); t.value = `${title} - Havoth Price Desk, ${today}`; t.font = {bold: true, size: 14, color: {argb: "FF3B2414"}}; ws.getRow(1).height = 24;
+    const h = ws.getRow(2); cols.forEach((c, i) => { const cell = h.getCell(i + 1); cell.value = c.h;
+      cell.font = {bold: true, color: {argb: "FFFFFFFF"}}; cell.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FF8A3B12"}};
+      cell.alignment = {vertical: "middle", horizontal: c.money || c.n ? "right" : "left", wrapText: true}; cell.border = {bottom: {style: "thin", color: {argb: "FF5A2A0E"}}}; });
+    h.height = 22;
+    rows.forEach((r, ri) => { const row = ws.addRow(cols.map(c => r[c.k] ?? null));
+      cols.forEach((c, i) => { const cell = row.getCell(i + 1); if (c.money) cell.numFmt = MONEY; if (c.link && r[c.k]){ cell.value = {text: "Open", hyperlink: r[c.k]}; cell.font = {color: {argb: "FF1D5FA8"}, underline: true}; } });
+      if (ri % 2) row.eachCell({includeEmpty: true}, cell => { cell.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FFF7F1E8"}}; }); });
+    if (rows.length){
+      const last = rows.length + 2, tot = ws.addRow([]); tot.getCell(1).value = `Total · ${rows.length} row${rows.length === 1 ? "" : "s"}`; tot.font = {bold: true};
+      cols.forEach((c, i) => { if (c.sum){ const L = ws.getColumn(i + 1).letter; const cell = tot.getCell(i + 1); cell.value = {formula: `SUM(${L}3:${L}${last})`}; if (c.money) cell.numFmt = MONEY; cell.font = {bold: true}; } });
+      tot.eachCell({includeEmpty: true}, cell => { cell.border = {top: {style: "thin"}}; });
+      ws.autoFilter = {from: {row: 2, column: 1}, to: {row: last, column: cols.length}};
+    }
+    return summ(rows, cols);
+  }
+  const out = {}, sumWS = kind === "all" ? wb.addWorksheet("Summary", {views: [{state: "frozen", ySplit: 2}]}) : null;   // Summary goes first
+  if (kind === "all" || kind === "cards"){
+    const rows = colItems().filter(i => i.left > 0 && i.kind !== "sealed").sort((a, b) => (a.set + a.name).localeCompare(b.set + b.name)).map(i => ({
+      name: i.name, set: i.set_name || i.set, code: i.set, num: i.number, fin: FIN(i.finish), cond: i.condition, lang: i.row.language || "EN", qty: i.left,
+      ce: num(i.cost_each), ct: num(i.cost_left), ve: num(i.value_each), vt: num(i.value), gain: i.value == null ? null : num(i.value - i.cost_left),
+      status: titleCaseW(i.status), acq: i.acquired, src: i.source, notes: /^https?:/.test(i.notes) ? "" : i.notes, link: i.url}));
+    out.cards = sheet("My Cards", "My Cards", [{k: "name", h: "Card", w: 30}, {k: "set", h: "Set", w: 24}, {k: "code", h: "Set Code", w: 9}, {k: "num", h: "#", w: 7}, {k: "fin", h: "Finish", w: 9},
+      {k: "cond", h: "Condition", w: 10}, {k: "lang", h: "Language", w: 9}, {k: "qty", h: "Qty", w: 6, n: 1, sum: 1}, {k: "ce", h: "Cost Each", money: 1}, {k: "ct", h: "Total Cost", money: 1, sum: 1, costTot: 1},
+      {k: "ve", h: "Value Each", money: 1}, {k: "vt", h: "Total Value", money: 1, sum: 1, valTot: 1}, {k: "gain", h: "Gain / Loss", money: 1, sum: 1}, {k: "status", h: "Status", w: 10},
+      {k: "acq", h: "Acquired", w: 11}, {k: "src", h: "Where From", w: 22}, {k: "notes", h: "Notes", w: 30}, {k: "link", h: "Scryfall", w: 9, link: 1}], rows);
+  }
+  if (kind === "all" || kind === "sealed"){
+    const KIND = {secret_lair: "Secret Lair", booster_box: "Booster Box", collector_box: "Collector Box", bundle: "Bundle", pack: "Pack", deck: "Deck", other: "Other"};
+    const rows = sdItems().filter(i => i.qty > 0).sort((a, b) => (a.status + a.product).localeCompare(b.status + b.product)).map(i => ({
+      prod: i.product, type: KIND[i.kind] || titleCaseW(i.kind), fin: FIN(i.finish), qty: i.qty, status: titleCaseW(i.status),
+      ce: num(i.cost_each), ct: num(i.cost), ve: num(i.each), vt: num(i.value), gain: i.value == null ? null : num(i.value - i.cost),
+      from: i.each == null ? "Not priced yet" : i.est ? "Card estimate" : "TCGplayer", acq: i.row.acquired || "", src: i.row.source || "",
+      to: i.row.given_to || "", opened: i.row.opened_at || "", sp: num(i.sold), sd: i.row.sold_at || "", notes: i.row.notes || "", link: i.url}));
+    out.sealed = sheet("Sealed Product", "Sealed Product (sealed, given, opened and sold)", [{k: "prod", h: "Product", w: 44}, {k: "type", h: "Type", w: 13}, {k: "fin", h: "Finish", w: 9}, {k: "qty", h: "Qty", w: 6, n: 1, sum: 1},
+      {k: "status", h: "Status", w: 9}, {k: "ce", h: "Cost Each", money: 1}, {k: "ct", h: "Total Cost", money: 1, sum: 1, costTot: 1}, {k: "ve", h: "Value Each", money: 1},
+      {k: "vt", h: "Total Value", money: 1, sum: 1, valTot: 1}, {k: "gain", h: "Gain / Loss", money: 1, sum: 1}, {k: "from", h: "Value From", w: 14}, {k: "acq", h: "Acquired", w: 11},
+      {k: "src", h: "Where From", w: 20}, {k: "to", h: "Given To", w: 12}, {k: "opened", h: "Opened", w: 11}, {k: "sp", h: "Sold For", money: 1}, {k: "sd", h: "Sold On", w: 11},
+      {k: "notes", h: "Notes", w: 28}, {k: "link", h: "TCGplayer", w: 10, link: 1}], rows);
+    out.sealed = Object.assign(summ(rows.filter(r => r.status === "Sealed"), [{k: "ct", costTot: 1}, {k: "vt", valTot: 1}]), {label: "Sealed Product (still sealed)"});
+  }
+  if ((kind === "all" || kind === "sl") && SL.orders && SL.orders.lines){
+    const rows = SL.orders.lines.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "")).map(l => {
+      const q = +l.qty || 1, rq = COL.loaded ? Math.min(q, recQty(l)) : (l.in_collection ? q : (+l.received_qty || 0));
+      return {date: l.date || "", prod: l.product, fin: l.finish || "", qty: q, rec: rq, status: l.dead ? (l.status || "Cancelled") : rq >= q ? "Received" : (l.status || "Ordered"),
+        ce: num(l.price), ct: num(l.cost), ve: num(l.unit_value), vt: num(l.value), gain: l.value == null || l.cost == null ? null : num(l.value - l.cost),
+        est: l.est_ship || "", ship: l.ship_date || "", track: l.tracking || "", acct: l.account || "", order: l.order || ""}; });
+    out.sl = sheet("Secret Lair Orders", "Secret Lair Orders", [{k: "date", h: "Ordered", w: 11}, {k: "prod", h: "Product", w: 46}, {k: "fin", h: "Finish", w: 9}, {k: "qty", h: "Qty", w: 6, n: 1, sum: 1},
+      {k: "rec", h: "Received", w: 9, n: 1, sum: 1}, {k: "status", h: "Status", w: 10}, {k: "ce", h: "Cost Each", money: 1}, {k: "ct", h: "Total Cost", money: 1, sum: 1, costTot: 1},
+      {k: "ve", h: "Value Each", money: 1}, {k: "vt", h: "Total Value", money: 1, sum: 1, valTot: 1}, {k: "gain", h: "Gain / Loss", money: 1, sum: 1}, {k: "est", h: "Est. Ship", w: 11},
+      {k: "ship", h: "Shipped", w: 11}, {k: "track", h: "Tracking", w: 22}, {k: "acct", h: "Account", w: 26}, {k: "order", h: "Order #", w: 11}], rows);
+  }
+  if (kind === "all"){   // a Summary sheet first
+    const ws = sumWS;
+    ws.columns = [{width: 30}, {width: 10}, {width: 16}, {width: 16}, {width: 16}, {width: 18}];
+    const t = ws.getCell(1, 1); t.value = `Collection Summary - Havoth Price Desk, ${today}`; t.font = {bold: true, size: 14, color: {argb: "FF3B2414"}}; ws.getRow(1).height = 24;
+    const h = ws.getRow(2); ["", "Rows", "Total Cost", "Total Value", "Gain / Loss", "Not Priced Yet"].forEach((v, i) => { const c = h.getCell(i + 1); c.value = v; c.font = {bold: true, color: {argb: "FFFFFFFF"}}; c.fill = {type: "pattern", pattern: "solid", fgColor: {argb: "FF8A3B12"}}; c.alignment = {horizontal: i ? "right" : "left"}; });
+    [["My Cards", out.cards], ["Sealed Product", out.sealed], ["Secret Lair Orders", out.sl]].filter(x => x[1]).forEach(([n, v]) => { const r = ws.addRow([v.label || n, v.rows, num(v.cost), num(v.value), num(v.gain), v.unpriced || ""]); [3, 4, 5].forEach(i => r.getCell(i).numFmt = MONEY); });
+    ws.mergeCells(1, 1, 1, 6);
+    ws.addRow([]); ws.addRow(["Gain / Loss counts only items that have a value. Secret Lair orders that are received also appear under Sealed Product (or My Cards once opened) - don't add them twice."]).getCell(1).font = {italic: true, color: {argb: "FF6F6A5F"}};
+  }
+  const buf = await wb.xlsx.writeBuffer();
+  const name = {all: "Collection", cards: "My Cards", sealed: "Sealed Product", sl: "Secret Lair Orders"}[kind];
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+  a.download = `Havoth ${name} ${today}.xlsx`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
 function feeFor(s){
   const F = (COL.data && COL.data.fee_settings) || {ebay_fee_pct: 13.6, sales_tax_pct: 8, ebay_order_fee: .4, ebay_order_fee_small: .3, ebay_small_order_max: 10, tcgplayer_fee_pct: 13.25, tcgplayer_order_fee: .3, other_fee_pct: 0};
   const typed = numOrNull(s.fees); if (typed != null) return {fee: typed, est: false};
@@ -4062,7 +4166,7 @@ function renderCOL(){
   const pend = all.filter(i => i.pending).length, singles = held.filter(i => i.kind === "card"), sealed = held.filter(i => i.kind === "sealed");
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
       <p class="sub" style="margin:0">Everything you own and what it's worth - singles and sealed product. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run.` : ""}</p></div>
-      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><button class="btn ghost small" id="colAddS">+ Add Sealed</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
+      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><button class="btn ghost small" id="colAddS">+ Add Sealed</button><button class="btn ghost small" id="colExport" type="button" title="Download your cards, sealed product and Secret Lair orders as an Excel file">⬇ Export to Excel</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       ${stat("You have", `${sum(held, i => i.left)} items`, `${sum(singles, i => i.left)} singles · ${sum(sealed, i => i.left)} sealed`)}
       ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you have")}
