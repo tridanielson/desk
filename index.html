@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 03:50 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 03:54 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4413,6 +4413,16 @@ function openColEdit(id, pre){
     </div>
     <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Add &amp; Add Another</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
   $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
+  // the collector # belongs to one card: when the name changes (e.g. "Add & Add Another" from a set, then a new name typed),
+  // look the new card up in the same set, or clear the number - otherwise it saves as the previous card's number and counts as that card
+  let numFor = (r.name || "").toLowerCase();
+  const fixNum = () => { if (isSL || !$("#eNum")) return; const nm = $("#eName").value.trim().toLowerCase(); if (!nm || nm === numFor) return;
+    const set = $("#eSet").value.trim().toLowerCase(), fin = $("#eFin").value;
+    const hits = Object.values(SETS.cards || {}).flat().filter(c => c && (c.name || "").toLowerCase() === nm && (!set || c.set === set));
+    const hit = hits.find(c => (c.finishes || ["nonfoil"]).includes(fin)) || hits[0];
+    $("#eNum").value = hit ? hit.collector_number : ""; numFor = nm; };
+  if ($("#eNum")) $("#eNum").addEventListener("input", () => { numFor = $("#eName").value.trim().toLowerCase(); });
+  $("#eName").addEventListener("change", fixNum); $("#eName").addEventListener("blur", fixNum);
   let t; $("#eName").addEventListener("input", e => { clearTimeout(t); const q = e.target.value.trim(); if (q.length < 2 || isSL) return;
     t = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); $("#eNames").innerHTML = (j.data || []).slice(0, 12).map(n => `<option value="${esc(n)}">`).join(""); }catch{} }, 200); });
   $("#eCancel").addEventListener("click", closeModal);
@@ -4420,7 +4430,7 @@ function openColEdit(id, pre){
     COL.inv = COL.inv.filter(x => x.id !== id); COL.sales = COL.sales.filter(x => x.item_id !== id); if (r.ref) COL.rec = COL.rec.filter(x => x.line_id !== r.ref);
     markDirty("collection"); closeModal(); renderCOL(); });
   const save = more => {
-    const name = $("#eName").value.trim(); if (!name) return toast("Enter a card name.");
+    fixNum(); const name = $("#eName").value.trim(); if (!name) return toast("Enter a card name.");
     const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt(($("#eQty") || {}).value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value;
@@ -4429,6 +4439,7 @@ function openColEdit(id, pre){
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
     if (more){   // keep the same card filled in for the next copy - usually just a different condition
       addedNote(`${upd.qty} × ${name}${upd.condition ? " · " + upd.condition : ""}${upd.cost_each ? " · " + money(+upd.cost_each) + " each" : ""}`);
+      Object.assign(r, {name: upd.name, set: upd.set ?? r.set, number: upd.number ?? r.number, scryfall_id: upd.scryfall_id ?? r.scryfall_id});   // the next copy starts from this card
       $("#eQty").value = "1"; ($("#eCond") || $("#eQty")).focus(); return; }
     closeModal(); toast("Saved.");
   };
