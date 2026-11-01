@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 06:44 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 07:18 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2456,6 +2456,7 @@ function reviewHTML(d, mode){
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
+    ${S.ini && !READONLY ? `<label class="rv-always" style="display:flex;gap:6px;align-items:center;font-size:13px;margin-top:4px;cursor:pointer"><input type="checkbox" id="rvAlways"> 📌 Always tell the AI this <span class="mut" style="font-size:12px">- every future check follows this note (remove it in Settings → AI Photo Check)</span></label>` : ""}
     ${condGuideHTML()}`;
 }
 // Troubleshooting: everything about a deal in one block to paste to Claude, plus a link that opens it on the desk
@@ -2608,6 +2609,12 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
 }
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
+  const always = $("#rvAlways") && $("#rvAlways").checked ? String(($("#rvNote") || {}).value || "").replace(/\s+/g, " ").replace(/\|\|/g, "|").trim() : "";
+  if ($("#rvAlways") && $("#rvAlways").checked && !always){ const n = $("#rvNote"); if (n) n.focus(); return toast("Type the note you want the AI to always follow.", 4000); }
+  if (always && S.ini){   // 📌 a lesson for every future AI check ([ai] always_tell, lessons split by ||)
+    const cur = String((S.ini.ai || {}).always_tell || "").split(/\s*\|\|\s*/).filter(Boolean);
+    if (!cur.some(x => x.toLowerCase() === always.toLowerCase())){ (S.ini.ai = S.ini.ai || {}).always_tell = cur.concat(always).join(" || "); markDirty("settings"); }
+  }
   sel = Object.assign({}, sel);
   if (sel.edition === "variant" && !sel.variant){ const vr = $("#rvVarRow"); if (vr){ vr.classList.add("need"); vr.scrollIntoView({block: "center", behavior: "smooth"}); } toast("Tap which art / version it really is.", 4000); return; }
   if (isWrong(sel.edition)){
@@ -2658,10 +2665,11 @@ function saveReview(d, sel, note, done, agreeAI){
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
-  const msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? (v1 ? "wrong edition noted" : "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now") : "hidden now") : verdict === "good" ? "still a deal" : "",
+  let msg = [verdict === "bad" ? (sel.reason === "seller" ? "seller blocked from the next scan" : isWrong(sel.edition) && sel.fault === "app" ? "noted as an app matching mistake - your note becomes a matching rule; hidden now" : sel.reason === "edition" ? (v1 ? "wrong edition noted" : "seller mislabeled it - this card now needs a photo check before a loud alert; hidden now") : "hidden now") : verdict === "good" ? "still a deal" : "",
     v1 ? `re-priced as ${(printing(v1) || {}).s || ""} #${(printing(v1) || {}).num || "?"}` : "", condChanged ? `re-priced at ${sel.condition}` : "", fbNote ? "your note becomes a rule in about a minute" : ""].filter(Boolean).join(" · ");
   renderDeals();
   const nd = S.deals.find(x => x.url === d.url);
+  if (always) msg = (msg ? msg + " · " : "") + "📌 the AI will always follow your note";
   toast("Saved" + (msg ? " - " + msg : "") + (nd && nd._notDeal ? ` · at ${nd.condition} it's worth about ${money(nd.fair)}, so it's not a deal any more - moved to Hidden` : "") + ".", 5000);
   if (done && done.after) done.after();
   if (bought) setTimeout(() => openBought(d), 150);
