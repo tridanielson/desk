@@ -299,6 +299,15 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
 .aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
 .aud-ph{position:relative;display:block}
+#phBig{position:fixed;inset:0;z-index:95;background:rgba(10,10,10,.94);display:flex;flex-direction:column;color:#fff;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
+#phBig .phb-top{display:flex;gap:10px;align-items:center;padding:10px 14px;flex-wrap:wrap}#phBig .grow{flex:1}
+#phBig .phb-ai{font-size:12px;color:#ffb3ad}#phBig .btn.ghost{color:#fff;border-color:#666;background:transparent}
+#phBig .phb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:8px;padding:6px}
+#phBig .phb-wrap{position:relative;display:inline-block;max-width:calc(100vw - 110px);max-height:100%}
+#phBig .phb-wrap img{display:block;max-width:calc(100vw - 110px);max-height:calc(100vh - 90px);object-fit:contain}
+#phBig .phb-nav{flex:none;width:44px;height:64px;border-radius:10px;border:1px solid #555;background:rgba(255,255,255,.08);color:#fff;font-size:32px;line-height:1;cursor:pointer}
+.ai-spot.big{border-width:3px}.ai-spot.big i{font-size:13px;max-width:none}
+@media (max-width:700px){#phBig .phb-wrap,#phBig .phb-wrap img{max-width:calc(100vw - 80px)}#phBig .phb-nav{width:32px}}
 .sd-recent{max-height:260px;overflow-y:auto;padding-right:4px;scrollbar-gutter:stable}
 .ai-spot{position:absolute;border:2px dashed #ff3b30;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.85);pointer-events:none}
 .ai-spot i{position:absolute;left:-2px;bottom:100%;margin-bottom:2px;background:#ff3b30;color:#fff;font:600 10px/1.3 system-ui,sans-serif;font-style:normal;padding:1px 4px;border-radius:3px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
@@ -424,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 07:25 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Oct 31, 11:22 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2418,7 +2427,7 @@ function reviewHTML(d, mode){
       <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a></div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
-      <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="AI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</a>`).join("")}</div>`
+      <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="AI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">Should be:</span><br><b class="up">${esc(c.sn || setOf(d) || "?")}</b>${condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
@@ -2672,6 +2681,30 @@ function photoCheckLine(d){
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
   return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📷 Free photo check (testing): looks like <b>${esc(d.photo_pick)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}${d.photo_looks_like ? ` <span title="These look the same in photos">(or ${esc(d.photo_looks_like)})</span>` : ""}</div>`;
 }
+// ---- tap a review photo: see it big, with the AI's boxes, arrows between photos, and a link to the listing
+function openPhotoBig(d, i){
+  const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)); if (!imgs.length) return;
+  let v = $("#phBig"); if (!v){ v = document.createElement("div"); v.id = "phBig"; document.body.appendChild(v); }
+  const spots = aiSpots(d);
+  const draw = () => {
+    const sp = spots.filter(p => p.photo === i + 1);
+    v.innerHTML = `<div class="phb-top"><b>Photo ${i + 1} of ${imgs.length}</b>${sp.length ? `<span class="phb-ai">📍 AI: ${sp.map(p => esc(p.what || "this")).join(" · ")}</span>` : ""}<span class="grow"></span>
+        <a class="btn ghost small" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay</a><button class="btn small" type="button" id="phbClose">Close</button></div>
+      <div class="phb-stage">${imgs.length > 1 ? '<button class="phb-nav l" type="button" id="phbPrev" aria-label="Previous photo">‹</button>' : ""}
+        <div class="phb-wrap"><img src="${esc(imgs[i].replace(/\/s-l\d+\./, "/s-l1600."))}" alt="">${sp.map(p => `<span class="ai-spot big" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%"><i>${esc(p.what)}</i></span>`).join("")}</div>
+        ${imgs.length > 1 ? '<button class="phb-nav r" type="button" id="phbNext" aria-label="Next photo">›</button>' : ""}</div>`;
+    v.querySelector("#phbClose").addEventListener("click", close);
+    const go = n => { i = (i + n + imgs.length) % imgs.length; draw(); };
+    const pv = v.querySelector("#phbPrev"), nx = v.querySelector("#phbNext"); if (pv) pv.addEventListener("click", () => go(-1)); if (nx) nx.addEventListener("click", () => go(1));
+    v.querySelector(".phb-stage").addEventListener("click", e => { if (e.target.classList.contains("phb-stage")) close(); });
+  };
+  const keys = e => { if (e.key === "Escape"){ e.stopPropagation(); close(); } else if (e.key === "ArrowLeft" && imgs.length > 1){ i = (i - 1 + imgs.length) % imgs.length; draw(); } else if (e.key === "ArrowRight" && imgs.length > 1){ i = (i + 1) % imgs.length; draw(); } };
+  const close = () => { v.remove(); document.removeEventListener("keydown", keys, true); };
+  document.addEventListener("keydown", keys, true);
+  draw();
+}
+document.addEventListener("click", e => { const a = e.target.closest("[data-phbig]"); if (!a || e.ctrlKey || e.metaKey || e.button > 0) return;   // Ctrl-click still opens eBay
+  const d = S.deals.find(x => x.url === a.dataset.phurl); if (!d) return; e.preventDefault(); openPhotoBig(d, +a.dataset.phbig); });
 // where the AI saw each problem: [{photo (1 = first), x, y, w, h (0-1 of the photo), what}] - drawn on the review photos
 function aiSpots(d){ if (d._spots) return d._spots; let a = []; try{ a = JSON.parse(d.ai_spots || "[]"); }catch(e){} return d._spots = (Array.isArray(a) ? a : []).filter(p => p && p.photo >= 1); }
 const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back"];
