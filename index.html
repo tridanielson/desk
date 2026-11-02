@@ -272,7 +272,7 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
   #allTable+.row,.panel.scroll{overflow-x:visible}}
 body.readonly #saveBtn,body.readonly #runBtn,body.readonly:not(.user) #pending,body.readonly #acBox,body.readonly .star,
 body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly .owner-only,
-body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only,body.user #nav [data-tab=sealed]{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -405,7 +405,7 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" data-group="mine" title="Sets you are completing and the cards you still need">Sets</button>
     <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
-    <button data-tab="sealed" data-group="mine" class="owner-only" title="Unopened product you hold: Secret Lairs, booster boxes, packs, decks">Sealed</button>
+    <button data-tab="sealed" data-group="mine" title="Unopened product you hold: Secret Lairs, booster boxes, packs, decks">Sealed</button>
     <button data-tab="guide" data-group="guide" title="How to spot fakes and proxies, and tell look-alike editions apart">ID &amp; Fake Guide</button>
     <button data-tab="settings" data-group="setup" title="Deal rules, alert defaults, condition values, selling fees">Settings</button>
     <button data-tab="connect" data-group="setup" title="Connection status and a guide to every tab">Setup &amp; Help</button>
@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 01, 03:54 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 10:45 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3805,6 +3805,7 @@ async function loadSDFiles(){
 function renderSD(){
   const box = $("#sdBody"); if (!box) return;
   if (!ROLE && AUTH.token){ box.innerHTML = waitHTML(); return; }
+  if (!MYCOL()){ box.innerHTML = joinHTML("sealed"); wireJoin(box); return; }   // guests: the same create-account / sign-in panel as Collection and Sets
   if (READONLY || ROLE !== "owner"){ box.innerHTML = '<p class="empty">Sealed product tracking is only for the owner for now.</p>'; return; }
   if (!COL.loaded || !SD.loaded){ box.innerHTML = COL.error ? `<div class="panel"><b>Couldn't load</b><p class="sub">${esc(COL.error)}</p></div>` : waitHTML(); return; }
   const items = sdItems(), held = items.filter(i => i.status === "sealed" && i.qty > 0), priced = held.filter(i => i.value != null);
@@ -4865,8 +4866,8 @@ if (!$("#login").hidden) loginArt();
 const waitHTML = () => '<div style="min-height:260px"></div>';   // the big "Refreshing… please wait" card covers the page meanwhile - one message, not two
 function joinHTML(what){
   if (!ROLE && AUTH.token) return waitHTML();
-  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : "Track Your Own Collection"}</h3>
-    <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
+  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : what === "sealed" ? "Track Your Sealed Product" : "Track Your Own Collection"}</h3>
+    <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : what === "sealed" ? "Log the Secret Lairs, booster boxes, packs and decks you hold, see what they're worth today, and track profit when you open or sell them." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
     It's private to your account - nobody else sees it, and you see nobody else's.</p>
     <div class="row" style="justify-content:center"><button class="btn" data-join="up">Create Account</button><button class="btn ghost" data-join="in">Sign In</button></div>
     <p style="font-size:12px;margin:12px auto 0">You need an invite code from Havoth Cards to create an account.</p></div>`;
