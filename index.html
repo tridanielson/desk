@@ -269,7 +269,8 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
 .sheet .sh-actions .btn{flex:1;height:46px;font-size:15px}
 @media (max-width:700px){.desk-table{display:none!important}.tiles{display:block}
   input,select,textarea{font-size:16px}
-  #allTable+.row,.panel.scroll{overflow-x:visible}}
+  #allTable+.row,.panel.scroll{overflow-x:visible}
+  #tab-rules .panel.scroll{overflow-x:auto}}   /* the Auto-Track table scrolls inside its box instead of widening the whole page */
 body.readonly #saveBtn,body.readonly #runBtn,body.readonly:not(.user) #pending,body.readonly #acBox,body.readonly .star,
 body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly .owner-only,
 body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
@@ -434,7 +435,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 01:10 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 03:19 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2833,7 +2834,7 @@ function renderAudit(){
   box.innerHTML = `<div class="panel"><div class="row" style="justify-content:space-between"><b>How Accurate Is SlaveAI?</b>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard()}</div></div>
     <div class="panel"><div class="row">
-      <select id="audFilter"><option value="random">Random Sample (Honest Score)</option><option value="todo">Newest SlaveAI-Checked, Not Reviewed</option><option value="reject">SlaveAI Rejected (Not Reviewed)</option><option value="warn">SlaveAI Said "Check It" (Not Reviewed)</option><option value="matcher">🔍 Teach Loupe (Unsure First)</option>
+      <select id="audFilter" style="max-width:100%;min-width:0"><option value="random">Random Sample (Honest Score)</option><option value="todo">Newest SlaveAI-Checked, Not Reviewed</option><option value="reject">SlaveAI Rejected (Not Reviewed)</option><option value="warn">SlaveAI Said "Check It" (Not Reviewed)</option><option value="matcher">🔍 Teach Loupe (Unsure First)</option>
         <option value="nocheck">Not Checked by SlaveAI (Label for Training)</option><option value="done">Already Reviewed</option><option value="all">All SlaveAI-Checked</option></select>
       ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
