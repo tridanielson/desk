@@ -360,6 +360,7 @@ select option{background:var(--panel);color:var(--ink)}
 #navGroups button{font-weight:600;color:var(--ink);opacity:.72;padding:7px 12px;border-radius:999px}
 #navGroups button.on{opacity:1;background:var(--accent);color:var(--accent-ink)}
 #navGroups button[hidden],#nav button.off{display:none!important}
+@media (min-width:701px){#dSortSel{width:17.5em}}   /* fixed: a column sort with a longer name doesn't resize the menu and shift the filters */
 #nav{gap:0}#nav button{padding:5px 10px;font-size:13px;border-radius:0;border-bottom:2px solid transparent}
 #nav button.on{background:none;color:var(--accent);border-bottom-color:var(--accent)}
 #nav.single{display:none}
@@ -433,7 +434,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 11:19 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 01:10 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1913,7 +1914,7 @@ function renderDeals_(){
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
   const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
-    .sort((a, b) => (DSORT.k === "Type / Ends" ? 0 : isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
+    .sort((a, b) => (DSORT.k ? 0 : isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   if (DFREEZE.order){   // hold the order you were looking at
     const O = DFREEZE.order, inRows = new Set(rows), byUrl = new Map(S.deals.map(d => [d.url, d]));
     const kept = [...O.keys()].map(u => byUrl.get(u)).filter(d => d && (inRows.has(d) || !(d.hidden || d.ai_verdict === "reject" || GONE.rows[itemId(d)])));   // what you hid / marked gone yourself leaves right away
@@ -4994,7 +4995,13 @@ const aiNote = () => { const A = S.ini.ai || {}; const on = !/^(no|false|0|off)$
 // phones have no column titles to tap - these drop-downs do the same sorting
 $("#dSortSel").addEventListener("change", e => { const [k, dir] = e.target.value.split("|"); DSORT.k = k || ""; DSORT.dir = +dir || -1; DFREEZE.order = null; store.set("pd_dsort_phone", e.target.value || "new"); store.set("pd_dsort", DSORT.k + "|" + DSORT.dir); renderDeals(); });
 function syncSortSel(){ const sel = $("#dSortSel"); if (!sel) return; const v = DSORT.k ? DSORT.k + "|" + DSORT.dir : "";
-  if ([...sel.options].some(o => o.value === v)) sel.value = v; else sel.selectedIndex = -1; }   // a column title you tapped: the menu shows nothing picked
+  let x = sel.querySelector("option[data-col]");
+  if ([...sel.options].some(o => o.value === v && o !== x)){ if (x) x.remove(); sel.value = v; return; }
+  // a column title you tapped with no menu entry (e.g. Best Value low to high): the menu names it instead of going blank
+  const up = DSORT.dir > 0, k = DSORT.k;
+  const how = k === "Card" || k === "Listing" ? (up ? "A-Z" : "Z-A") : k === "Type / Ends" ? (up ? "Soonest" : "Latest") : k === "Found" ? (up ? "Oldest First" : "Newest First") : (up ? "Lowest First" : "Highest First");
+  if (!x){ x = document.createElement("option"); x.dataset.col = 1; sel.appendChild(x); }
+  x.value = v; x.textContent = `Sort: ${k === "Type / Ends" ? "Ending" : k} (${how})`; sel.value = v; }
 syncSortSel();
 if (matchMedia("(max-width:700px)").matches){   // phones: Biggest % Off first unless you picked another sort
   const v0 = store.get("pd_dsort_phone"), v = !v0 ? "Best Value|-1" : v0 === "new" ? "" : v0;
