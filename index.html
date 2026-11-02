@@ -272,7 +272,7 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
   #allTable+.row,.panel.scroll{overflow-x:visible}}
 body.readonly #saveBtn,body.readonly #runBtn,body.readonly:not(.user) #pending,body.readonly #acBox,body.readonly .star,
 body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly .owner-only,
-body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only,body.user #nav [data-tab=sealed]{display:none!important}
+body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -433,7 +433,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 10:45 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 11:19 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3603,7 +3603,7 @@ async function loadCOL(force){
     COL.sales = g("collection/sales.csv").text ? parseCSV(g("collection/sales.csv").text) : []; COL.salesSha = g("collection/sales.csv").sha;
     COL.rec = g("collection/sl_received.csv").text ? parseCSV(g("collection/sl_received.csv").text) : []; COL.recSha = g("collection/sl_received.csv").sha;
     COL.goals = g("collection/sets.csv").text ? parseCSV(g("collection/sets.csv").text) : []; COL.goalsSha = g("collection/sets.csv").sha;
-    if (ROLE === "owner") await loadSDFiles();   // sealed product (owner only for now)
+    await loadSDFiles();   // sealed product (accounts keep their own, like the collection)
     COL.loaded = true;
   }catch(e){ COL.error = e.message; }
   COL.loading = false; renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); if (document.querySelector("#tab-sealed.on")) renderSD();
@@ -3806,7 +3806,6 @@ function renderSD(){
   const box = $("#sdBody"); if (!box) return;
   if (!ROLE && AUTH.token){ box.innerHTML = waitHTML(); return; }
   if (!MYCOL()){ box.innerHTML = joinHTML("sealed"); wireJoin(box); return; }   // guests: the same create-account / sign-in panel as Collection and Sets
-  if (READONLY || ROLE !== "owner"){ box.innerHTML = '<p class="empty">Sealed product tracking is only for the owner for now.</p>'; return; }
   if (!COL.loaded || !SD.loaded){ box.innerHTML = COL.error ? `<div class="panel"><b>Couldn't load</b><p class="sub">${esc(COL.error)}</p></div>` : waitHTML(); return; }
   const items = sdItems(), held = items.filter(i => i.status === "sealed" && i.qty > 0), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
@@ -3881,7 +3880,7 @@ function renderSDList(){
     (groups.map(g => `<tr><td><div class="cname">${g.first.url ? `<a href="${esc(g.first.url)}" target="_blank" rel="noopener">${esc(g.first.product)}</a>` : esc(g.first.product)}${badge(g)}</div><div class="cset">${meta(g)}</div></td>
       <td class="r">${g.qty}</td><td class="r">${money(g.cost)}</td><td class="r">${g.first.each == null ? "–" : (g.est ? "≈ " : "") + money(g.first.each)}</td>
       <td class="r">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</td><td class="r">${g.first.status === "sold" || g.value == null ? "–" : gainHTML(g.value - g.cost)}</td><td class="mk" style="white-space:nowrap">${acts(g)}</td></tr>${sub(g)}`).join("")
-     || `<tr><td colspan="7" class="empty">${SD.rows.length ? "Nothing matches." : "Nothing here yet. + Add Sealed, or mark Secret Lair orders received."}</td></tr>`) + "</tbody>";
+     || `<tr><td colspan="7" class="empty">${SD.rows.length ? "Nothing matches." : (ROLE === "owner" ? "Nothing here yet. + Add Sealed, or mark Secret Lair orders received." : "Nothing here yet. Tap + Add Sealed for a Secret Lair, booster box, pack or deck you hold.")}</td></tr>`) + "</tbody>";
   $("#sdTiles").innerHTML = groups.map(g => `<div class="tile"><div class="t-main"><div class="t-name">${esc(g.first.product)}${badge(g)}</div><div class="t-sub">${meta(g)}</div>
       <div class="t-sub">×${g.qty} · paid ${money(g.cost)}</div><div class="t-chips mk">${acts(g)}</div>${SD.openG.has(g.key) ? sub(g).replace(/<\/?(tr|td)[^>]*>/g, "") : ""}</div>
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
