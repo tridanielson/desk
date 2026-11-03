@@ -300,6 +300,7 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
 .aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
 .aud-ph{position:relative;display:block}
+.ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
 .qk-head{font-size:15px;margin-bottom:8px}.qk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:760px}
 .qk-fig{margin:0}.qk-fig img{width:100%;aspect-ratio:488/680;object-fit:contain;background:var(--soft);border-radius:8px;display:block}.qk-fig figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
 .qk-ref img{outline:2px solid var(--accent);outline-offset:-2px}
@@ -441,7 +442,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 06:04 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 02, 07:34 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1749,8 +1750,8 @@ function qualityHTML(d){
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
   { const bk = (AUD.rows[d.url] || {}).back, n = String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length;
     if (bk === "missing" || bk === "unclear") h += `<span class="flag" title="You checked the photos: the back of the card isn't shown (or can't be made out) - the condition was judged from the front only.">no back photo</span> `;
-    else if (!bk && d.ai_back === "no") h += `<span class="flag" title="SlaveAI looked at every photo and none shows the back of the card - the condition is from the front only.">no back photo</span> `;
-    else if (!bk && n === 1 && d.ai_back !== "yes") h += `<span class="flag" title="This listing has a single photo, so the back of the card probably isn't shown - the condition is from the front only.">1 photo · probably no back</span> `; }
+    else if (!bk && backSays(d) === "no") h += `<span class="flag" title="${d.ai_back === "no" ? "SlaveAI" : "Loupe"} looked at every photo and none shows the back of the card - the condition is from the front only.">no back photo</span> `;
+    else if (!bk && n === 1 && backSays(d) !== "yes") h += `<span class="flag" title="This listing has a single photo, so the back of the card probably isn't shown - the condition is from the front only.">1 photo · probably no back</span> `; }
   if (d.qty && d.qty !== "1" && !isEnded(d)) h += `<span class="flag" title="The seller has ${esc(d.qty)} of these for sale in one listing, so the photo may not be the actual copy you'd get. Condition and price aren't changed - ask the seller or check the listing.">${esc(d.qty)} available · photo may not be the copy</span> `;
   if (d.multi === true || d.multi === "yes" || d.multi === "True") h += `<span class="flag" title="This listing has a drop-down of conditions. This deal is for the ${esc(d.condition)} option at its own price - pick that option on eBay.">1 of several conditions</span> `;
   if (d.below_min) h += `<span class="flag" title="Below your minimum condition (Settings → Loud Alerts Only at or Above). Still listed in case it's worth it - just no loud alert.">below your ${esc(d.below_min)}+ minimum</span> `;
@@ -2419,13 +2420,15 @@ function reviewStart(d){
     reason: f && f.verdict === "bad" && !isWrong(f.reason) && f.reason !== "condition" ? (f.reason || "") : "", bought: false,
     fault: (f && f.fault) || a.fault || "", cfault: c && c.c ? (c.fault || "seller") : ""};
 }
+// is the back of the card in the photos? SlaveAI's answer when it looked, else Loupe's (it sorts every photo front / back)
+const backSays = d => d.ai_back === "yes" || d.ai_back === "no" ? d.ai_back : (d.photo_back === "yes" || d.photo_back === "no" ? d.photo_back : "");
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
   const imgs = allImgs.slice(0, Math.max(10, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = reviewStart(d);
-  if (!s.back) s.back = (AUD.rows[d.url] || {}).back || (d.ai_back === "no" ? "missing" : "shown");   // SlaveAI says whether it saw the back
+  if (!s.back) s.back = (AUD.rows[d.url] || {}).back || (backSays(d) === "no" ? "missing" : "shown");   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
   { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
     if (!s.reasons.length && s.reason) s.reasons = [s.reason]; s.reasons = [...new Set(s.reasons)]; }
@@ -2440,7 +2443,7 @@ function reviewHTML(d, mode){
       <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a></div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
-      <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="SlaveAI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</a>`).join("")}</div>`
+      <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${(d.photo_roles || "")[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="SlaveAI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">Should be:</span><br><b class="up">${esc(c.sn || setOf(d) || "?")}</b>${condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
@@ -2768,12 +2771,13 @@ function matcherUnsure(d){
 const quickOK = d => /^(same|other)$/.test(d.photo_says || "") && /i\.ebayimg\.com/.test(d.images || "") && !isEnded(d);
 function quickHTML(d, q){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
-  const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)).slice(0, 3);
+  const all = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)), ro = d.photo_roles || "";
+  const imgs = all.map((u, i) => [u, i]).sort((a, b) => (ro[a[1]] === "B") - (ro[b[1]] === "B")).slice(0, 3);   // fronts first: the printing is on the front
   const want = (String(d.hidden_detail || "").match(/you want #(\w+)/) || [])[1] || c.num || "";
   return `<div class="panel aud qk" id="qkItem">
     <div class="qk-head"><b>${esc(d.card)}</b> <span class="mut">· priced as</span> <b class="up">${esc(c.sn || setOf(d) || "?")}${want ? " #" + esc(want) : ""}</b></div>
     <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><img src="${esc(ref)}" alt=""><figcaption>Should look like this</figcaption></figure>` : ""}
-      ${imgs.map((u, i) => `<figure class="qk-fig"><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></a><figcaption>Listing photo ${i + 1}</figcaption></figure>`).join("")}</div>
+      ${imgs.map(([u, i]) => `<figure class="qk-fig"><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
     ${photoCheckLine(d)}
     <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ Wrong Printing <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Right Printing <kbd>Y</kbd></button></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>
@@ -2833,7 +2837,8 @@ function pcBoard(){
   if (!sc) return "";
   const P = (PC.data || {}).practice;
   const learn = (L ? (L.adopted ? ` · learning from your reviews: <b>${L.learned_pct}%</b> (plain ${L.plain_pct}%)` : ` · learning: ${esc(L.why || "")}`) + (L.examples ? ` (${L.examples} real listings${L.practice ? " + " + L.practice + " practice copies" : ""})` : "") : "")
-    + (P && P.total ? ` · ${P.total} practice copies made` : "");
+    + (P && P.total ? ` · ${P.total} practice copies made` : "")
+    + (sc.back_check && sc.back_check.n ? ` · back shown right ${sc.back_check.pct}% of ${sc.back_check.n}` : "");
   return `<div class="honest" style="margin-top:8px"><b>🔍 Loupe vs SlaveAI</b> <span class="mut" style="font-size:12px">(which printing it is, against your answers)</span><br>
     ${v && v.n ? `On the same ${v.n} listings: Loupe right <b>${v.matcher_pct}%</b> · SlaveAI right <b>${v.ai_pct}%</b>` : "Not enough listings checked by both yet."}
     <span class="mut" style="font-size:12px"> · Loupe overall ${sc.all && sc.all.pct != null ? sc.all.pct + "% of " + sc.all.n : "-"}${learn}</span></div>`;
