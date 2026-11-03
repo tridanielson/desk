@@ -457,7 +457,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:46 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 01:09 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2887,7 +2887,7 @@ const PRINTS_CACHE = {};
 async function qkPrintsOf(name){
   if (PRINTS_CACHE[name]) return PRINTS_CACHE[name];
   let out = [], path = "/cards/search?unique=prints&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" game:paper`);
-  for (let k = 0; k < 3 && path; k++){ const j = await sf(path); out = out.concat(j.data || []); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : ""; }
+  for (let k = 0; k < 15 && path; k++){ /* basic lands and staples have hundreds of printings - get them all */ const j = await sf(path); out = out.concat(j.data || []); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : ""; }
   return PRINTS_CACHE[name] = out.map(c => { const f = c.image_uris ? c : ((c.card_faces || [])[0] || {}), fe = (c.frame_effects || []).filter(x => !["legendary", "enchantment", "snow"].includes(x));
     const pf = (c.promo_types || []).filter(x => /foil$/.test(x) && x !== "foil").map(x => x.replace(/foil$/, " foil"));   // fracture foil, surge foil, galaxy foil...
     const tr = [...pf, c.border_color === "borderless" ? "borderless" : "", ...fe, c.full_art ? "full art" : "", c.promo && !pf.length ? "promo" : "", c.border_color === "white" ? "white border" : ""].filter(Boolean).join(", ");
@@ -2900,6 +2900,7 @@ function pickPrinting(d, done){
   const name = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""), set = ((/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "").toLowerCase();
   const want = String((audCard(d.card) || {}).num || "");
   box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>The listing is actually…</b><span class="mut" style="font-size:12px">tap the version in the photos - foil comes from the listing's title</span></div>
+    <input id="qkFind" type="search" placeholder="Find a version: set code, set name, number, year or treatment (e.g. pal01, Arena, 1)" autocomplete="off" style="width:100%;margin:6px 0 8px" hidden>
     <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div>
     <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkNotSure">Not Sure - Just Wrong</button><button type="button" class="btn ghost" id="qkWrongCard">It's a Different Card</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
   // foil comes from the listing's own words - a photo (or you) often can't tell; never guessed
@@ -2913,7 +2914,14 @@ function pickPrinting(d, done){
     ps = ps.slice().sort((a, b) => (b.set === set) - (a.set === set));   // same set first; the one it's priced as stays in view (greyed) to compare
     if (!ps.length){ el.innerHTML = `<p class="mut">No other printings found - tap Not Sure.</p>`; return; }
     const priced = p => p.set === set && p.num === want, only = p => p.fin.length === 1 ? (p.fin[0] === "foil" ? "foil only" : p.fin[0] === "nonfoil" ? "non-foil only" : p.fin[0] + " only") : "";
-    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}${p.price ? `<br><b class="up">${esc(p.price)}</b>` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`).join("");
+    const tile = (p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}${p.price ? `<br><b class="up">${esc(p.price)}</b>` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`;
+    const MAX = 120, find = $("#qkFind"), draw = () => {   // lots of printings (basic lands, staples): type to narrow
+      const q = (find.value || "").trim().toLowerCase(), hits = [];
+      ps.forEach((p, i) => { if (!q || [p.set, p.sn, p.num, p.yr, p.tr].join(" ").toLowerCase().includes(q)) hits.push([p, i]); });
+      el.innerHTML = hits.slice(0, MAX).map(([p, i]) => tile(p, i)).join("") + (hits.length > MAX ? `<p class="mut" style="grid-column:1/-1">Showing ${MAX} of ${hits.length} - type above to narrow it down.</p>` : !hits.length ? `<p class="mut" style="grid-column:1/-1">No version matches "${esc(q)}".</p>` : "");
+    };
+    if (ps.length > 12){ find.hidden = false; find.addEventListener("input", draw); }
+    draw();
     // hover a version: it takes the PRICED AS spot, right next to the listing photos (covers nothing); leave and it goes back
     const refImg = $("#qkItem .qk-ref img"), refLab = $("#qkItem .qk-ref .qk-lab"), refCap = $("#qkItem .qk-ref figcaption");
     const keep = refImg ? [refImg.src, refLab.textContent, refCap.textContent] : null;
