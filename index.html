@@ -457,7 +457,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 01:09 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 01:20 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2886,7 +2886,7 @@ function quickHTML(d, q){
 const PRINTS_CACHE = {};
 async function qkPrintsOf(name){
   if (PRINTS_CACHE[name]) return PRINTS_CACHE[name];
-  let out = [], path = "/cards/search?unique=prints&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" game:paper`);
+  let out = [], path = "/cards/search?unique=prints&include_extras=true&include_variations=true&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" -is:digital`);   // Collectors' / International Edition, promos and variations count too
   for (let k = 0; k < 15 && path; k++){ /* basic lands and staples have hundreds of printings - get them all */ const j = await sf(path); out = out.concat(j.data || []); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : ""; }
   return PRINTS_CACHE[name] = out.map(c => { const f = c.image_uris ? c : ((c.card_faces || [])[0] || {}), fe = (c.frame_effects || []).filter(x => !["legendary", "enchantment", "snow"].includes(x));
     const pf = (c.promo_types || []).filter(x => /foil$/.test(x) && x !== "foil").map(x => x.replace(/foil$/, " foil"));   // fracture foil, surge foil, galaxy foil...
