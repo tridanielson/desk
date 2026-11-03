@@ -298,7 +298,8 @@ select option{background:var(--panel);color:var(--ink)}
 .stat .k{font-size:12px;color:var(--muted)}.stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .aud-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
-@media (min-width:1000px){.aud-photos{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}}
+@media (min-width:1000px){.aud-photos{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}.modal .aud-photos{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+  .modal.wide{width:min(1150px,calc(100vw - 40px))}}
 .aud-photos img{width:100%;border-radius:6px;display:block;background:var(--soft)}
 .aud-ph{position:relative;display:block}
 .phz{position:relative}.aud-ph,.qk-fig a{display:block;overflow:hidden;border-radius:8px}
@@ -450,7 +451,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:25 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:29 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -525,7 +526,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <ol>
       <li><b>Deals come in by themselves.</b> The ⚡ sniper checks brand-new listings every minute and a full scan runs every 3 hours. The best ones also send a phone alert.</li>
       <li><b>Tap Review on a deal</b> to tell it: right card? real condition? should it have shown this? bought it? One save teaches everything - your filters, SlaveAI and the training data.</li>
-      <li><b>Review Queue</b> (tab) goes through deals one after another. The score at the top shows how accurate SlaveAI is.</li>
+      <li><b>Training</b> (top menu) has Quick Review, Full Review and the Results scoreboard for Loupe and SlaveAI.</li>
       <li><b>Tags</b> explain a deal at a glance: NEED (a set you're completing), below buylist, 💎 mislabeled bargain, too cheap?, ended. Hover or tap a tag to read what it means.</li>
       <li><b>More Filters</b> has everything else. The line next to the deal count shows which filters are on.</li>
     </ol>
@@ -2709,7 +2710,7 @@ function saveReview(d, sel, note, done, agreeAI){
 }
 function openReview(d){
   openModal(`<h3>Review This Deal</h3><div id="rvBody" class="rv">${reviewHTML(d, "modal")}</div>
-    <div class="acts"><button class="btn ghost" id="rvCancel" type="button">Cancel</button><button class="btn" id="rvSave" type="button">Save</button></div>`);
+    <div class="acts"><button class="btn ghost" id="rvCancel" type="button">Cancel</button><button class="btn" id="rvSave" type="button">Save</button></div>`, true);   // wide on a PC: room for the photos
   const done = {after: closeModal};
   wireReview($("#rvBody"), d, done);
   $("#rvCancel").addEventListener("click", closeModal);
@@ -4509,7 +4510,7 @@ function addedNote(text){
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
   $("#colModal").scrollTop = 0;
 }
-function openModal(html){ $("#colModalBody").innerHTML = html; $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
+function openModal(html, wide){ $("#colModalBody").innerHTML = html; $("#colModal").classList.toggle("wide", !!wide); $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
 function closeModal(){ $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); }
 $("#colModalBg").addEventListener("click", closeModal);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#colModal").classList.contains("on")) closeModal(); });
