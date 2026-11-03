@@ -451,7 +451,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 06:41 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 07:09 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2811,7 +2811,8 @@ function matcherUnsure(d){
   const m = +d.photo_margin; return m < 1 && m < 0.03 ? 1 : 0;
 }
 // ⚡ Quick mode: one question - is this the printing it's priced as? Loupe learns most from the ones it's least sure of, so those come first.
-const quickOK = d => d.photo_says !== "one" && d.photo_says !== "none" && /i\.ebayimg\.com/.test(d.images || "");   // ended listings too: the photos and the answer don't expire
+const quickOK = d => d.photo_says !== "one" && d.photo_says !== "none" && /i\.ebayimg\.com/.test(d.images || "")
+  && !(d.hidden_by === "auto" && /version|variant|different card/i.test(d.hidden || ""));   // the title already says which version it is - nothing for you to answer   // ended listings too: the photos and the answer don't expire
 // the practice pool (data/loupe_pool.json): every listing a scan saw for your cards, deal or not - loaded when Quick mode opens
 const QP = {items: [], loaded: false, loading: false};
 function loadPool(){
@@ -2819,7 +2820,7 @@ function loadPool(){
   GH.readFiles(["data/loupe_pool.json"]).then(f => { try{ const j = JSON.parse(f["data/loupe_pool.json"].text || "{}");
       QP.items = (j.items || []).map(p => ({url: p.url, card: p.card, title: p.title, images: p.img, total: String(p.total || ""), condition: p.cond || "", seller: p.seller || "",
         found_at: p.seen || "", photo_says: p.says || "", photo_pick: p.pick || "", photo_margin: p.margin === "" || p.margin == null ? "" : String(p.margin), photo_roles: p.roles || "",
-        photo_back: p.back || "", photo_second: p.second || "", _pool: true})); }catch(e){ QP.items = []; }
+        photo_back: p.back || "", photo_second: p.second || "", _tv: p.tv || "", _pool: true})); }catch(e){ QP.items = []; }
     QP.loaded = true; QP.loading = false; if (document.querySelector("#tab-quick.on")) renderAudit(); })
     .catch(() => { QP.loading = false; QP.loaded = true; });
 }
@@ -2885,7 +2886,7 @@ function wireQuick(d, q){
 function quickPool(){   // pool listings that aren't already deals and you haven't answered: Loupe's unsure ones first, then the ones it hasn't looked at
   loadPool();
   const have = new Set(S.deals.map(d => itemId(d))), U = d => /^(same|other)$/.test(d.photo_says || "") ? matcherUnsure(d) + 1 : 0;
-  return QP.items.filter(d => !AUD.rows[d.url] && !have.has(itemId(d)) && quickOK(d))
+  return QP.items.filter(d => !AUD.rows[d.url] && !have.has(itemId(d)) && !d._tv && quickOK(d))
     .sort((a, b) => U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));
 }
 function audQueue(){
