@@ -308,6 +308,8 @@ select option{background:var(--panel);color:var(--ink)}
 @media (hover:hover) and (pointer:fine){.phz{cursor:zoom-in}}
 .ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
 .qk-probs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}.qk-probs .btn{height:auto;padding:10px;text-align:left;white-space:normal}
+.qk-q{font-size:17px;line-height:1.35;margin-bottom:2px}.qk-lab{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}.qk-ref .qk-lab{color:var(--accent)}
+.qk-first{border-left:2px solid var(--line);padding-left:10px;margin-left:2px}
 .qk-pick{margin-top:10px;max-width:1160px;padding:10px;border:2px solid var(--accent);border-radius:10px;background:var(--panel)}.qk-fin{display:flex;gap:6px;margin:8px 0}
 .qk-prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:52vh;overflow:auto}.qk-pr{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--soft);cursor:pointer;font:inherit;font-size:12px;color:inherit;text-align:center}
 .qk-pr:hover{border-color:var(--accent)}.qk-pr.priced{opacity:.5;cursor:default;border-style:dashed}.qk-pr.priced:hover{border-color:var(--line)}.qk-pr img{width:100%;border-radius:6px}
@@ -316,7 +318,7 @@ select option{background:var(--panel);color:var(--ink)}
 .qk-ref a{outline:2px solid var(--accent);outline-offset:-2px}
 .qk-btns{display:grid;grid-template-columns:1fr auto auto 1fr;gap:8px;margin-top:10px;max-width:1160px;position:sticky;bottom:8px;z-index:2}.qk-btns .btn{height:52px;font-size:16px}.qk-btns #qkSkip,.qk-btns #qkStock{background:var(--panel)}
 .qk-btns kbd{font-size:11px;opacity:.7;margin-left:4px;font-family:inherit}.qk-yes{background:#1f7a4d!important;border-color:#1f7a4d!important;color:#fff!important}.qk-no{background:#b3261e!important;border-color:#b3261e!important;color:#fff!important}
-@media (max-width:700px){.qk-btns{grid-template-columns:1fr 1fr}.qk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.qk-btns kbd{display:none}.qk-btns .btn{font-size:15px;padding:0 8px}}
+@media (max-width:700px){.qk-btns{grid-template-columns:1fr 1fr;gap:6px}.qk-btns .btn{height:42px!important;font-size:14px!important}.qk-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.qk-btns kbd{display:none}.qk-btns .btn{font-size:15px;padding:0 8px}}
 #phBig{position:fixed;inset:0;z-index:95;background:rgba(10,10,10,.94);display:flex;flex-direction:column;color:#fff;padding:env(safe-area-inset-top,0) 0 env(safe-area-inset-bottom,0)}
 #phBig .phb-top{display:flex;gap:10px;align-items:center;padding:10px 14px;flex-wrap:wrap}#phBig .grow{flex:1}
 #phBig .phb-ai{font-size:12px;color:#ffb3ad}#phBig .btn.ghost{color:#fff;border-color:#666;background:transparent}
@@ -455,7 +457,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:35 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:39 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2864,14 +2866,18 @@ function quickHTML(d, q){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const all = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)), ro = d.photo_roles || "";
   const imgs = all.map((u, i) => [u, i]).sort((a, b) => (ro[a[1]] === "B") - (ro[b[1]] === "B")).slice(0, 3);   // fronts first: the printing is on the front
-  const want = (String(d.hidden_detail || "").match(/you want #(\w+)/) || [])[1] || c.num || "";
+  const want = (String(d.hidden_detail || "").match(/you want #(\w+)/) || [])[1] || c.num || "", name0 = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, "");
+  const setc = ((/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "").toLowerCase();
+  qkPrintsOf(name0).then(ps => { const p = ps.find(x => x.set === setc && x.num === want), el = $("#qkRefTr");   // its treatment, filled in when known
+    if (p && el && p.tr) el.textContent = ` (${p.tr})`; }).catch(() => {});
   return `<div class="panel aud qk" id="qkItem">
-    <div class="qk-head"><b>${esc(d.card)}</b>${d._pool ? ' <span class="badge" title="Not a deal - a listing the scan saw for this card, here for practice">practice</span>' : ""} <span class="mut">· ${d._pool ? "should be" : "priced as"}</span> <b class="up">${esc(c.sn || setOf(d) || "?")}${want ? " #" + esc(want) : ""}</b> · <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a>
+    <div class="qk-head"><div class="qk-q">Is the card in these photos the <b class="up">${esc((c.s || setOf(d) || "").toUpperCase())}${want ? " #" + esc(want) : ""} ${esc(name0)}</b><span id="qkRefTr"></span>${c.p ? ` - <b>${money(+c.p)}</b>` : ""}?</div>
+      <span class="mut" style="font-size:12px">${d._pool ? '<span class="badge" title="Not a deal - a listing the scan saw for this card, here for practice">practice</span> · ' : ""}${esc(c.sn || setOf(d) || "")} · <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open the listing on eBay ↗</a></span>
       ${AUD.rows[d.url] ? `<div class="mut" style="font-size:12px">You answered: <b>${AUD.rows[d.url].edition === "wrong" ? "✗ Wrong Printing" : AUD.rows[d.url].edition === "matches" ? "✓ Right Printing" : AUD.rows[d.url].verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${AUD.rows[d.url].note ? ` - ${esc(AUD.rows[d.url].note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
-    <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><a><div class="phz"><img src="${esc(ref)}" alt=""></div></a><figcaption>Should look like this</figcaption></figure>` : ""}
-      ${imgs.map(([u, i]) => `<figure class="qk-fig"><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></div></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
+    <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><div class="qk-lab">PRICED AS</div><a><div class="phz"><img src="${esc(ref)}" alt=""></div></a><figcaption>${esc((c.s || setOf(d) || "").toUpperCase())}${want ? " #" + esc(want) : ""}${c.p ? " · " + money(+c.p) : ""}</figcaption></figure>` : ""}
+      ${imgs.map(([u, i], k) => `<figure class="qk-fig${k === 0 ? " qk-first" : ""}"><div class="qk-lab">${k === 0 ? "THE LISTING" : "&nbsp;"}</div><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></div></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
     ${photoCheckLine(d)}${d.photo_kind && d.photo_kind !== "card" ? `<div class="mut" style="font-size:12px">🔍 Loupe also thinks the photos are: <b>${esc({stock: "a stock photo", lot: "several cards / a lot", verify: "not clear enough to see the card"}[d.photo_kind] || d.photo_kind)}</b> - tap 📷 Photo Problem if it's right</div>` : ""}
-    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ Wrong Printing <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn ghost" id="qkStock" type="button" title="Stock photo, several cards sold together, or the card can't be seen">📷 Photo Problem <kbd>P</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Right Printing <kbd>Y</kbd></button></div>
+    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ No, a Different Version <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn ghost" id="qkStock" type="button" title="Stock photo, several cards sold together, or the card can't be seen">📷 Photo Problem <kbd>P</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Yes, it's ${want ? "#" + esc(want) : "that one"} <kbd>Y</kbd></button></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
 }
@@ -2893,7 +2899,7 @@ function pickPrinting(d, done){
   const box = $("#qkItem .qk-btns"); if (!box) return;
   const name = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""), set = ((/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "").toLowerCase();
   const want = String((audCard(d.card) || {}).num || "");
-  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>Which one is it?</b><span class="mut" style="font-size:12px">tap the version - foil comes from the listing's title</span></div>
+  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>The listing is actually…</b><span class="mut" style="font-size:12px">tap the version in the photos - foil comes from the listing's title</span></div>
     <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div>
     <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkNotSure">Not Sure - Just Wrong</button><button type="button" class="btn ghost" id="qkWrongCard">It's a Different Card</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
   // foil comes from the listing's own words - a photo (or you) often can't tell; never guessed
