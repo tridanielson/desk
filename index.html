@@ -307,6 +307,7 @@ select option{background:var(--panel);color:var(--ink)}
 #phLens img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 50%}#phLens .phl-hint{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:1px 6px;border-radius:6px}
 @media (hover:hover) and (pointer:fine){.phz{cursor:zoom-in}}
 .ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
+.qk-probs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}.qk-probs .btn{height:auto;padding:10px;text-align:left;white-space:normal}
 .qk-pick{margin-top:10px;max-width:1160px;padding:10px;border:2px solid var(--accent);border-radius:10px;background:var(--panel)}.qk-fin{display:flex;gap:6px;margin:8px 0}
 .qk-prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:52vh;overflow:auto}.qk-pr{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--soft);cursor:pointer;font:inherit;font-size:12px;color:inherit;text-align:center}
 .qk-pr:hover{border-color:var(--accent)}.qk-pr img{width:100%;border-radius:6px}
@@ -454,7 +455,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 08:27 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 08:47 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2865,11 +2866,11 @@ function quickHTML(d, q){
   const want = (String(d.hidden_detail || "").match(/you want #(\w+)/) || [])[1] || c.num || "";
   return `<div class="panel aud qk" id="qkItem">
     <div class="qk-head"><b>${esc(d.card)}</b>${d._pool ? ' <span class="badge" title="Not a deal - a listing the scan saw for this card, here for practice">practice</span>' : ""} <span class="mut">· ${d._pool ? "should be" : "priced as"}</span> <b class="up">${esc(c.sn || setOf(d) || "?")}${want ? " #" + esc(want) : ""}</b> · <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a>
-      ${AUD.rows[d.url] ? `<div class="mut" style="font-size:12px">You answered: <b>${AUD.rows[d.url].edition === "wrong" ? "✗ Wrong Printing" : AUD.rows[d.url].edition === "matches" ? "✓ Right Printing" : AUD.rows[d.url].verdict === "reject" ? "📷 Stock Photo" : "saved"}</b>${AUD.rows[d.url].note ? ` - ${esc(AUD.rows[d.url].note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
+      ${AUD.rows[d.url] ? `<div class="mut" style="font-size:12px">You answered: <b>${AUD.rows[d.url].edition === "wrong" ? "✗ Wrong Printing" : AUD.rows[d.url].edition === "matches" ? "✓ Right Printing" : AUD.rows[d.url].verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${AUD.rows[d.url].note ? ` - ${esc(AUD.rows[d.url].note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
     <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><a><div class="phz"><img src="${esc(ref)}" alt=""></div></a><figcaption>Should look like this</figcaption></figure>` : ""}
       ${imgs.map(([u, i]) => `<figure class="qk-fig"><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></div></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
     ${photoCheckLine(d)}
-    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ Wrong Printing <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn ghost" id="qkStock" type="button" title="The photos aren't the actual card being sold (a stock / sample image)">📷 Stock Photo <kbd>P</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Right Printing <kbd>Y</kbd></button></div>
+    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ Wrong Printing <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn ghost" id="qkStock" type="button" title="Stock photo, several cards sold together, or the card can't be seen">📷 Photo Problem <kbd>P</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Right Printing <kbd>Y</kbd></button></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
 }
@@ -2907,6 +2908,18 @@ function pickPrinting(d, done){
       done(`It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""}${fin ? " · " + fin : ""}`); });
   }).catch(() => { const el = $("#qkPrints"); if (el) el.innerHTML = `<p class="mut">Couldn't load the printings - tap Not Sure.</p>`; });
 }
+// 📷 Photo Problem: the photos can't answer "which printing?" - each is a fact (hides the deal), never a printing lesson.
+// Several-card listings are kept with their photos and title: the start of teaching Loupe to read a whole lot and price it.
+const PHOTO_PROBLEMS = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards / A Lot", "more than one card sold together"], ["verify", "🌫️ Can't See the Card", "too blurry, too far away, or only the back"]];
+function photoProblem(d, done){
+  const box = $("#qkItem .qk-btns"); if (!box) return;
+  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>What's wrong with the photos?</b><span class="mut" style="font-size:12px">or ← Undo</span></div>
+    <div class="qk-probs">${PHOTO_PROBLEMS.map(([k, l, t], i) => `<button type="button" class="btn ghost" data-prob="${k}"><b>${l}</b> <kbd>${i + 1}</kbd><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
+  $("#qkPick").scrollIntoView({block: "nearest", behavior: "smooth"});
+  $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-prob]"); if (b) done(b.dataset.prob); });
+  $("#qkPickCancel").addEventListener("click", () => renderAudit());
+}
 function wireQuick(d, q){
   const next = () => { renderAudit(); const it = $("#audItem"), head = document.querySelector("header"); if (it && it.getBoundingClientRect().top < 0) window.scrollTo({top: it.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 10}); };
   // the ones you answered or skipped this visit: ← Back walks through them, Forward → walks back to the newest, then to new ones
@@ -2918,7 +2931,7 @@ function wireQuick(d, q){
   $("#qkYes").addEventListener("click", () => save("matches"));
   $("#qkNo").addEventListener("click", () => pickPrinting(d, (fact, wrongCard) => saveReview(d, {edition: wrongCard ? "wrongcard" : "edition", condition: "unclear", back: "skip", fault: "seller", factNote: fact}, "", done)));
   // a stock photo isn't the card being sold: a fact (hidden, like Stock Photo in the full review), never a printing lesson
-  $("#qkStock").addEventListener("click", () => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: "stock", reasons: ["stock"], good: "down"}, "", done));
+  $("#qkStock").addEventListener("click", () => photoProblem(d, why => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
   $("#qkSkip").addEventListener("click", () => { if (!back) AUD.i = Math.min(q.length - 1, AUD.i + 1); onward(); });
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
@@ -3047,7 +3060,7 @@ function renderAudit(){
       ${quick ? "" : `<select id="audFilter" style="max-width:100%;min-width:0">${FULL_LISTS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
       ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}`}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
-      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">${quick ? "Keys: Y = right · N = wrong · S = can't tell · P = stock photo · ← back · → forward" : "Keys: Y = save as shown · ← → = previous / next"}</span></div></div>
+      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">${quick ? "Keys: Y = right · N = wrong · S = can't tell · P = photo problem · ← back · → forward" : "Keys: Y = save as shown · ← → = previous / next"}</span></div></div>
     <div id="audItem">${d ? (AUD.filter === "quick" ? quickHTML(d, q) : audItemHTML(d)) : `<p class="empty">${quick ? "All done for now - new listings arrive with every scan (every 3 hours)." : AUD.filter === "todo" ? "All caught up - every SlaveAI-checked deal is reviewed. New ones appear after each scan." : "Nothing here."}</p>`}</div>`;
   if ($("#audFilter")){ $("#audFilter").value = AUD.filter; $("#audFilter").addEventListener("change", e => { AUD.filter = e.target.value; AUD.i = 0; renderAudit(); }); }
   if ($("#audModel")) $("#audModel").value = AUD.model;
@@ -3074,7 +3087,7 @@ function wireAudItem(d, q){
 }
 document.addEventListener("keydown", e => {
   if (!document.querySelector("#tab-audit.on, #tab-quick.on") || /input|textarea|select/i.test((e.target.tagName || "")) || document.querySelector("#colModal.on")) return;
-  if ($("#qkPick")){ if (e.key === "Escape"){ e.preventDefault(); renderAudit(); } return; }   // picking which printing: mouse / tap
+  if ($("#qkPick")){ if (e.key === "Escape"){ e.preventDefault(); renderAudit(); } else if (/^[1-3]$/.test(e.key) && $("#qkPick [data-prob]")){ e.preventDefault(); $(`#qkPick [data-prob="${PHOTO_PROBLEMS[+e.key - 1][0]}"]`).click(); } return; }   // picking which printing: mouse / tap
   if (AUD.filter === "quick" && $("#qkYes")){ const b = {y: "#qkYes", n: "#qkNo", s: "#qkSkip", p: "#qkStock", arrowright: $("#qkFwd") ? "#qkFwd" : "#qkSkip", arrowleft: "#audPrev"}[e.key.toLowerCase()]; if (b){ e.preventDefault(); $(b).click(); } return; }
   if (e.key === "y" || e.key === "Y"){ const b = $("#audSave"); if (b){ e.preventDefault(); b.click(); } }
   if (e.key === "ArrowRight"){ const b = $("#audSkip"); if (b){ e.preventDefault(); b.click(); } }
