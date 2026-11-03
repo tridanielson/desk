@@ -308,7 +308,7 @@ select option{background:var(--panel);color:var(--ink)}
 @media (hover:hover) and (pointer:fine){.phz{cursor:zoom-in}}
 .ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
 .qk-probs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}.qk-probs .btn{height:auto;padding:10px;text-align:left;white-space:normal}
-.qk-q{font-size:17px;line-height:1.35;margin-bottom:2px}.qk-lab{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}.qk-ref .qk-lab{color:var(--accent)}
+.qk-q{font-size:17px;line-height:1.35;margin-bottom:2px}.qk-lab{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-bottom:3px}.qk-ref .qk-lab{color:var(--accent)}.qk-ref.cmp .qk-lab{color:#2b6cb0}.qk-ref.cmp a{outline-color:#2b6cb0}
 .qk-first{border-left:2px solid var(--line);padding-left:10px;margin-left:2px}
 .qk-pick{margin-top:10px;max-width:1160px;padding:10px;border:2px solid var(--accent);border-radius:10px;background:var(--panel)}.qk-fin{display:flex;gap:6px;margin:8px 0}
 .qk-prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:52vh;overflow:auto}.qk-pr{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--soft);cursor:pointer;font:inherit;font-size:12px;color:inherit;text-align:center}
@@ -457,7 +457,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:39 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:46 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2913,7 +2913,14 @@ function pickPrinting(d, done){
     ps = ps.slice().sort((a, b) => (b.set === set) - (a.set === set));   // same set first; the one it's priced as stays in view (greyed) to compare
     if (!ps.length){ el.innerHTML = `<p class="mut">No other printings found - tap Not Sure.</p>`; return; }
     const priced = p => p.set === set && p.num === want, only = p => p.fin.length === 1 ? (p.fin[0] === "foil" ? "foil only" : p.fin[0] === "nonfoil" ? "non-foil only" : p.fin[0] + " only") : "";
-    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<div class="phz"><img src="${esc(p.img)}" alt="" loading="lazy"></div>` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}${p.price ? `<br><b class="up">${esc(p.price)}</b>` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`).join("");
+    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}${p.price ? `<br><b class="up">${esc(p.price)}</b>` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`).join("");
+    // hover a version: it takes the PRICED AS spot, right next to the listing photos (covers nothing); leave and it goes back
+    const refImg = $("#qkItem .qk-ref img"), refLab = $("#qkItem .qk-ref .qk-lab"), refCap = $("#qkItem .qk-ref figcaption");
+    const keep = refImg ? [refImg.src, refLab.textContent, refCap.textContent] : null;
+    el.addEventListener("mouseover", e => { const b = e.target.closest(".qk-pr"); if (!b || !keep) return; const p = ps[+b.dataset.i];
+      if (!p.img) return; refImg.src = p.img.replace("/small/", "/normal/"); refLab.textContent = priced(p) ? "PRICED AS" : "COMPARING"; refCap.textContent = `${p.set.toUpperCase()} #${p.num}${p.tr ? " · " + p.tr : ""}${p.price ? " · " + p.price : ""}`;
+      $("#qkItem .qk-ref").classList.toggle("cmp", !priced(p)); });
+    el.addEventListener("mouseleave", () => { if (!keep) return; [refImg.src, refLab.textContent, refCap.textContent] = keep; $("#qkItem .qk-ref").classList.remove("cmp"); });
     el.addEventListener("click", e => { const b = e.target.closest(".qk-pr"); if (!b || b.disabled) return; const p = ps[+b.dataset.i];
       const f = fin || (only(p) ? only(p).replace(" only", "") : "finish not stated");   // a version that only exists in foil is foil
       done(`It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""} · ${f}`); });
