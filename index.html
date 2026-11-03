@@ -307,6 +307,9 @@ select option{background:var(--panel);color:var(--ink)}
 #phLens img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 50%}#phLens .phl-hint{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:1px 6px;border-radius:6px}
 @media (hover:hover) and (pointer:fine){.phz{cursor:zoom-in}}
 .ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
+.qk-pick{margin-top:10px;max-width:1160px;padding:10px;border:2px solid var(--accent);border-radius:10px;background:var(--panel)}.qk-fin{display:flex;gap:6px;margin:8px 0}
+.qk-prints{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:52vh;overflow:auto}.qk-pr{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--soft);cursor:pointer;font:inherit;font-size:12px;color:inherit;text-align:center}
+.qk-pr:hover{border-color:var(--accent)}.qk-pr img{width:100%;border-radius:6px}
 .qk-head{font-size:15px;margin-bottom:8px}.qk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:1160px}
 .qk-fig{margin:0}.qk-fig img{width:100%;aspect-ratio:488/680;object-fit:contain;background:var(--soft);border-radius:8px;display:block}.qk-fig figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
 .qk-ref a{outline:2px solid var(--accent);outline-offset:-2px}
@@ -451,7 +454,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 07:09 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 07:17 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2695,7 +2698,7 @@ function saveReview(d, sel, note, done, agreeAI){
   const at = new Date().toISOString().slice(0, 16), seller = String(d.seller || "").split(" (")[0];
   // 1. rating (hide / block seller / comment -> rule). A condition 'why' stays with the condition, not as a rule.
   const verdict = sel.good === "up" ? "good" : sel.good === "down" ? "bad" : (note && !condChanged && !agreeAI ? "note" : "");
-  const last = fbLast(d), fbNote = condChanged || agreeAI || (autoNote && sel.edition === "variant") ? "" : note;
+  const last = fbLast(d), fbNote = condChanged || agreeAI || autoNote ? "" : note;   // "It's Revised #147" is a fact for training, not a comment to learn a rule from
   if (last && last.verdict === "bad" && sel.good !== "down") FB.rows.push({at, url: d.url, card: d.card, key: "", seller, verdict: "unhide", reason: "", note: "re-reviewed", title: (d.title || "").slice(0, 150), fault: ""});
   if (verdict && !(last && last.verdict === verdict && (last.reason || "") === (sel.reason || "") && (last.note || "") === fbNote)){
     FB.rows.push({at, url: d.url, card: d.card, key: d.key || "", seller, verdict, reason: verdict === "bad" ? sel.reason : "", note: fbNote, title: (d.title || "").slice(0, 150),
@@ -2715,7 +2718,7 @@ function saveReview(d, sel, note, done, agreeAI){
     AUD.rows[d.url] = {url: d.url, card: d.card, at, ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(), ai_model: d.ai_model || "",
       ai_reason: (d.ai_reason || "").slice(0, 600), verdict: sel.good === "up" ? "ok" : sel.good === "down" ? "reject" : "",
       edition: isWrong(sel.edition) ? "wrong" : (sel.edition || ""), condition: sel.condition || "",
-      note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
+      note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note, sel.factNote || ""].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
       fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted",
       back: isWrong(sel.edition) || sel.back === "skip" ? "" : (sel.back || "")};   // left unpicked = not answered
     if (AUD.loaded) markDirty("audit");
@@ -2870,6 +2873,40 @@ function quickHTML(d, q){
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
 }
+// ✗ Wrong in Quick Review: "which one is it?" - every printing of the card (sets and treatments) as pictures, plus foil / non-foil.
+// One tap makes the answer exact ("It's Teenage Mutant Ninja Turtles #17 · non-foil") - the lesson Loupe learns most from.
+const PRINTS_CACHE = {};
+async function qkPrintsOf(name){
+  if (PRINTS_CACHE[name]) return PRINTS_CACHE[name];
+  let out = [], path = "/cards/search?unique=prints&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" game:paper`);
+  for (let k = 0; k < 3 && path; k++){ const j = await sf(path); out = out.concat(j.data || []); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : ""; }
+  return PRINTS_CACHE[name] = out.map(c => { const f = c.image_uris ? c : ((c.card_faces || [])[0] || {}), fe = (c.frame_effects || []).filter(x => !["legendary", "enchantment", "snow"].includes(x));
+    const tr = [c.border_color === "borderless" ? "borderless" : "", ...fe, c.full_art ? "full art" : "", c.promo ? "promo" : "", c.border_color === "white" ? "white border" : ""].filter(Boolean).join(", ");
+    return {set: c.set, sn: c.set_name, num: c.collector_number, yr: (c.released_at || "").slice(0, 4), img: ((f.image_uris || {}).small) || "", tr, fin: c.finishes || []}; });
+}
+function pickPrinting(d, done){
+  const box = $("#qkItem .qk-btns"); if (!box) return;
+  const name = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""), set = ((/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "").toLowerCase();
+  const want = String((audCard(d.card) || {}).num || ""), fin0 = /\(foil\)/i.test(d.card || "") ? "foil" : "";
+  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>Which one is it?</b><span class="mut" style="font-size:12px">tap the printing - or Not Sure</span></div>
+    <div class="qk-fin" id="qkFin"><button type="button" class="btn small${fin0 === "foil" ? " ghost" : ""}" data-fin="non-foil">Non-Foil</button><button type="button" class="btn small${fin0 === "foil" ? "" : " ghost"}" data-fin="foil">Foil</button><button type="button" class="btn small ghost" data-fin="">Can't Tell Foil</button></div>
+    <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div>
+    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkNotSure">Not Sure - Just Wrong</button><button type="button" class="btn ghost" id="qkWrongCard">It's a Different Card</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
+  let fin = fin0 === "foil" ? "foil" : "non-foil";
+  $("#qkPick").scrollIntoView({block: "start", behavior: "smooth"});
+  $("#qkFin").addEventListener("click", e => { const b = e.target.closest("[data-fin]"); if (!b) return; fin = b.dataset.fin; $("#qkFin").querySelectorAll("[data-fin]").forEach(x => x.classList.toggle("ghost", x !== b)); });
+  $("#qkNotSure").addEventListener("click", () => done(""));
+  $("#qkWrongCard").addEventListener("click", () => done("", true));
+  $("#qkPickCancel").addEventListener("click", () => renderAudit());
+  qkPrintsOf(name).then(ps => {
+    const el = $("#qkPrints"); if (!el) return;
+    ps = ps.filter(p => !(p.set === set && p.num === want)).sort((a, b) => (b.set === set) - (a.set === set));   // same set first; never the one it's priced as
+    if (!ps.length){ el.innerHTML = `<p class="mut">No other printings found - tap Not Sure.</p>`; return; }
+    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr" data-i="${i}" title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<img src="${esc(p.img)}" alt="" loading="lazy">` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b>${p.tr ? `<br>${esc(p.tr)}` : ""}<br><span class="mut">${esc(p.yr)}</span></span></button>`).join("");
+    el.addEventListener("click", e => { const b = e.target.closest(".qk-pr"); if (!b) return; const p = ps[+b.dataset.i];
+      done(`It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""}${fin ? " · " + fin : ""}`); });
+  }).catch(() => { const el = $("#qkPrints"); if (el) el.innerHTML = `<p class="mut">Couldn't load the printings - tap Not Sure.</p>`; });
+}
 function wireQuick(d, q){
   const next = () => { renderAudit(); const it = $("#audItem"), head = document.querySelector("header"); if (it && it.getBoundingClientRect().top < 0) window.scrollTo({top: it.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 10}); };
   const done = {how: "quick", after: next};
@@ -2877,7 +2914,7 @@ function wireQuick(d, q){
   const leave = () => { if (back) AUD.qkBack = ""; else hist.push(d.url); };   // remember the way back
   const save = ed => { leave(); saveReview(d, {edition: ed, condition: "unclear", back: "skip", fault: "seller"}, "", done); };
   $("#qkYes").addEventListener("click", () => save("matches"));
-  $("#qkNo").addEventListener("click", () => save("edition"));
+  $("#qkNo").addEventListener("click", () => pickPrinting(d, (fact, wrongCard) => { leave(); saveReview(d, {edition: wrongCard ? "wrongcard" : "edition", condition: "unclear", back: "skip", fault: "seller", factNote: fact}, "", done); }));
   $("#qkSkip").addEventListener("click", () => { if (back) AUD.qkBack = ""; else { hist.push(d.url); AUD.i = Math.min(q.length - 1, AUD.i + 1); } next(); });
   $("#audPrev").addEventListener("click", () => { if (back) hist.pop(); const u = hist[hist.length - 1];
     if (!u){ if (back) hist.push(d.url); return toast("That's the first one this visit."); }
@@ -2981,7 +3018,9 @@ function renderTrain(){
       ${tile(L.adopted ? `On <span class="mut" style="font-size:13px">${L.learned_pct}% vs ${L.plain_pct}%</span>` : `Off <span class="mut" style="font-size:13px">${L.learned_pct != null ? L.learned_pct + "% vs " + L.plain_pct + "%" : ""}</span>`, "Learning", "Switches on only when the learned version beats the plain model by 2 points on listings it never trained on. Re-tried weekly")}
       ${tile(`${L.examples || 0} <span class="mut" style="font-size:13px">+ ${P.total || L.practice || 0} practice</span>`, "Training examples", "Real labelled listings + practice copies made from Scryfall pictures")}</div>
     <p class="mut" style="font-size:12px;margin:6px 0 0">Your answers so far: ${quickN} Quick · ${fullN} Full. ${sc.cant_tell ? `${sc.cant_tell} listing(s) where every printing looks alike aren't counted. ` : ""}${sc.partial ? "<b>The last run ran out of time and only checked part of the labels</b> - the next scans finish it. " : ""}${D.updated ? "Updated " + esc(whenAZ(D.updated)) + "." : ""}</p>${trend()}`;
-  box.innerHTML = `<div class="panel"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span><div style="margin-top:8px">${loupe}</div></div>
+  const alerts = (sc.alerts || []).length ? `<div class="panel" style="border-color:var(--gold)"><b>⚠ Early warning</b> <span class="mut" style="font-size:12px">- a pattern on one card usually means something to fix, not more reviewing</span>
+    <ul style="margin:6px 0 0">${sc.alerts.map(a => `<li>${esc(a.text)}</li>`).join("")}</ul><p class="mut" style="font-size:12px;margin:4px 0 0">Ask Claude to look into it - paste this list.</p></div>` : "";
+  box.innerHTML = alerts + `<div class="panel"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span><div style="margin-top:8px">${loupe}</div></div>
     <div class="panel"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div>`;
   $("#audRange").value = AUD.range; $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderTrain(); });
@@ -3032,6 +3071,7 @@ function wireAudItem(d, q){
 }
 document.addEventListener("keydown", e => {
   if (!document.querySelector("#tab-audit.on, #tab-quick.on") || /input|textarea|select/i.test((e.target.tagName || "")) || document.querySelector("#colModal.on")) return;
+  if ($("#qkPick")){ if (e.key === "Escape"){ e.preventDefault(); renderAudit(); } return; }   // picking which printing: mouse / tap
   if (AUD.filter === "quick" && $("#qkYes")){ const b = {y: "#qkYes", n: "#qkNo", s: "#qkSkip", arrowright: "#qkSkip", arrowleft: "#audPrev"}[e.key.toLowerCase()]; if (b){ e.preventDefault(); $(b).click(); } return; }
   if (e.key === "y" || e.key === "Y"){ const b = $("#audSave"); if (b){ e.preventDefault(); b.click(); } }
   if (e.key === "ArrowRight"){ const b = $("#audSkip"); if (b){ e.preventDefault(); b.click(); } }
