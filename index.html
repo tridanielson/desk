@@ -455,7 +455,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:26 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:35 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2883,8 +2883,11 @@ async function qkPrintsOf(name){
   let out = [], path = "/cards/search?unique=prints&order=released&dir=asc&q=" + encodeURIComponent(`!"${name}" game:paper`);
   for (let k = 0; k < 3 && path; k++){ const j = await sf(path); out = out.concat(j.data || []); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : ""; }
   return PRINTS_CACHE[name] = out.map(c => { const f = c.image_uris ? c : ((c.card_faces || [])[0] || {}), fe = (c.frame_effects || []).filter(x => !["legendary", "enchantment", "snow"].includes(x));
-    const tr = [c.border_color === "borderless" ? "borderless" : "", ...fe, c.full_art ? "full art" : "", c.promo ? "promo" : "", c.border_color === "white" ? "white border" : ""].filter(Boolean).join(", ");
-    return {set: c.set, sn: c.set_name, num: c.collector_number, yr: (c.released_at || "").slice(0, 4), img: ((f.image_uris || {}).small) || "", tr, fin: c.finishes || []}; });
+    const pf = (c.promo_types || []).filter(x => /foil$/.test(x) && x !== "foil").map(x => x.replace(/foil$/, " foil"));   // fracture foil, surge foil, galaxy foil...
+    const tr = [...pf, c.border_color === "borderless" ? "borderless" : "", ...fe, c.full_art ? "full art" : "", c.promo && !pf.length ? "promo" : "", c.border_color === "white" ? "white border" : ""].filter(Boolean).join(", ");
+    const pr = c.prices || {}, money2 = v => v ? "$" + (+v).toFixed(2) : "";
+    const price = [pr.usd ? money2(pr.usd) : "", pr.usd_foil ? money2(pr.usd_foil) + " foil" : "", pr.usd_etched ? money2(pr.usd_etched) + " etched" : ""].filter(Boolean).join(" · ");
+    return {set: c.set, sn: c.set_name, num: c.collector_number, yr: (c.released_at || "").slice(0, 4), img: ((f.image_uris || {}).small) || "", tr, fin: c.finishes || [], price}; });
 }
 function pickPrinting(d, done){
   const box = $("#qkItem .qk-btns"); if (!box) return;
@@ -2904,7 +2907,7 @@ function pickPrinting(d, done){
     ps = ps.slice().sort((a, b) => (b.set === set) - (a.set === set));   // same set first; the one it's priced as stays in view (greyed) to compare
     if (!ps.length){ el.innerHTML = `<p class="mut">No other printings found - tap Not Sure.</p>`; return; }
     const priced = p => p.set === set && p.num === want, only = p => p.fin.length === 1 ? (p.fin[0] === "foil" ? "foil only" : p.fin[0] === "nonfoil" ? "non-foil only" : p.fin[0] + " only") : "";
-    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<div class="phz"><img src="${esc(p.img)}" alt="" loading="lazy"></div>` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`).join("");
+    el.innerHTML = ps.slice(0, 60).map((p, i) => `<button type="button" class="qk-pr${priced(p) ? " priced" : ""}" data-i="${i}"${priced(p) ? " disabled" : ""} title="${esc(p.sn)} #${esc(p.num)}${p.tr ? " - " + esc(p.tr) : ""}">${p.img ? `<div class="phz"><img src="${esc(p.img)}" alt="" loading="lazy"></div>` : ""}<span><b>${esc(p.set.toUpperCase())} #${esc(p.num)}</b><br>${esc(p.tr || "regular")}${only(p) && only(p) !== "non-foil only" ? ` · ${only(p)}` : ""}${p.price ? `<br><b class="up">${esc(p.price)}</b>` : ""}<br><span class="mut">${priced(p) ? "← the one it's priced as" : esc(p.yr)}</span></span></button>`).join("");
     el.addEventListener("click", e => { const b = e.target.closest(".qk-pr"); if (!b || b.disabled) return; const p = ps[+b.dataset.i];
       const f = fin || (only(p) ? only(p).replace(" only", "") : "finish not stated");   // a version that only exists in foil is foil
       done(`It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""} · ${f}`); });
