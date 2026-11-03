@@ -455,7 +455,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 08:49 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 11:37 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2749,6 +2749,7 @@ function openReview(d){
 //  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
 // Loupe (free photo check, testing): which printing the photos look like - shown on the review screen only, never hides anything
 function photoCheckLine(d){
+  if (d.photo_read) return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📖 Loupe read it on the card: <b>${esc(d.photo_read)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}</div>`;
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
   const m = +d.photo_margin;
   if (m < 0.02 && m !== 1)   // a near-tie: say so instead of making a call (it still lands in "Teach Loupe" for your answer)
@@ -2824,7 +2825,7 @@ function loadPool(){
   GH.readFiles(["data/loupe_pool.json"]).then(f => { try{ const j = JSON.parse(f["data/loupe_pool.json"].text || "{}");
       QP.items = (j.items || []).map(p => ({url: p.url, card: p.card, title: p.title, images: p.img, total: String(p.total || ""), condition: p.cond || "", seller: p.seller || "",
         found_at: p.seen || "", photo_says: p.says || "", photo_pick: p.pick || "", photo_margin: p.margin === "" || p.margin == null ? "" : String(p.margin), photo_roles: p.roles || "",
-        photo_back: p.back || "", photo_second: p.second || "", photo_kind: p.kind || "", _tv: p.tv || "", _pool: true})); }catch(e){ QP.items = []; }
+        photo_back: p.back || "", photo_second: p.second || "", photo_kind: p.kind || "", photo_read: p.read || "", _tv: p.tv || "", _pool: true})); }catch(e){ QP.items = []; }
     QP.loaded = true; QP.loading = false; if (document.querySelector("#tab-quick.on")) renderAudit(); })
     .catch(() => { QP.loading = false; QP.loaded = true; });
 }
@@ -3028,6 +3029,7 @@ function renderTrain(){
       <svg viewBox="0 0 ${W} ${Hh}" style="width:100%;max-width:640px;height:${Hh}px;display:block"><polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>${H.map((h, i) => `<circle cx="${xs[i].toFixed(1)}" cy="${y(h.pct).toFixed(1)}" r="3" fill="var(--accent)"><title>${esc(h.at.slice(0, 16).replace("T", " "))}: ${h.pct}% of ${h.n}</title></circle>`).join("")}</svg></div>`; };
   const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `<div class="stats aud-stats">
       ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Loupe's call against every listing you (and graded slabs) labelled")}
+      ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Listings where Loupe read the set code + collector number printed on the card - how often that was right") : ""}
       ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Where you named the exact printing (\"It's Revised #147\")")}
       ${tile(bk.n ? `${bk.pct}% <span class="mut" style="font-size:13px">of ${bk.n}</span>` : "–", "Back shown", "Loupe's \"is the back in the photos?\" against your Back of Card answers")}
       ${tile(v.n ? `${v.matcher_pct}% <span class="mut" style="font-size:13px">vs ${v.ai_pct}%</span>` : "–", `Loupe vs SlaveAI <span class="mut">(${v.n || 0})</span>`, "Same listings, both checked, against your answer: Loupe's % vs SlaveAI's %")}
