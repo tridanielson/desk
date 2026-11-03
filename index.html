@@ -450,7 +450,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:20 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 12:25 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2445,7 +2445,7 @@ const backSays = d => d.ai_back === "yes" || d.ai_back === "no" ? d.ai_back : (d
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
-  const imgs = allImgs.slice(0, Math.max(10, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
+  const imgs = allImgs.slice(0, Math.max(24, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = reviewStart(d);
   if (!s.back) s.back = (AUD.rows[d.url] || {}).back || (backSays(d) === "no" ? "missing" : "shown");   // SlaveAI / Loupe say whether a photo shows the back
