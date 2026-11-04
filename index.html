@@ -459,7 +459,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:29 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2569,7 +2569,7 @@ function wireReview(root, d, done){
     rawServer("listingPhotos", AUTH.token, itemId(d), +((S.ini.review || {}).photo_fetches_per_day) || 25).then(r => {
       if (!document.body.contains(root)) return;
       if ((r.images || []).length){
-        d.images = r.images.join(" "); d._keepSel = true;
+        d.images = r.images.join(" "); d._keepSel = true; d._phLoaded = true;   // saved with your review: Loupe sorts them next scan
         const note = (root.querySelector("#rvNote") || {}).value || "";
         root.innerHTML = reviewHTML(d, root.querySelector(".aud-grid.small") ? "modal" : "queue");
         const n2 = root.querySelector("#rvNote"); if (n2) n2.value = note;
@@ -2759,7 +2759,8 @@ function saveReview(d, sel, note, done, agreeAI){
       edition: isWrong(sel.edition) ? "wrong" : (sel.edition || ""), condition: sel.condition || "",
       note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note, sel.factNote || ""].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
       fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted",
-      back: isWrong(sel.edition) || sel.back === "skip" ? "" : (sel.back || "")};   // left unpicked = not answered
+      back: isWrong(sel.edition) || sel.back === "skip" ? "" : (sel.back || ""),
+      images: d._phLoaded ? d.images : ((AUD.rows[d.url] || {}).images || "")};   // left unpicked = not answered
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
@@ -2820,7 +2821,7 @@ document.addEventListener("click", e => { const a = e.target.closest("[data-phbi
   const d = S.deals.find(x => x.url === a.dataset.phurl); if (!d) return; e.preventDefault(); openPhotoBig(d, +a.dataset.phbig); });
 // where SlaveAI saw each problem: [{photo (1 = first), x, y, w, h (0-1 of the photo), what}] - drawn on the review photos
 function aiSpots(d){ if (d._spots) return d._spots; let a = []; try{ a = JSON.parse(d.ai_spots || "[]"); }catch(e){} return d._spots = (Array.isArray(a) ? a : []).filter(p => p && p.photo >= 1); }
-const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back"];
+const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back", "images"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
   ["MP", "Moderately Played", "Clear wear: surface marks, edge wear, light creases or bends; still structurally sound."],
