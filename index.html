@@ -459,7 +459,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:34 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:47 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -959,14 +959,16 @@ function reapplySorts(){
 new MutationObserver(() => { clearTimeout(reapplySorts._t); reapplySorts._t = setTimeout(reapplySorts, 60); }).observe(document.body, {childList: true, subtree: true});
 
 // "working on it" bar + message whenever the page is waiting on the server
-const BUSY = {n: 0, labels: [], t: null};
+const BUSY = {n: 0, labels: [], t: null, quiet: 0};
+// a background refresh of the data (new prices, coming back to the tab): no full-screen "Refreshing…" card over what you're doing
+function quietLoad(){ BUSY.quiet++; return loadAll().catch(() => {}).finally(() => { BUSY.quiet = Math.max(0, BUSY.quiet - 1); }); }
 const BUSY_TEXT = {loadAll: "Loading your latest data…", loadSecretLair: "Loading Secret Lair…",
   readFiles: "Loading your latest data…", saveFile: "", runWorkflow: "Starting the update…", login: "Signing in…", scryfall: "", signUp: "Creating your account…", accountsInfo: "", changePassword: "Saving…", checkListing: "Checking the listing on eBay…", setMute: "Saving…", accountsSet: "Saving…", accountReset: "Saving…", accountRemove: "Saving…"};
 const BUSY_HEAD = {login: "Signing in… please wait", signUp: "Creating your account… please wait", changePassword: "Saving… please wait", runWorkflow: "Starting… please wait"};
 function busy(on, fn){
   if (on){ BUSY.n++; BUSY.labels.push(fn); } else { BUSY.n = Math.max(0, BUSY.n - 1); const i = BUSY.labels.indexOf(fn); if (i >= 0) BUSY.labels.splice(i, 1); }
   clearTimeout(BUSY.t);
-  const show = () => { const f = BUSY.labels.find(f => BUSY_TEXT[f]), txt = f ? BUSY_TEXT[f] : "";   // background checks (no text) stay quiet
+  const show = () => { const f = BUSY.quiet ? "" : BUSY.labels.find(f => BUSY_TEXT[f]), txt = f ? BUSY_TEXT[f] : "";   // background checks (no text) stay quiet
     $("#busy").classList.toggle("on", BUSY.n > 0 && !!txt); if (txt || !document.body.classList.contains("booting")){ $("#busyMsg").textContent = txt || ""; $("#busyHead").textContent = BUSY_HEAD[f] || "Refreshing… please wait"; } };
   if (BUSY.n > 0) BUSY.t = setTimeout(show, 250); else show();
 }
@@ -2256,7 +2258,7 @@ async function updateServerNow(auto){
 }
 async function relabelSniper(){   // one-time: fix old sniper finds that were really auctions (labeled Buy It Now)
   try{ const r = await rawServer("sniperRelabel", AUTH.token); store.set("pd_relabel1", "1");
-    if (r && r.fixed){ toast(`Fixed ${r.fixed} sniper find${r.fixed > 1 ? "s" : ""} that were really auctions.`, 5000); if (!busyNow()) loadAll().catch(() => {}); } }
+    if (r && r.fixed){ toast(`Fixed ${r.fixed} sniper find${r.fixed > 1 ? "s" : ""} that were really auctions.`, 5000); if (!busyNow()) quietLoad().catch(() => {}); } }
   catch(e){ /* server not updated yet - tries again next load */ }
 }
 async function autoUpdateServer(){   // quiet: the page updates the Apps Script code by itself when a newer version is out
@@ -3431,8 +3433,10 @@ async function checkPageVersion(){
 // a newer page (or new data) is waiting: reload by itself when it won't interrupt you - right away if the tab is in
 // the background, otherwise once you've been idle a minute with nothing open or unsaved
 const PV = {newer: false, lastInput: Date.now()};
-["pointerdown", "keydown", "wheel", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { PV.lastInput = Date.now(); }, {passive: true, capture: true}));
-const busyNow = () => S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open], #mkView") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
+["pointerdown", "pointermove", "keydown", "wheel", "touchstart", "input"].forEach(t => document.addEventListener(t, () => { PV.lastInput = Date.now(); }, {passive: true, capture: true}));
+// in the middle of a review (Full or Quick): nothing reloads or redraws under you - it waits until you leave the tab
+const reviewingNow = () => !!document.querySelector("#tab-audit.on #audItem .aud-grid, #tab-quick.on #audItem .qk, #tab-quick.on #qkItem, #tab-quick.on #audItem button");
+const busyNow = () => reviewingNow() || S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open], #mkView") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
 document.addEventListener("click", e => { if (!e.target.closest("#dResort")) return; e.preventDefault(); DFREEZE.order = null; renderDeals(); window.scrollTo({top: ($("#dealsTable").closest(".panel") || document.body).offsetTop - 80}); });
 ["input", "change"].forEach(t => document.addEventListener(t, e => { if (e.target.closest && e.target.closest("#dDays, #dMin, #dBuy, #dSus, #dSearch, #dRej, #dSigned, #dWhy, #dBy, #dSet, #dType, #dSetPop")) DFREEZE.order = null; }, true));
 document.addEventListener("visibilitychange", () => { if (document.hidden && document.querySelector("#tab-deals.on")) freezeDeals();
@@ -3450,9 +3454,9 @@ async function softReload(){
 let HIDDEN_AT = 0;
 document.addEventListener("visibilitychange", () => {
   if (document.hidden){ HIDDEN_AT = Date.now(); return; }
-  if (HIDDEN_AT && Date.now() - HIDDEN_AT > 10 * 6e4 && S.loadedOnce && !busyNow()) loadAll().catch(() => {});
+  if (HIDDEN_AT && Date.now() - HIDDEN_AT > 10 * 6e4 && S.loadedOnce && !busyNow()) quietLoad();
   HIDDEN_AT = 0; });
-window.addEventListener("pageshow", e => { if (e.persisted && S.loadedOnce && !busyNow()) loadAll().catch(() => {}); });
+window.addEventListener("pageshow", e => { if (e.persisted && S.loadedOnce && !busyNow()) quietLoad(); });
 setInterval(softReload, 15000); document.addEventListener("visibilitychange", () => { if (document.hidden) softReload(); });
 try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y) window.addEventListener("load", () => setTimeout(() => scrollTo(0, y), 600)); }catch(e){}
 // ---- new deals show up on their own: about once a minute (while the page is open and visible) ask for the sniper's latest
@@ -3475,7 +3479,7 @@ function mergeLive(r){
     ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
   if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!known(x)){ by.set(x.url, x); if (itemId(x)) by.set(itemId(x), x); added.push(x); } }); }
   if (r.pricesAt){ if (S._pricesAt && r.pricesAt !== S._pricesAt) PRICES_NEW = true; S._pricesAt = r.pricesAt; }
-  if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; loadAll().catch(() => {}); return; }   // fresh prices: quiet full reload of the data (no page reload)
+  if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; quietLoad(); return; }   // fresh prices: quiet full reload of the data (no page reload)
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
   added.forEach(d => markNew(d)); if (GONE.loaded) applyGone();
   if (added.length) S.deals = added.concat(S.deals);
@@ -5359,7 +5363,7 @@ async function watchLearn(){   // the automatic rules update after a review: qui
         S.deals.forEach(d => { const n = by.get(d.url); if (!n) return; if (!(d._h0 || {}).hidden && n.hidden && !d.hidden) newly++;
           d._h0 = {hidden: n.hidden || "", cat: n.hidden_cat || "", by: n.hidden_by || "", detail: n.hidden_detail || ""}; });
         LR.loaded = false; renderDeals(); }
-      else { await flushSaves(); await loadAll(); }
+      else if (!reviewingNow()){ await flushSaves(); await quietLoad(); }
       learnStatus(`Rules updated ${new Date().toLocaleTimeString([], {hour: "numeric", minute: "2-digit"})} · sniper has them`);
       if (newly) toast(`Your rules re-judged the deals: ${newly} more hidden. The sniper is using them now.`, 6000);
       learnDone();
