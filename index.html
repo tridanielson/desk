@@ -95,6 +95,8 @@ td.r,th.r{text-align:right}
 .print{border:1px solid var(--line);border-radius:8px;padding:8px;cursor:pointer;background:var(--panel);text-align:left;font:inherit;color:inherit}
 .print:hover{border-color:var(--accent)}
 .print img{width:100%;border-radius:4px;display:block;margin-bottom:6px}
+.col-prints{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:320px;overflow:auto;margin-top:6px}
+.col-prints .print{padding:5px}.col-prints .print.on{outline:2px solid var(--accent);border-color:var(--accent)}
 .empty{color:var(--muted);text-align:center;padding:28px}
 .toast a{color:inherit;text-decoration:underline;font-weight:600}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;z-index:60;display:none;max-width:90vw}
@@ -467,7 +469,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:17 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:38 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4748,6 +4750,59 @@ function openSell(id){
   $("#sCancel").addEventListener("click", closeModal);
   $("#sOk").addEventListener("click", () => { const s = read(); if (numOrNull(s.price_each) == null) return toast("Enter the price."); COL.sales.push(s); markDirty("collection"); closeModal(); renderCOL(); toast("Sale recorded."); });
 }
+// Add card, fast: names appear as you type (your tracked cards and collection instantly, every Magic card from Scryfall a
+// moment later; arrows + Enter pick). Picking a name shows its printings with pictures - one tap fills set, number and finish.
+// Condition is one tap. Enter = Add & Next Card.
+function colFastAdd(r){
+  const inp = $("#eName"), ul = $("#eAc"), box = $("#ePrints"); let idx = -1, timer, seq = 0;
+  const local = [...new Set(S.cards.map(c => c.n).concat(COL.inv.filter(x => (x.kind || "card") === "card").map(x => x.name)))];
+  const show = names => { names = [...new Set(names)].slice(0, 10); idx = names.length ? 0 : -1;
+    ul.innerHTML = names.map((n, i) => `<li class="${i === 0 ? "on" : ""}">${esc(n)}</li>`).join(""); ul.hidden = !names.length; };
+  const pick = name => { ul.hidden = true; inp.value = name; inp.dispatchEvent(new Event("change")); colPrints(name, r); };
+  inp.addEventListener("input", () => { const q = inp.value.trim().toLowerCase(); clearTimeout(timer); box.innerHTML = "";
+    if (q.length < 2){ ul.hidden = true; return; }
+    const starts = local.filter(n => n.toLowerCase().startsWith(q)), has = local.filter(n => !n.toLowerCase().startsWith(q) && n.toLowerCase().includes(q));
+    show(starts.concat(has)); const mine = ++seq;
+    timer = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); if (mine !== seq) return;
+      show(starts.concat(has, (j.data || []).filter(x => typeof x === "string"))); }catch{} }, 90); });
+  ul.addEventListener("mousedown", e => { const li = e.target.closest("li"); if (li){ e.preventDefault(); pick(li.textContent); } });
+  inp.addEventListener("keydown", e => { const lis = [...ul.querySelectorAll("li")];
+    if (e.key === "Enter"){ e.preventDefault(); if (!ul.hidden && lis[idx]) pick(lis[idx].textContent); else if (inp.value.trim()) colPrints(inp.value.trim(), r); return; }
+    if (ul.hidden || !lis.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp"){ e.preventDefault(); idx = (idx + (e.key === "ArrowDown" ? 1 : -1) + lis.length) % lis.length; lis.forEach((l, i) => l.classList.toggle("on", i === idx)); }
+    if (e.key === "Escape"){ e.stopPropagation(); ul.hidden = true; } });
+  inp.addEventListener("blur", () => setTimeout(() => ul.hidden = true, 150));
+  const cb = $("#eCondBtns"), sel = $("#eCond");
+  const mark = () => cb.querySelectorAll("[data-c]").forEach(b => b.classList.toggle("ghost", b.dataset.c !== sel.value));
+  cb.addEventListener("click", e => { const b = e.target.closest("[data-c]"); if (b){ sel.value = b.dataset.c; mark(); } });
+  setTimeout(mark, 0);
+  if (!r.id && !r.name) setTimeout(() => inp.focus(), 50);
+}
+async function colPrints(name, r){
+  const box = $("#ePrints"); if (!box) return;
+  box.innerHTML = `<p class="mut" style="font-size:13px;margin:4px 0">Loading printings of ${esc(name)}…</p>`;
+  try{
+    const j = await sf("/cards/search?unique=prints&order=released&dir=asc&include_extras=true&q=" + encodeURIComponent(`!"${name}" -is:digital`));
+    const prints = j.data || [];
+    if (!prints.length){ box.innerHTML = `<p class="mut" style="font-size:13px">No printings found - check the name.</p>`; return; }
+    if ($("#eName").value.trim().toLowerCase() !== name.toLowerCase()) return;   // typed on since
+    box.innerHTML = `<p style="margin:4px 0 0;font-size:13px"><b>Which printing?</b> <span class="mut">${prints.length > 1 ? "Oldest first - tap the one you have." : "Only one - picked for you."}</span></p><div class="prints col-prints"></div>`;
+    const grid = box.querySelector(".prints");
+    for (const p of prints){
+      const img = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).small || "";
+      for (const fin of p.finishes || ["nonfoil"]){
+        const price = fin === "foil" ? p.prices.usd_foil : fin === "etched" ? p.prices.usd_etched : p.prices.usd;
+        const b = document.createElement("button"); b.className = "print"; b.type = "button";
+        b.innerHTML = `${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}<div class="cname" style="font-size:12px">${esc(p.set_name)}</div><div class="cset">${esc(p.set.toUpperCase())} #${esc(p.collector_number)} · ${esc((p.released_at || "").slice(0, 4))}</div><div class="cset">${fin === "nonfoil" ? "Non-foil" : fin === "foil" ? "Foil" : "Etched"} · ${price ? money(+price) : "no price"}</div>`;
+        b.addEventListener("click", () => { $("#eName").value = p.name; $("#eSet").value = p.set; $("#eNum").value = p.collector_number; $("#eFin").value = fin;
+          r.scryfall_id = p.id; grid.querySelectorAll(".print").forEach(x => x.classList.toggle("on", x === b));
+          ($("#eQty") || $("#eCost")).focus(); ($("#eQty") || {}).select && $("#eQty").select(); });
+        grid.appendChild(b);
+      }
+    }
+    if (grid.children.length === 1) grid.firstChild.click();
+  }catch{ box.innerHTML = `<p class="mut" style="font-size:13px">Couldn't reach Scryfall - type the set code and number instead.</p>`; }
+}
 function openColEdit(id, pre){
   const r = id ? COL.inv.find(x => x.id === id) : Object.assign({id: "", name: "", set: "", number: "", finish: "nonfoil", condition: "NM", language: "EN", qty: "1", cost_each: "", acquired: todayAZ(), source: "", status: "owned", list_price: "", notes: "", scryfall_id: "", kind: "card", ref: ""}, pre || {});
   if (!r) return;
@@ -4755,10 +4810,11 @@ function openColEdit(id, pre){
   const isSL = (r.kind || "") === "secret_lair";
   openModal(`<h3>${id ? "Edit" : "Add card"}</h3>${isSL ? '<div class="mut" style="font-size:13px">Secret Lair item - valued from its drop.</div>' : '<div class="mut" style="font-size:13px">Set code and collector number are optional but pick the exact printing (shown on Scryfall).</div>'}
     <div class="grid">
-      <div class="full"><label for="eName">Card / Product</label><input id="eName" value="${esc(r.name)}" list="eNames" autocomplete="off" ${isSL ? "readonly" : ""}><datalist id="eNames"></datalist></div>
+      <div class="full ac" style="min-width:0"><label for="eName">Card / Product</label><input id="eName" value="${esc(r.name)}" autocomplete="off" spellcheck="false" ${isSL ? "readonly" : ""} placeholder="Start typing a card name"><ul id="eAc" hidden></ul></div>
+      ${isSL ? "" : `<div class="full" id="ePrints"></div>`}
       ${isSL ? "" : `<div><label for="eSet">Set Code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
       <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
-      ${isSL ? "" : `<div><label for="eCond">Condition</label><select id="eCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
+      ${isSL ? "" : `<div class="full"><label>Condition</label><div class="seg" id="eCondBtns">${["NM", "LP", "MP", "HP", "DMG"].map(c => `<button type="button" class="btn small ghost" data-c="${c}">${c}</button>`).join("")}</div><select id="eCond" hidden><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
       <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
@@ -4767,7 +4823,7 @@ function openColEdit(id, pre){
       <div><label for="eList">Listed at ($)</label><input id="eList" inputmode="decimal" value="${esc(r.list_price)}"></div>
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
     </div>
-    <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Add &amp; Add Another</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
+    <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Another Copy</button><button class="btn ghost" id="eNext" type="button" title="Add this one and start the next card (Enter)">Add &amp; Next Card</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
   $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
   // the collector # belongs to one card: when the name changes (e.g. "Add & Add Another" from a set, then a new name typed),
   // look the new card up in the same set, or clear the number - otherwise it saves as the previous card's number and counts as that card
@@ -4779,14 +4835,13 @@ function openColEdit(id, pre){
     $("#eNum").value = hit ? hit.collector_number : ""; numFor = nm; };
   if ($("#eNum")) $("#eNum").addEventListener("input", () => { numFor = $("#eName").value.trim().toLowerCase(); });
   $("#eName").addEventListener("change", fixNum); $("#eName").addEventListener("blur", fixNum);
-  let t; $("#eName").addEventListener("input", e => { clearTimeout(t); const q = e.target.value.trim(); if (q.length < 2 || isSL) return;
-    t = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); $("#eNames").innerHTML = (j.data || []).slice(0, 12).map(n => `<option value="${esc(n)}">`).join(""); }catch{} }, 200); });
+  if (!isSL) colFastAdd(r);
   $("#eCancel").addEventListener("click", closeModal);
   if (id) $("#eDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to delete"; return; }
     COL.inv = COL.inv.filter(x => x.id !== id); COL.sales = COL.sales.filter(x => x.item_id !== id); if (r.ref) COL.rec = COL.rec.filter(x => x.line_id !== r.ref);
     markDirty("collection"); closeModal(); renderCOL(); });
   const save = more => {
-    fixNum(); const name = $("#eName").value.trim(); if (!name) return toast("Enter a card name.");
+    fixNum(); const name = $("#eName").value.trim(); if (!name){ toast("Enter a card name."); return false; }
     const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt(($("#eQty") || {}).value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value;
@@ -4800,7 +4855,11 @@ function openColEdit(id, pre){
     closeModal(); toast("Saved.");
   };
   $("#eOk").addEventListener("click", () => save(false));
-  if (!id) $("#eMore").addEventListener("click", () => save(true));
+  if (!id){ $("#eMore").addEventListener("click", () => save(true));
+    // next card: save, then clear the card (name, printing, quantity) but keep condition, where from, date and status - the usual batch
+    $("#eNext").addEventListener("click", () => { if (save(true) === false) return; Object.assign(r, {name: "", set: "", number: "", scryfall_id: ""});
+      $("#eName").value = ""; $("#eSet").value = ""; $("#eNum").value = ""; $("#eCost").value = ""; $("#ePrints").innerHTML = ""; numFor = ""; $("#eName").focus(); });
+    $("#eName").closest(".grid").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id !== "eName" && e.target.tagName !== "BUTTON"){ e.preventDefault(); $("#eNext").click(); } }); }
 }
 function importCSV(file){
   if (!file) return;
