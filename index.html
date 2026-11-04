@@ -297,6 +297,8 @@ select option{background:var(--panel);color:var(--ink)}
 .aiG{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
 .aiG.ok{border:0;cursor:default;opacity:.8}
 .aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rv-stockbox{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0 6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.rv-stocknote{font-size:13px;margin:6px 0}
 .stat .d{font-size:11.5px;line-height:1.35;color:var(--muted);margin-top:4px}
 .ln-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:2px 0 6px}
 .ln-head>div{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:8px;padding:12px 14px;min-width:0}
@@ -465,7 +467,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 11:26 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 11:31 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2496,6 +2498,8 @@ function reviewHTML(d, mode){
   const imgs = allImgs.slice(0, Math.max(24, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
+  // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
+  if (s.stock === undefined) s.stock = !!(d.stock || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
   if (!s.back) s.back = (AUD.rows[d.url] || {}).back || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
   { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
@@ -2517,10 +2521,13 @@ function reviewHTML(d, mode){
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You want:</span><br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
+    ${READONLY ? "" : `<label class="rv-check rv-stockbox"><input type="checkbox" id="rvStock"${s.stock ? " checked" : ""}> 📷 <b>Stock photo</b> - not a picture of the actual card being sold</label>`}
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from SlaveAI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 SlaveAI didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     ${photoCheckLine(d)}
+    <div class="rv-stocknote mut"${s.stock ? "" : " hidden"}>Saved as: card <b>Can't Tell</b> · condition <b>Can't Tell</b> · back <b>not recorded</b> · problem <b>Stock Photo</b>. Untick the box if the photos are real.</div>
+    <div class="rv-qs"${s.stock ? " hidden" : ""}>
     <div class="aud-q"><span>Is It the Card You Want?</span>${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["unclear", "Can't Tell"]]))}</div>
     ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>What's Actually in the Photos?</span><div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
@@ -2536,6 +2543,7 @@ function reviewHTML(d, mode){
     <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
     <div class="aud-q"><span>Other Problems</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     <div class="mut" style="font-size:12px;margin-top:2px">Optional - facts about the listing, pick as many as apply. Foreign language is recorded and left to your language filter; the others hide it. Signed / graded / where the seller is: use the filters - they're preferences, not problems.</div>
+    </div>
     </div>
     ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
@@ -2569,6 +2577,9 @@ function openDealFromHash(){
 }
 window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
+  const sb = root.querySelector("#rvStock");
+  if (sb) sb.addEventListener("change", () => { RV.sel.stock = sb.checked;
+    root.querySelector(".rv-qs").hidden = sb.checked; root.querySelector(".rv-stocknote").hidden = !sb.checked; });
   // no photos saved with this deal (found before photos were kept): load them from eBay once (1 call, counted against the
   // daily photo limit) and redraw the review with your answers so far kept
   if (!READONLY && !String(d.images || "").trim() && itemId(d) && !d._phTried){
@@ -2709,6 +2720,9 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
   sel = Object.assign({}, sel, {reasons: (sel.reasons || []).slice()});
+  // stock photo: nothing in the photos is the real card - the same facts Quick Review's 📷 Photo Problem saves
+  if (sel.stock) sel = Object.assign(sel, {edition: "", condition: "unclear", back: "skip", reason: "stock", reasons: ["stock"], good: "down", cfault: "", fault: "", variant: "",
+    factNote: "photo problem: stock"});
   const langFact = sel.reasons.includes("language") || sel.reason === "language";   // foreign language: a fact - recorded, then your language filter decides
   if (langFact){ sel.reasons = sel.reasons.filter(r => r !== "language"); if (sel.reason === "language"){ sel.reason = sel.reasons[0] || ""; if (!sel.reason && sel.good === "down" && !isWrong(sel.edition)) sel.good = ""; } }
   if (langFact && !FB.rows.some(r => r.url === d.url && r.verdict === "fact" && r.reason === "language")){
