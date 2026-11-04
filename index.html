@@ -459,7 +459,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:18 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 10:22 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1237,7 +1237,7 @@ const SETTINGS = [
     ["LP", "Lightly Played From Grade", "num", 7, ""], ["MP", "Moderately Played From Grade", "num", 5, "e.g. a CGC 5.5 counts as MP."],
     ["HP", "Heavily Played From Grade", "num", 3, "Anything below this counts as Damaged."], ["unknown", "Slab With No Readable Grade", "cond", "MP", ""]]},
   {sec: "review", title: "Reviewing deals", fields: [
-    ["photo_fetches_per_day", "Photo Loads per Day (for Marking Damage)", "num", 25, "When you change a deal's condition and its photos weren't saved, loading them uses 1 eBay call. This caps it."],
+    ["photo_fetches_per_day", "Photo Loads per Day", "num", 25, "When you open a review (or mark damage) on a deal whose photos weren't saved, loading them uses 1 eBay call. This caps it."],
     ["training_lookups_per_day", "Training Photo Lookups per Day", "num", 50, "Listings you review get their photos saved to teach the photo checks (SlaveAI and Loupe). When a listing's photos weren't saved, each costs 1 eBay call - this caps them per day (resets at midnight Arizona time)."]]},
   {sec: "filters", title: "Listing filters", fields: [
     ["exclude_words", "Ignore Listings Containing", "list", "", "Comma-separated. Proxy/playtest/fake words are always blocked; add any other giveaway words you see."],
@@ -2487,7 +2487,7 @@ function reviewHTML(d, mode){
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
   const imgs = allImgs.slice(0, Math.max(24, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
-  const s = RV.sel = reviewStart(d);
+  const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
   if (!s.back) s.back = (AUD.rows[d.url] || {}).back || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
   { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
@@ -2561,6 +2561,22 @@ function openDealFromHash(){
 }
 window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
+  // no photos saved with this deal (found before photos were kept): load them from eBay once (1 call, counted against the
+  // daily photo limit) and redraw the review with your answers so far kept
+  if (!READONLY && !String(d.images || "").trim() && itemId(d) && !d._phTried){
+    d._phTried = true;
+    const box = root.querySelector(".aud-grid > div"); if (box && /No photos saved/.test(box.textContent)) box.innerHTML = '<p class="mut" style="font-size:13px">Loading the photos from eBay…</p>';
+    rawServer("listingPhotos", AUTH.token, itemId(d), +((S.ini.review || {}).photo_fetches_per_day) || 25).then(r => {
+      if (!document.body.contains(root)) return;
+      if ((r.images || []).length){
+        d.images = r.images.join(" "); d._keepSel = true;
+        const note = (root.querySelector("#rvNote") || {}).value || "";
+        root.innerHTML = reviewHTML(d, root.querySelector(".aud-grid.small") ? "modal" : "queue");
+        const n2 = root.querySelector("#rvNote"); if (n2) n2.value = note;
+        wireReview(root, d, done);
+      } else if (box) box.innerHTML = `<p class="mut" style="font-size:13px">${r.capped ? `Today's photo limit (${r.cap}) is used up - change it in Settings → eBay Calls for Photos.` : "eBay has no photos for it any more (the listing may have ended or been removed)."} <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`;
+    }).catch(() => { if (box) box.innerHTML = `<p class="mut" style="font-size:13px">Couldn't load the photos. <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`; });
+  }
   MK.d = d; MK.marks = (() => { try{ return JSON.parse((DC.map[d.url] || {}).m || "[]"); }catch(e){ return []; } })(); MK.imgs = null;
   if (root.querySelector("#rvMarkRow:not([hidden])")) markPhotos(root, d);
   if (RV.sel && RV.sel.edition === "edition") fillEditions(root, d);
