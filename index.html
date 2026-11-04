@@ -311,6 +311,7 @@ select option{background:var(--panel);color:var(--ink)}
 .cv-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .cv-views{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
 tr.cv-bulk td{background:var(--soft)}
+tr.cv-lot td{background:var(--soft);font-size:13px}.tile.cv-lot{margin-left:16px;background:var(--soft)}
 .stat .d{font-size:11.5px;line-height:1.35;color:var(--muted);margin-top:4px}
 .ln-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:2px 0 6px}
 .ln-head>div{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:8px;padding:12px 14px;min-width:0}
@@ -479,7 +480,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:43 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 04:06 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3972,7 +3973,7 @@ async function loadCOL(force){
     COL.sales = g("collection/sales.csv").text ? parseCSV(g("collection/sales.csv").text) : []; COL.salesSha = g("collection/sales.csv").sha;
     COL.rec = g("collection/sl_received.csv").text ? parseCSV(g("collection/sl_received.csv").text) : []; COL.recSha = g("collection/sl_received.csv").sha;
     COL.goals = g("collection/sets.csv").text ? parseCSV(g("collection/sets.csv").text) : []; COL.goalsSha = g("collection/sets.csv").sha;
-    if (mergeGoals()) markDirty("collection");   // a set is completed in every version: one goal per set (non-foil + foil + etched)
+    if (mergeGoals() | mergeDupRows()) markDirty("collection");   // a set is completed in every version: one goal per set (non-foil + foil + etched)
     await loadSDFiles();   // sealed product (accounts keep their own, like the collection)
     COL.loaded = true;
   }catch(e){ COL.error = e.message; }
@@ -4695,6 +4696,18 @@ function renderCOLList(){
   const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
   const bulk = v === "all" && !q && !COL.showBulk ? rows.filter(isBulk) : [];
   if (bulk.length) rows = rows.filter(i => !isBulk(i));
+  // the same card in several rows (bought at different times / prices): one line, tap to see each lot. Recently added keeps every entry.
+  if (v !== "recent"){
+    const g = new Map(), out = [];
+    rows.forEach(i => { if (i.kind !== "card" || !i.row){ out.push(i); return; }
+      const k = colCardKey(i.row), a = g.get(k);
+      if (!a){ const grp = Object.assign({}, i, {lots: [i], gkey: k}); g.set(k, grp); out.push(grp); return; }
+      a.lots.push(i); a.left += i.left; a.cost_left += i.cost_left;
+      a.value = a.value == null && i.value == null ? null : (a.value || 0) + (i.value || 0); });
+    out.forEach(x => { if (!x.lots || x.lots.length < 2) return; const cs = new Set(x.lots.map(l => l.cost_each)); x.cost_each = cs.size === 1 ? x.lots[0].cost_each : -1; x.value = x.value == null ? null : Math.round(x.value * 100) / 100; });
+    rows = out.sort((a, b) => (b.value || 0) - (a.value || 0));
+  }
+  const open = COL.openGrp || (COL.openGrp = new Set());
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
@@ -4702,16 +4715,22 @@ function renderCOLList(){
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
-    (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}</div><div class="cset">${meta(i)}</div></td>
-      <td class="r">${i.left}</td><td class="r">${i.cost_each > 0 ? money(i.cost_each) : '<span class="mut" title="Not entered">–</span>'}</td>
-      <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${colChange(i)}</td><td class="mk" style="white-space:nowrap">${acts(i)}</td></tr>`).join("")
+    (show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
+      const line = (x, lot) => `<tr${lot ? ' class="cv-lot"' : ""}><td><div class="cname">${lot ? `<span class="mut">↳ ${esc(x.source || "Unspecified")}${x.acquired ? " · " + esc(x.acquired) : ""}</span>` : x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</div>${lot ? "" : `<div class="cset">${meta(x)}</div>`}</td>
+      <td class="r">${x.left}</td><td class="r">${x.cost_each > 0 ? money(x.cost_each) : x.cost_each < 0 ? '<span class="mut">mixed</span>' : '<span class="mut" title="Not entered">–</span>'}</td>
+      <td class="r">${x.value_each == null ? "–" : money(x.value_each)}</td><td class="r">${worth(x)}</td><td class="r">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</td>
+      <td class="mk" style="white-space:nowrap">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</td></tr>`;
+      return line(i, false) + (isOpen ? i.lots.map(l => line(l, true)).join("") : ""); }).join("")
       + (bulk.length ? `<tr class="cv-bulk"><td><b>Bulk under ${"$" + BULK_EACH}</b> <span class="mut">· ${bulk.reduce((t, i) => t + i.left, 0)} cards</span></td><td></td><td></td><td></td><td class="r"><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></td><td></td><td class="mk"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></td></tr>` : "") ||
      '<tr><td colspan="7" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
-  $("#colTiles").innerHTML = show.map(i => `<div class="tile"><div class="t-main"><div class="t-name">${esc(i.name)}</div><div class="t-sub">${meta(i)}</div>
-      <div class="t-sub">Have ${i.left}${i.cost_each > 0 ? ` · paid ${money(i.cost_each)} each` : ""}</div><div class="t-chips mk">${acts(i)}</div></div>
-      <div class="t-right"><div class="t-price">${worth(i)}</div>${i.value == null ? "" : `<div style="font-size:12px">${colChange(i)}</div>`}</div></div>`).join("")
+  $("#colTiles").innerHTML = show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
+    const tile = (x, lot) => `<div class="tile${lot ? " cv-lot" : ""}"><div class="t-main"><div class="t-name">${lot ? `↳ ${esc(x.source || "Unspecified")}` : esc(x.name)}</div><div class="t-sub">${lot ? esc(x.acquired || "") : meta(x)}</div>
+      <div class="t-sub">Have ${x.left}${x.cost_each > 0 ? ` · paid ${money(x.cost_each)} each` : x.cost_each < 0 ? " · paid: mixed" : ""}</div><div class="t-chips mk">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</div></div>
+      <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}</div></div>`;
+    return tile(i, false) + (isOpen ? i.lots.map(l => tile(l, true)).join("") : ""); }).join("")
     + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
     || '<p class="empty">Nothing here yet.</p>';
+  document.querySelectorAll("#colBody [data-cgrp]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.cgrp; open.has(k) ? open.delete(k) : open.add(k); renderCOLList(); }));
   document.querySelectorAll("#colBody [data-showbulk]").forEach(b => b.addEventListener("click", () => { COL.showBulk = true; COL.limit = 100000; renderCOLList(); }));
   $("#colMore").hidden = rows.length <= COL.limit;
   document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
@@ -4725,6 +4744,13 @@ function renderCOLList(){
     catch(e){ r.status = "ordered"; toast("Couldn't save: " + e.message, 6000); }
   }));
 }
+function colChangeVal(i){
+  if (i.value == null) return null;
+  if (i.cost_each > 0) return i.value - i.cost_left;
+  if (i.base_each != null) return (i.value_each - i.base_each) * i.left;
+  return null;
+}
+function colChangeSum(lots){ const v = lots.map(colChangeVal).filter(x => x != null); return v.length ? gainHTML(Math.round(v.reduce((t, x) => t + x, 0) * 100) / 100) : '<span class="mut">new</span>'; }
 // change: against what you paid when you entered it; otherwise since it was added (no cost needed)
 function colChange(i){
   if (i.value == null) return "–";
@@ -4782,7 +4808,7 @@ function openColPaste(){
   $("#cpAdd").addEventListener("click", () => {
     const ok = found.filter(f => f.c); if (!ok.length) return;
     const cond = $("#cpCond").value, src = $("#cpSrc").value.trim(), today = todayAZ();
-    ok.forEach(f => COL.inv.push({id: newId("c-"), name: f.c.name, set: f.c.set, number: f.c.collector_number, finish: (f.c.finishes || ["nonfoil"]).includes(f.finish) ? f.finish : (f.c.finishes || ["nonfoil"])[0],
+    ok.forEach(f => colAddRow({id: newId("c-"), name: f.c.name, set: f.c.set, number: f.c.collector_number, finish: (f.c.finishes || ["nonfoil"]).includes(f.finish) ? f.finish : (f.c.finishes || ["nonfoil"])[0],
       condition: f.condition || cond, language: "EN", qty: String(f.qty), cost_each: "", acquired: today, source: src, status: "owned", list_price: "", notes: "", scryfall_id: f.c.id, kind: "card", ref: ""}));
     markDirty("collection"); closeModal(); renderCOL(); toast(`Added ${ok.reduce((t, f) => t + f.qty, 0)} cards.`, 4000);
   });
@@ -4869,6 +4895,37 @@ function openSell(id){
   ["#sQty", "#sPrice", "#sPlat", "#sShipC", "#sShipX", "#sFees"].forEach(x => $(x).addEventListener("input", prev)); prev();
   $("#sCancel").addEventListener("click", closeModal);
   $("#sOk").addEventListener("click", () => { const s = read(); if (numOrNull(s.price_each) == null) return toast("Enter the price."); COL.sales.push(s); markDirty("collection"); closeModal(); renderCOL(); toast("Sale recorded."); });
+}
+// ---- the same card twice: one row when EVERYTHING matches (printing, finish, condition, language, where from, paid, status);
+// copies that differ only in where from / paid stay their own rows (so each sale's profit is right) but show as one line
+const colCardKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil",
+  (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase()].join("|");
+const colLotKey = r => [colCardKey(r), (r.source || "").trim().toLowerCase(), String(numOrNull(r.cost_each) || ""), r.status || "owned", String(numOrNull(r.list_price) || "")].join("|");
+const colMergeable = r => (r.kind || "card") === "card" && !r.ref && r.status !== "ordered" && !COL.sales.some(x => x.item_id === r.id);
+// add a row - or add its quantity to the identical row already there (which then counts as just added)
+function colAddRow(row){
+  const k = colLotKey(row), hit = colMergeable(row) ? COL.inv.find(x => colMergeable(x) && colLotKey(x) === k) : null;
+  if (!hit){ COL.inv.push(row); return row; }
+  hit.qty = String((parseInt(hit.qty) || 0) + (parseInt(row.qty) || 1));
+  if (row.notes && !(hit.notes || "").includes(row.notes)) hit.notes = [hit.notes, row.notes].filter(Boolean).join(" · ");
+  if (!hit.scryfall_id && row.scryfall_id) hit.scryfall_id = row.scryfall_id;
+  COL.inv.splice(COL.inv.indexOf(hit), 1); COL.inv.push(hit);   // to the end: Recently added shows it first
+  return hit;
+}
+// once per load: rows that match on every detail fold into one (earliest date kept)
+function mergeDupRows(){
+  const seen = new Map(), out = []; let changed = false;
+  for (const r of COL.inv){
+    if (!colMergeable(r)){ out.push(r); continue; }
+    const k = colLotKey(r), a = seen.get(k);
+    if (!a){ seen.set(k, r); out.push(r); continue; }
+    a.qty = String((parseInt(a.qty) || 0) + (parseInt(r.qty) || 0));
+    if (r.acquired && (!a.acquired || r.acquired < a.acquired)) a.acquired = r.acquired;
+    if (r.notes && !(a.notes || "").includes(r.notes)) a.notes = [a.notes, r.notes].filter(Boolean).join(" · ");
+    changed = true;
+  }
+  if (changed) COL.inv = out;
+  return changed;
 }
 // Add card, fast: names appear as you type (your tracked cards and collection instantly, every Magic card from Scryfall a
 // moment later; arrows + Enter pick). Picking a name shows its printings with pictures - one tap fills set, number and finish.
@@ -4966,7 +5023,7 @@ function openColEdit(id, pre){
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value;
       if (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name) upd.scryfall_id = ""; }
-    if (id) Object.assign(r, upd); else COL.inv.push(Object.assign({}, r, upd, {id: newId("c-")}));
+    if (id) Object.assign(r, upd); else colAddRow(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
     if (more){   // keep the same card filled in for the next copy - usually just a different condition
       addedNote(`${upd.qty} × ${name}${upd.condition ? " · " + upd.condition : ""}${upd.cost_each ? " · " + money(+upd.cost_each) + " each" : ""}`);
