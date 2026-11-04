@@ -467,7 +467,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 11:53 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:17 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2967,12 +2967,13 @@ function pickPrinting(d, done){
   box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>What's actually in the photos?</b><span class="mut" style="font-size:12px">tap the version in the photos - foil comes from the listing's title</span></div>
     <input id="qkFind" type="search" placeholder="Find a version: set code, set name, number, year or treatment (e.g. pal01, Arena, 1)" autocomplete="off" style="width:100%;margin:6px 0 8px" hidden>
     <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div>
-    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkNotSure">Not Sure - Just Wrong</button><button type="button" class="btn ghost" id="qkWrongCard">It's a Different Card</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
+    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkNotSure">Not Sure - Just Wrong</button><button type="button" class="btn ghost" id="qkWrongCard">It's a Different Card</button><button type="button" class="btn ghost" id="qkNotMagic">Not a Magic Card</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
   // foil comes from the listing's own words - a photo (or you) often can't tell; never guessed
   const ttl = String(d.title || ""), fin = /non[\s-]*foil/i.test(ttl) ? "non-foil" : /\bfoil\b|\betched\b/i.test(ttl) ? (/\betched\b/i.test(ttl) ? "etched foil" : "foil") : "";
   $("#qkPick").scrollIntoView({block: "start", behavior: "smooth"});
   $("#qkNotSure").addEventListener("click", () => done(""));
   $("#qkWrongCard").addEventListener("click", () => done("", true));
+  $("#qkNotMagic").addEventListener("click", () => done("not a Magic card (another game)", true));   // recorded with the game, so Loupe learns other games' cards aren't Magic
   $("#qkPickCancel").addEventListener("click", () => renderAudit());
   qkPrintsOf(name).then(ps => {
     const el = $("#qkPrints"); if (!el) return;
