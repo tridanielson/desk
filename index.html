@@ -297,6 +297,12 @@ select option{background:var(--panel);color:var(--ink)}
 .aiG{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 5px;background:var(--panel);color:var(--ink);cursor:pointer;white-space:nowrap}
 .aiG.ok{border:0;cursor:default;opacity:.8}
 .aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stat .d{font-size:11.5px;line-height:1.35;color:var(--muted);margin-top:4px}
+.ln-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:2px 0 6px}
+.ln-head>div{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:8px;padding:12px 14px;min-width:0}
+.ln-big{font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}.ln-big small{font-size:13px;font-weight:600;color:var(--muted)}
+.ln-what{font-size:14px;line-height:1.35;min-width:0}.ln-what .mut{font-size:12px}
+@media (max-width:640px){.ln-head{grid-template-columns:1fr}}
 .stat .k{font-size:12px;color:var(--muted)}.stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
 .aud-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
 .aud-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}
@@ -459,7 +465,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 12:07 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 12:24 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3091,7 +3097,12 @@ function renderTrain(){
     GH.readFiles(["data/photo_check.json"]).then(f => { try{ PC.data = JSON.parse(f["data/photo_check.json"].text || "{}"); }catch(e){} PC.loading = false; if (document.querySelector("#tab-train.on")) renderTrain(); })
       .catch(() => { PC.loading = false; }); }
   const D = PC.data || {}, sc = D.score || {}, L = D.learning || {}, P = D.practice || {}, v = sc.vs_ai || {}, bk = sc.back_check || {}, H = (D.history || []).filter(h => h.pct != null);
-  const tile = (big, label, tip) => `<div class="stat" title="${esc(tip)}"><div class="k">${label}</div><div class="v">${big}</div></div>`;
+  const tile = (big, label, tip) => `<div class="stat"><div class="k">${label}</div><div class="v">${big}</div><div class="d">${esc(tip)}</div></div>`;   // what it means, in plain words, on the tile itself
+  const AC = D.all_cards || {}, of10 = p => p == null ? "?" : Math.round(p / 10);
+  const headline = sc.all ? `<div class="ln-head">
+      <div><span class="ln-big">${of10(sc.all.pct)}<small> out of 10</small></span><span class="ln-what">right printing on <b>your cards</b><br><span class="mut">${sc.all.n} listings with a known answer${sc.taught && sc.taught.n && sc.first && sc.first.n ? ` · cards it's seen before ${sc.taught.pct}% · cards seen once ${sc.first.pct}%` : ""}</span></span></div>
+      <div><span class="ln-big">${AC.n ? of10(AC.pct) : "–"}<small> out of 10</small></span><span class="ln-what">right printing on <b>all of Magic</b><br><span class="mut">${AC.n ? `${AC.n} random cards it was never taught (practice photos)${AC.old_n && AC.new_n ? ` · before 2003 ${AC.old_pct}% · 2003+ ${AC.new_pct}%` : ""}` : "first results after the next scans"}</span></span></div>
+    </div><p class="mut" style="font-size:12px;margin:2px 0 10px">Both answer one question: <i>which printing of this card is in the photos?</i> Not condition, fakes or price.</p>` : "";
   const quickN = Object.values(AUD.rows).filter(r => r.how === "quick").length, fullN = Object.values(AUD.rows).filter(r => r.how !== "quick").length;
   const trend = () => { if (H.length < 2) return `<p class="mut" style="font-size:12px;margin:8px 0 0">A trend line appears here after a few more scans.</p>`;
     const W = 600, Hh = 90, xs = H.map((_, i) => 8 + i * (W - 16) / (H.length - 1)), lo = Math.max(0, Math.min(...H.map(h => h.pct)) - 5), hi = Math.min(100, Math.max(...H.map(h => h.pct)) + 5);
@@ -3103,14 +3114,14 @@ function renderTrain(){
   const corners = (cnN.square || cnN.round || cnN.alpha) ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📐 Corners measured on listings you've answered: ${["square", "round", "alpha"].filter(g => cnN[g]).map(g => `${cnName[g]} ${CN.median[g]}mm (${cnN[g]})`).join(" · ")}${cnLines.some(l => CN.adopted[l]) ? ` - <b>using corners to tell ${cnLines.filter(l => CN.adopted[l]).map(l => l === "square" ? "CE/IE from Beta" : "Alpha from Beta").join(" and ")}</b>${CN.used && CN.used.n ? ` (right ${CN.used.right} of ${CN.used.n})` : ""}` : " - not reliable yet (needs 5+ of each kind and 90% on listings it didn't fit on)"}</p>` : "";
   const K = D.photo_kinds || {}, kc = K.counts || {};
   const kinds = K.counts ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📷 Photo problems Loupe is learning from: ${kc.stock || 0} stock photos · ${kc.lot || 0} lots · ${kc.verify || 0} can't-see${K.adopted ? ` - <b>spotting them on its own</b> (${Object.entries(K.recall || {}).map(([k, v]) => k + " " + v + "%").join(", ")})` : ` - ${esc(K.why || "")}`}</p>` : "";
-  const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `<div class="stats aud-stats">
-      ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Loupe's call against every listing you (and graded slabs) labelled")}
-      ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Listings where Loupe read the set code + collector number printed on the card - how often that was right") : ""}
-      ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Where you named the exact printing (\"It's Revised #147\")")}
-      ${tile(bk.n ? `${bk.pct}% <span class="mut" style="font-size:13px">of ${bk.n}</span>` : "–", "Back shown", "Loupe's \"is the back in the photos?\" against your Back of Card answers")}
-      ${tile(v.n ? `${v.matcher_pct}% <span class="mut" style="font-size:13px">vs ${v.ai_pct}%</span>` : "–", `Loupe vs SlaveAI <span class="mut">(${v.n || 0})</span>`, "Same listings, both checked, against your answer: Loupe's % vs SlaveAI's %")}
-      ${tile(L.adopted ? `On <span class="mut" style="font-size:13px">${L.learned_pct}% vs ${L.plain_pct}%</span>` : `Off <span class="mut" style="font-size:13px">${L.learned_pct != null ? L.learned_pct + "% vs " + L.plain_pct + "%" : ""}</span>`, "Learning", "Switches on only when the learned version beats the plain model by 2 points on listings it never trained on. Re-tried weekly")}
-      ${tile(`${L.examples || 0} <span class="mut" style="font-size:13px">+ ${P.total || L.practice || 0} practice</span>`, "Training examples", "Real labelled listings + practice copies made from Scryfall pictures")}</div>
+  const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `${headline}<div class="stats aud-stats">
+      ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Of the listings where the true printing is known (your answers, slabs, titles), how often Loupe's pick matched")}
+      ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Times it read the set code and number printed on the card (newer cards only), and how often that was right") : ""}
+      ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Only listings where the exact printing is known (\"It's Revised #147\")")}
+      ${tile(bk.n ? `${bk.pct}% <span class="mut" style="font-size:13px">of ${bk.n}</span>` : "–", "Back shown", "Its \"is the back in the photos?\" against your Back of Card answers")}
+      ${tile(v.n ? `${v.matcher_pct}% <span class="mut" style="font-size:13px">vs ${v.ai_pct}%</span>` : "–", `Loupe vs SlaveAI <span class="mut">(${v.n || 0})</span>`, "Same listings, both checked: how often each got the edition right. Loupe ahead for long enough = it can take over")}
+      ${tile(L.adopted ? `On <span class="mut" style="font-size:13px">${L.learned_pct}% vs ${L.plain_pct}%</span>` : `Off <span class="mut" style="font-size:13px">${L.learned_pct != null ? L.learned_pct + "% vs " + L.plain_pct + "%" : ""}</span>`, "Learning", "On only when the retrained version beats the plain one by 2+ points on listings it never trained on. Re-tried weekly")}
+      ${tile(`${L.examples || 0} <span class="mut" style="font-size:13px">+ ${P.total || L.practice || 0} practice</span>`, "Training examples", "Your labelled listings + practice photos made from Scryfall pictures")}</div>
     <p class="mut" style="font-size:12px;margin:6px 0 0">Your answers so far: ${quickN} Quick · ${fullN} Full. ${sc.cant_tell ? `${sc.cant_tell} listing(s) where every printing looks alike aren't counted. ` : ""}${sc.partial ? "<b>The last run ran out of time and only checked part of the labels</b> - the next scans finish it. " : ""}${D.updated ? "Updated " + esc(whenAZ(D.updated)) + "." : ""}</p>${kinds}${corners}${trend()}`;
   const alerts = (sc.alerts || []).length ? `<div class="panel" style="border-color:var(--gold)"><b>⚠ Early warning</b> <span class="mut" style="font-size:12px">- a pattern on one card usually means something to fix, not more reviewing</span>
     <ul style="margin:6px 0 0">${sc.alerts.map(a => `<li>${esc(a.text)}</li>`).join("")}</ul><p class="mut" style="font-size:12px;margin:4px 0 0">Ask Claude to look into it - paste this list.</p></div>` : "";
