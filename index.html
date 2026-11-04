@@ -480,7 +480,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 04:06 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 04:25 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4711,7 +4711,7 @@ function renderCOLList(){
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
-  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}`;
+  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -4761,7 +4761,10 @@ function colChange(i){
 // Paste a List: one card per line ("4 Lightning Bolt LEB", "Demonic Tutor (LEB) 105 NM foil"); each is looked up, you check, then add
 function parseCardLine(line){
   let t = line.trim().replace(/\s+/g, " "); if (!t) return null;
-  const out = {qty: 1, name: "", set: "", number: "", condition: "", finish: "nonfoil"};
+  const out = {qty: 1, name: "", set: "", number: "", condition: "", finish: "nonfoil", language: ""};
+  const LW = {japanese: "JA", jp: "JA", jpn: "JA", german: "DE", french: "FR", italian: "IT", spanish: "ES", portuguese: "PT", russian: "RU", korean: "KO", chinese: "ZHS", "simplified chinese": "ZHS", "traditional chinese": "ZHT", phyrexian: "PH"};
+  const lm = t.match(/\b(simplified chinese|traditional chinese|japanese|jpn|jp|german|french|italian|spanish|portuguese|russian|korean|chinese|phyrexian)\b/i);
+  if (lm){ out.language = LW[lm[1].toLowerCase()]; t = t.replace(lm[0], " ").replace(/\s+/g, " ").trim(); }
   let m = t.match(/^(\d+)\s*[x×]?\s+(.*)$/i); if (m){ out.qty = +m[1]; t = m[2]; }
   m = t.match(/\b(NM|LP|MP|HP|DMG|near mint|lightly played|moderately played|heavily played|damaged)\b/i);
   if (m){ const c = m[1].toLowerCase(); out.condition = {"near mint": "NM", "lightly played": "LP", "moderately played": "MP", "heavily played": "HP", damaged: "DMG"}[c] || c.toUpperCase(); t = t.replace(m[0], " "); }
@@ -4773,11 +4776,12 @@ function parseCardLine(line){
   return out.name ? out : null;
 }
 function openColPaste(){
-  openModal(`<h3>Paste a List</h3><p class="mut" style="font-size:13px;margin:4px 0 8px">One card per line. Quantity, set code, number, condition and foil are all optional:<br>
+  openModal(`<h3>Paste a List</h3><p class="mut" style="font-size:13px;margin:4px 0 8px">One card per line. Quantity, set code, number, condition, foil and language (e.g. Japanese) are all optional:<br>
       <code>4 Lightning Bolt LEB</code> · <code>Demonic Tutor (LEB) 105 NM</code> · <code>Raphael, the Muscle TMC 91 foil</code></p>
     <textarea id="cpText" rows="9" style="width:100%;font:inherit" placeholder="One card per line"></textarea>
     <div class="grid" style="margin-top:8px"><div><label for="cpCond">Condition (when a line doesn't say)</label><select id="cpCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
-      <div><label for="cpSrc">Where From</label><input id="cpSrc" placeholder="e.g. Friend collection"></div></div>
+      <div><label for="cpSrc">Where From</label><input id="cpSrc" placeholder="e.g. Friend collection"></div>
+      <div><label for="cpLang">Language (when a line doesn't say)</label><select id="cpLang">${COL_LANGS.map(([c, l]) => `<option value="${c}">${l}</option>`).join("")}</select></div></div>
     <div id="cpOut" style="margin-top:10px"></div>
     <div class="acts"><button class="btn ghost" id="cpCancel" type="button">Cancel</button><button class="btn ghost" id="cpCheck" type="button">Check the List</button><button class="btn" id="cpAdd" type="button" disabled>Add Them</button></div>`, true);
   $("#cpCancel").addEventListener("click", closeModal);
@@ -4801,7 +4805,7 @@ function openColPaste(){
     const ok = found.filter(f => f.c), bad = found.filter(f => !f.c);
     out.innerHTML = `<p style="margin:0 0 6px"><b>${ok.length} found</b>${bad.length ? ` · <span class="down">${bad.length} not found</span> (fix the line and check again)` : ""}</p>
       <div style="max-height:260px;overflow:auto"><table class="desk-table"><tbody>${found.map(f => f.c
-        ? `<tr><td>${f.qty}×</td><td><b>${esc(f.c.name)}</b></td><td class="mut">${esc(f.c.set_name)} · ${esc(f.c.set.toUpperCase())} #${esc(f.c.collector_number)}${f.set ? "" : " <i>(newest printing - add the set code if it's another)</i>"}</td><td>${esc(f.condition || $("#cpCond").value)}${f.finish !== "nonfoil" ? " · " + f.finish : ""}</td></tr>`
+        ? `<tr><td>${f.qty}×</td><td><b>${esc(f.c.name)}</b></td><td class="mut">${esc(f.c.set_name)} · ${esc(f.c.set.toUpperCase())} #${esc(f.c.collector_number)}${f.set ? "" : " <i>(newest printing - add the set code if it's another)</i>"}</td><td>${esc(f.condition || $("#cpCond").value)}${f.finish !== "nonfoil" ? " · " + f.finish : ""}${(f.language || $("#cpLang").value) !== "EN" ? " · " + esc(langName(f.language || $("#cpLang").value)) : ""}</td></tr>`
         : `<tr class="down"><td>${f.qty}×</td><td colspan="3">${esc(f.name)}${f.set ? " (" + esc(f.set.toUpperCase()) + ")" : ""} - not found</td></tr>`).join("")}</tbody></table></div>`;
     $("#cpAdd").disabled = !ok.length;
   });
@@ -4809,7 +4813,7 @@ function openColPaste(){
     const ok = found.filter(f => f.c); if (!ok.length) return;
     const cond = $("#cpCond").value, src = $("#cpSrc").value.trim(), today = todayAZ();
     ok.forEach(f => colAddRow({id: newId("c-"), name: f.c.name, set: f.c.set, number: f.c.collector_number, finish: (f.c.finishes || ["nonfoil"]).includes(f.finish) ? f.finish : (f.c.finishes || ["nonfoil"])[0],
-      condition: f.condition || cond, language: "EN", qty: String(f.qty), cost_each: "", acquired: today, source: src, status: "owned", list_price: "", notes: "", scryfall_id: f.c.id, kind: "card", ref: ""}));
+      condition: f.condition || cond, language: f.language || $("#cpLang").value, qty: String(f.qty), cost_each: "", acquired: today, source: src, status: "owned", list_price: "", notes: "", scryfall_id: f.c.id, kind: "card", ref: ""}));
     markDirty("collection"); closeModal(); renderCOL(); toast(`Added ${ok.reduce((t, f) => t + f.qty, 0)} cards.`, 4000);
   });
 }
@@ -4896,6 +4900,10 @@ function openSell(id){
   $("#sCancel").addEventListener("click", closeModal);
   $("#sOk").addEventListener("click", () => { const s = read(); if (numOrNull(s.price_each) == null) return toast("Enter the price."); COL.sales.push(s); markDirty("collection"); closeModal(); renderCOL(); toast("Sale recorded."); });
 }
+// languages Magic cards were printed in (Scryfall's codes, upper case)
+const COL_LANGS = [["EN", "English"], ["JA", "Japanese"], ["DE", "German"], ["FR", "French"], ["IT", "Italian"], ["ES", "Spanish"], ["PT", "Portuguese"],
+  ["RU", "Russian"], ["KO", "Korean"], ["ZHS", "Chinese (Simplified)"], ["ZHT", "Chinese (Traditional)"], ["PH", "Phyrexian"], ["HE", "Hebrew"], ["LA", "Latin"], ["GRC", "Ancient Greek"], ["AR", "Arabic"], ["SA", "Sanskrit"]];
+const langName = c => ((COL_LANGS.find(x => x[0] === (c || "EN").toUpperCase()) || [])[1]) || c;
 // ---- the same card twice: one row when EVERYTHING matches (printing, finish, condition, language, where from, paid, status);
 // copies that differ only in where from / paid stay their own rows (so each sale's profit is right) but show as one line
 const colCardKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil",
@@ -4991,7 +4999,8 @@ function openColEdit(id, pre){
       ${isSL ? "" : `<div class="full" id="ePrints"></div>`}
       ${isSL ? "" : `<div><label for="eSet">Set Code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
       <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
-      ${isSL ? "" : `<div class="full"><label>Condition</label><div class="seg" id="eCondBtns">${["NM", "LP", "MP", "HP", "DMG"].map(c => `<button type="button" class="btn small ghost" data-c="${c}">${c}</button>`).join("")}</div><select id="eCond" hidden><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>`}
+      ${isSL ? "" : `<div class="full"><label>Condition</label><div class="seg" id="eCondBtns">${["NM", "LP", "MP", "HP", "DMG"].map(c => `<button type="button" class="btn small ghost" data-c="${c}">${c}</button>`).join("")}</div><select id="eCond" hidden><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
+      <div><label for="eLang">Language</label><select id="eLang">${COL_LANGS.map(([c, l]) => `<option value="${c}">${l}</option>`).join("")}</select></div>`}
       <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
@@ -5001,7 +5010,8 @@ function openColEdit(id, pre){
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
     </div>
     <div class="acts">${id ? '<button class="btn ghost" id="eDel" type="button" style="margin-right:auto">Delete</button>' : ""}<button class="btn ghost" id="eCancel" type="button">Cancel</button>${id ? "" : '<button class="btn" id="eMore" type="button" title="Add this one, then keep the window open for another (same card filled in - change the condition, quantity or price)">Another Copy</button><button class="btn ghost" id="eNext" type="button" title="Add this one and start the next card (Enter)">Add &amp; Next Card</button>'}<button class="btn" id="eOk" type="button">${id ? "Save" : "Add &amp; Done"}</button></div>`);
-  $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM"; $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
+  $("#eFin").value = r.finish || "nonfoil"; if ($("#eCond")) $("#eCond").value = r.condition || "NM";
+  if ($("#eLang")){ const lg = (r.language || "EN").toUpperCase(); if (!COL_LANGS.some(x => x[0] === lg)) $("#eLang").insertAdjacentHTML("beforeend", `<option value="${esc(lg)}">${esc(lg)}</option>`); $("#eLang").value = lg; } $("#eStat").value = ["listed", "ordered"].includes(r.status) ? r.status : "owned";
   // the collector # belongs to one card: when the name changes (e.g. "Add & Add Another" from a set, then a new name typed),
   // look the new card up in the same set, or clear the number - otherwise it saves as the previous card's number and counts as that card
   let numFor = (r.name || "").toLowerCase();
@@ -5021,7 +5031,7 @@ function openColEdit(id, pre){
     fixNum(); const name = $("#eName").value.trim(); if (!name){ toast("Enter a card name."); return false; }
     const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt(($("#eQty") || {}).value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
-    if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value;
+    if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value; if ($("#eLang")) upd.language = $("#eLang").value;
       if (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name) upd.scryfall_id = ""; }
     if (id) Object.assign(r, upd); else colAddRow(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
