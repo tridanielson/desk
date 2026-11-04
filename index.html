@@ -301,6 +301,10 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rv-stockbox{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0 6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
 .rv-stocknote{font-size:13px;margin:6px 0}
+.set-ico{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f1ece3;box-shadow:0 0 0 1px rgba(0,0,0,.12);flex:none}
+.set-ico img{width:64%;height:64%;object-fit:contain}
+.os-row{display:flex;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;flex-wrap:wrap}.os-row:last-child{border-bottom:0}.os-row:hover{background:var(--soft)}
+.os-name{flex:1 1 180px;min-width:0}.os-val{font-variant-numeric:tabular-nums;white-space:nowrap}.os-act{white-space:nowrap}
 .cv-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0}
 .cv-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
 .cv-k{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.cv-v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}.cv-s{font-size:12px;color:var(--muted)}
@@ -442,7 +446,7 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-tab="rules" data-group="prices" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
     <button data-tab="deals" data-group="deals" title="eBay listings priced below fair value">eBay Deals</button>
     <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
-    <button data-tab="sets" data-group="mine" title="Sets you are completing and the cards you still need">Sets</button>
+    <button data-tab="sets" data-group="mine" title="Every set you own cards from, and the ones you are completing">Sets</button>
     <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
     <button data-tab="sealed" data-group="mine" title="Unopened product you hold: Secret Lairs, booster boxes, packs, decks">Sealed</button>
     <button data-tab="train" data-group="train" class="owner-only" title="How Loupe and SlaveAI are doing against your answers - always up to date">Results</button>
@@ -475,7 +479,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:14 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:32 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5055,12 +5059,13 @@ function renderSETS(){
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
       <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
-  if (!goals.length) L += `<div class="panel"><p class="empty" style="margin:0">No sets yet. Tap <b>+ Add a set</b> and pick the sets you want to complete.</p></div>`;
+  if (goals.length) L += `<h3 style="margin:16px 0 0">⭐ Completing</h3>`;
+  if (!goals.length) L += `<div class="panel"><p class="mut" style="margin:0">Not completing any sets. Tap <b>☆ Complete</b> on a set below (or <b>+ Add a Set</b> for one you don't own anything from) to track what's missing.</p></div>`;
   else {
-    L += `<div class="sl-grid" style="margin-top:14px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
+    L += `<div class="sl-grid" style="margin-top:10px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
       const pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0;
       return `<button class="sl-card" data-goal="${esc(k)}" style="padding:14px"><div class="row" style="gap:10px;align-items:center">
-          ${nm && nm.set ? `<img src="https://svgs.scryfall.io/sets/${esc(nm.set)}.svg" alt="" style="width:28px;height:28px;filter:var(--icon-filter,none)" onerror="this.remove()">` : ""}
+          ${nm && nm.set ? setIcon(nm.set) : ""}
           <div style="text-align:left"><div class="cname">${esc(nm ? nm.set_name : g.set.toUpperCase())}${(g.finish || "nonfoil") !== "nonfoil" ? " (" + esc(g.finish) + ")" : ""}${/^paused$/i.test(g.status || "") ? ' <span class="badge">PAUSED</span>' : ""}</div>
           <div class="cset">${esc(g.set.toUpperCase())}${nm ? " · " + esc((nm.released_at || "").slice(0, 4)) : ""}${/^(yes|true|1)$/i.test(g.skip_basics || "") ? " · no basics" : ""}</div></div></div>
         ${pr ? `<div class="bar" style="margin:12px 0 6px"><span style="width:${pct}%"></span></div>
@@ -5068,7 +5073,9 @@ function renderSETS(){
           <div class="mut" style="font-size:12px;margin-top:4px">${pr.need.length ? `About <b>${money(pr.cost)}</b> to finish (NM)${pr.unpriced ? ` + ${pr.unpriced} unpriced` : ""}` : ""}</div>`
           : SETS.err[k] ? `<p class="mut">${esc(SETS.err[k])}</p>` : '<p class="mut loadmsg" style="margin:12px 0 0">Loading cards…</p>'}</button>`; }).join("") + "</div>";
   }
+  L += ownedSetsHTML(goals);
   box.innerHTML = L;
+  wireOwnedSets(box);
   if ($("#setNeedAll")) $("#setNeedAll").addEventListener("click", () => { SETS.needAll = true; renderSETS(); window.scrollTo(0, 0); });
   $("#setAdd").addEventListener("click", () => { SETS.adding = true; renderSETS(); setTimeout(() => $("#setQ") && $("#setQ").focus(), 30); });
   if (SETS.adding){
@@ -5153,6 +5160,12 @@ function renderNeedAll(goals){
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
 }
+// a set's symbol on a light disc, so the black symbol shows on the dark theme too
+const setIcon = (code, size) => `<span class="set-ico" style="${size ? `width:${size}px;height:${size}px` : ""}"><img src="https://svgs.scryfall.io/sets/${esc(code)}.svg" alt="" onerror="this.parentNode.remove()"></span>`;
+async function loadAllSets(){
+  if (!SETS.allSets){ const j = await sf("/sets"); SETS.allSets = (j.data || []).filter(x => !x.digital && x.card_count > 0 && !["token", "memorabilia", "minigame", "alchemy"].includes(x.set_type)); }
+  return SETS.allSets;
+}
 async function showSetHits(q){
   const hits = $("#setHits"); if (!hits) return;
   if (!SETS.allSets){ hits.innerHTML = '<p class="mut loadmsg">Loading sets…</p>';
@@ -5168,6 +5181,35 @@ async function showSetHits(q){
     COL.goals.push({set: code, finish: fin, skip_basics: $("#setNB").checked ? "yes" : "no", status: "active", deal_pct: "", notes: ""});
     markDirty("collection"); SETS.adding = false; renderSETS(); toast("Set added. Needed cards start getting tracked on the next morning run.", 6000);
   }));
+}
+// every set you own a card from - built from My Cards, nothing to set up. ☆ Complete turns one into a goal.
+function ownedSetsHTML(goals){
+  if (!SETS.allSets && !SETS.setsLoading){ SETS.setsLoading = true; loadAllSets().catch(() => {}).finally(() => { SETS.setsLoading = false; if (document.querySelector("#tab-sets.on")) renderSETS(); }); }
+  const info = new Map((SETS.allSets || []).map(x => [x.code, x]));
+  const by = new Map();
+  colItems().filter(i => i.kind === "card" && i.left > 0 && i.status !== "ordered" && i.set).forEach(i => {
+    const k = i.set.toLowerCase(), a = by.get(k) || {code: k, name: i.set_name || "", cards: 0, nums: new Set(), value: 0};
+    a.cards += i.left; a.nums.add(String(i.number || i.name).toLowerCase()); a.value += i.value || 0; if (!a.name && i.set_name) a.name = i.set_name; by.set(k, a); });
+  const rows = [...by.values()].sort((a, b) => b.value - a.value);
+  if (!rows.length) return `<h3 style="margin:22px 0 0">Sets You Own Cards From</h3><div class="panel"><p class="mut" style="margin:0">Add cards on My Cards and their sets show up here.</p></div>`;
+  const starred = new Set(goals.map(g => g.set.toLowerCase()));
+  return `<h3 style="margin:22px 0 0">Sets You Own Cards From <span class="mut" style="font-size:13px;font-weight:400">· ${rows.length} sets · tap one to see your cards</span></h3>
+    <div class="panel own-sets" style="margin-top:8px">
+    ${rows.map(a => { const x = info.get(a.code) || {}, nm = x.name || a.name || a.code.toUpperCase(), tot = x.card_count;
+      return `<div class="os-row" role="button" tabindex="0" data-ownset="${esc(a.code)}" data-ownname="${esc(nm)}">${setIcon(a.code, 34)}
+        <div class="os-name"><div class="cname">${esc(nm)}</div><div class="cset">${esc(a.code.toUpperCase())}${x.released_at ? " · " + esc(x.released_at.slice(0, 4)) : ""} · ${a.nums.size}${tot ? ` of ${tot}` : ""} cards${a.cards !== a.nums.size ? ` (${a.cards} copies)` : ""}</div></div>
+        <div class="os-val"><b>${money(Math.round(a.value * 100) / 100)}</b></div>
+        <div class="os-act">${starred.has(a.code) ? '<span class="mut" style="font-size:12px">⭐ Completing</span>' : `<button class="btn ghost small" type="button" data-starset="${esc(a.code)}" title="Track this set: what's missing and what it costs to finish">☆ Complete</button>`}</div></div>`; }).join("")}
+    </div>`;
+}
+function wireOwnedSets(box){
+  box.querySelectorAll("[data-starset]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); const code = b.dataset.starset;
+    if (COL.goals.some(g => g.set.toLowerCase() === code)) return;
+    COL.goals.push({set: code, finish: "nonfoil", skip_basics: "no", status: "active", deal_pct: "", notes: ""});
+    markDirty("collection"); renderSETS(); toast("Completing it now - its missing cards start getting tracked on the next morning run.", 6000); }));
+  box.querySelectorAll("[data-ownset]").forEach(tr => { const go = () => {   // your cards from it, on My Cards
+    COL.q = tr.dataset.ownname; COL.view = "all"; COL.showBulk = true; COL.limit = 100000; switchTab("col"); };
+    tr.addEventListener("click", go); tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); }); });
 }
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
