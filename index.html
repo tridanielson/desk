@@ -479,7 +479,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:34 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:38 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3972,6 +3972,7 @@ async function loadCOL(force){
     COL.sales = g("collection/sales.csv").text ? parseCSV(g("collection/sales.csv").text) : []; COL.salesSha = g("collection/sales.csv").sha;
     COL.rec = g("collection/sl_received.csv").text ? parseCSV(g("collection/sl_received.csv").text) : []; COL.recSha = g("collection/sl_received.csv").sha;
     COL.goals = g("collection/sets.csv").text ? parseCSV(g("collection/sets.csv").text) : []; COL.goalsSha = g("collection/sets.csv").sha;
+    if (mergeGoals()) markDirty("collection");   // a set is completed in every version: one goal per set (non-foil + foil + etched)
     await loadSDFiles();   // sealed product (accounts keep their own, like the collection)
     COL.loaded = true;
   }catch(e){ COL.error = e.message; }
@@ -5017,7 +5018,25 @@ async function sfAll(q){   // every printing in a search, following Scryfall's p
   }
   return out;
 }
-const goalKey = g => g.set.toLowerCase() + "|" + (g.finish || "nonfoil") + "|" + (/^(yes|true|1)$/i.test(g.skip_basics || "") ? "nb" : "");
+// one goal per set, every version: older lists had a separate non-foil / foil row per set - fold them into one "all"
+function mergeGoals(){
+  const by = new Map(); let changed = false;
+  const first = !COL.goals.some(g => g.finish === "all");   // the one-time switch to every version; after it, a "Foil Only" goal you pick stays
+  COL.goals.filter(g => g.set).forEach(g => { const k = g.set.toLowerCase(), a = by.get(k);
+    if (!a){ if (first && g.finish !== "all") changed = true;
+      by.set(k, Object.assign({}, g, {set: k}, first ? {finish: "all", notes: (g.notes || "").replace(/\s*foil$/i, "")} : {})); return; }
+    a.finish = "all";
+    changed = true;
+    if (!/^paused$/i.test(g.status || "")) a.status = "active";
+    if (!/^(yes|true|1)$/i.test(g.skip_basics || "")) a.skip_basics = "no";
+    if (!a.deal_pct && g.deal_pct) a.deal_pct = g.deal_pct; });
+  if (changed) COL.goals = [...by.values()].concat(COL.goals.filter(g => !g.set));
+  return changed;
+}
+const FINS = ["nonfoil", "foil", "etched"], finName = f => f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Non-Foil";
+const goalFins = g => (g.finish || "all") === "all" ? FINS : [g.finish];
+const goalLabel = g => (g.finish || "all") === "all" ? "" : g.finish !== "nonfoil" ? " (" + g.finish + ")" : "";
+const goalKey = g => g.set.toLowerCase() + "|" + (g.finish || "all") + "|" + (/^(yes|true|1)$/i.test(g.skip_basics || "") ? "nb" : "");
 async function loadSetCards(g){
   const k = goalKey(g); if (SETS.cards[k] || SETS.loading[k]) return;
   SETS.loading[k] = true;
@@ -5028,19 +5047,19 @@ async function loadSetCards(g){
 }
 function goalProgress(g){
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
-  const fin = g.finish || "nonfoil", code = g.set.toLowerCase();
+  const fins = goalFins(g), code = g.set.toLowerCase();
   const left = new Map(colItems().filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));
   const byNum = {}, byName = {};
-  COL.inv.forEach(r => { const n = left.get(r.id); if (!n || (r.set || "").toLowerCase() !== code || (r.finish || "nonfoil") !== fin) return;
-    if (r.number) byNum[r.number] = (byNum[r.number] || 0) + n; else { const k = (r.name || "").toLowerCase(); byName[k] = (byName[k] || 0) + n; } });
-  const pool = Object.assign({}, byName), pk = fin === "foil" ? "usd_foil" : fin === "etched" ? "usd_etched" : "usd";
-  // only printings made in this finish count (a foil-only card can't be needed for a non-foil set)
-  const rows = cards.filter(c => (c.finishes || ["nonfoil"]).includes(fin)).map(c => { let have = byNum[c.collector_number] || 0; const k = c.name.toLowerCase();
+  COL.inv.forEach(r => { const n = left.get(r.id), f = r.finish || "nonfoil"; if (!n || (r.set || "").toLowerCase() !== code || !fins.includes(f)) return;
+    if (r.number) byNum[r.number + "|" + f] = (byNum[r.number + "|" + f] || 0) + n; else { const k = (r.name || "").toLowerCase() + "|" + f; byName[k] = (byName[k] || 0) + n; } });
+  const pool = Object.assign({}, byName), pkOf = f => f === "foil" ? "usd_foil" : f === "etched" ? "usd_etched" : "usd";
+  // every version: one row per card per finish it was actually made in (a foil-only card is never "needed" in non-foil)
+  const rows = cards.flatMap(c => fins.filter(f => (c.finishes || ["nonfoil"]).includes(f)).map(f => { let have = byNum[c.collector_number + "|" + f] || 0; const k = c.name.toLowerCase() + "|" + f;
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
-    const price = c.prices && c.prices[pk] != null ? +c.prices[pk] : null;
-    return {c, have, price}; });
+    const price = c.prices && c.prices[pkOf(f)] != null ? +c.prices[pkOf(f)] : null;
+    return {c, have, price, fin: f}; }));
   const need = rows.filter(r => !r.have);
-  return {rows, need, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
+  return {rows, need, multi: new Set(rows.map(r => r.fin)).size > 1, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
           unpriced: need.filter(r => r.price == null).length, owned: rows.filter(r => r.have).reduce((t, r) => t + (r.price || 0), 0)};
 }
 async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
@@ -5057,7 +5076,7 @@ function renderSETS(){
     <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
     <div class="row">${goals.length ? '<button class="btn ghost small" id="setNeedAll">📋 Everything I Need</button>' : ""}<button class="btn small" id="setAdd">+ Add a Set</button></div></div>`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
-      <select id="setFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option></select>
+      <select id="setFin"><option value="all">Every Version</option><option value="nonfoil">Non-Foil Only</option><option value="foil">Foil Only</option><option value="etched">Etched Only</option></select>
       <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
   if (goals.length) L += `<h3 style="margin:16px 0 0">⭐ Completing</h3>`;
   if (!goals.length) L += `<div class="panel"><p class="mut" style="margin:0">Not completing any sets. Tap <b>☆ Complete</b> on a set below (or <b>+ Add a Set</b> for one you don't own anything from) to track what's missing.</p></div>`;
@@ -5066,7 +5085,7 @@ function renderSETS(){
       const pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0;
       return `<button class="sl-card" data-goal="${esc(k)}" style="padding:14px"><div class="row" style="gap:10px;align-items:center">
           ${nm && nm.set ? setIcon(nm.set) : ""}
-          <div style="text-align:left"><div class="cname">${esc(nm ? nm.set_name : g.set.toUpperCase())}${(g.finish || "nonfoil") !== "nonfoil" ? " (" + esc(g.finish) + ")" : ""}${/^paused$/i.test(g.status || "") ? ' <span class="badge">PAUSED</span>' : ""}</div>
+          <div style="text-align:left"><div class="cname">${esc(nm ? nm.set_name : g.set.toUpperCase())}${esc(goalLabel(g))}${/^paused$/i.test(g.status || "") ? ' <span class="badge">PAUSED</span>' : ""}</div>
           <div class="cset">${esc(g.set.toUpperCase())}${nm ? " · " + esc((nm.released_at || "").slice(0, 4)) : ""}${/^(yes|true|1)$/i.test(g.skip_basics || "") ? " · no basics" : ""}</div></div></div>
         ${pr ? `<div class="bar" style="margin:12px 0 6px"><span style="width:${pct}%"></span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px"><span><b>${pr.have}</b> / ${pr.total} (${pct}%)</span><span>${pr.need.length ? `need ${pr.need.length}` : "<b>Complete!</b>"}</span></div>
@@ -5093,9 +5112,9 @@ function renderNeedAll(goals){
   if (!NA.tcg && !NA.tcgLoading && ROLE === "owner"){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); }
   const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
   const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
-  const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + ((g.finish || "nonfoil") !== "nonfoil" ? " (" + g.finish + ")" : ""); };
+  const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + goalLabel(g); };
   let all = [];
-  live.forEach(g => { const pr = goalProgress(g); if (pr) pr.need.forEach(r => all.push({c: r.c, price: r.price, g, fin: g.finish || "nonfoil", key: goalKey(g)})); });
+  live.forEach(g => { const pr = goalProgress(g); if (pr) pr.need.forEach(r => all.push({c: r.c, price: r.price, g, fin: r.fin, key: goalKey(g)})); });
   const band = {u1: [null, 1], u5: [null, 5], u50: [null, 50.005], o50: [50.005, null], none: "none"}[NA.price];
   const q = NA.q.trim().toLowerCase();
   [...NA.sets].forEach(k => { if (!live.some(g => goalKey(g) === k)) NA.sets.delete(k); });
@@ -5127,7 +5146,7 @@ function renderNeedAll(goals){
     <div class="panel scroll"><div class="tiles" id="naTiles"></div><table id="naTable" class="desk-table"></table></div>`;
   $("#naPrice").value = NA.price; $("#naSort").value = NA.sort;
   const show = rows.slice(0, 600);
-  const acts = r => `<button class="btn small" data-nagot="${esc(r.c.id)}|${esc(r.key)}">Got It</button> <a class="btn ghost small" href="${esc(ebay(r.c))}" target="_blank" rel="noopener">eBay</a> <a class="btn ghost small" href="${esc(tcg(r.c))}" target="_blank" rel="noopener">TCGplayer</a>`;
+  const acts = r => `<button class="btn small" data-nagot="${esc(r.c.id)}~${esc(r.key)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${esc(ebay(r.c))}" target="_blank" rel="noopener">eBay</a> <a class="btn ghost small" href="${esc(tcg(r.c))}" target="_blank" rel="noopener">TCGplayer</a>`;
   $("#naTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort">Set</th><th class="r nosort">Price (NM)</th><th class="nosort"></th></tr></thead><tbody>` +
     (show.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
       <td><div class="cname">${esc(r.c.name)}</div><div class="cset">${esc(fin(r))} · #${esc(r.c.collector_number)} · <span style="text-transform:capitalize">${esc(r.c.rarity)}</span></div></td>
@@ -5156,8 +5175,8 @@ function renderNeedAll(goals){
     list.forEach(r => { const k = `${tn(r) || r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
     const lbl = f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Normal";
     copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${list.length} ${lbl === "Normal" ? "non-foil" : lbl.toLowerCase()} cards. In Mass Entry: paste, ⚙ gear → Printing: ${lbl} only, then Add to Cart.`); }));
-  box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k] = b.dataset.nagot.split("|"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
-    openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
+  box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k, f] = b.dataset.nagot.split("~"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
+    openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
 }
 // a set's symbol on a light disc, so the black symbol shows on the dark theme too
@@ -5177,7 +5196,7 @@ async function showSetHits(q){
     `<div class="row" style="gap:6px">` + list.map(x => `<button class="btn ghost small" data-addset="${esc(x.code)}" title="${x.card_count} cards">${esc(x.name)} <span class="mut">${esc((x.released_at || "").slice(0, 4))}</span></button>`).join("") + "</div>";
   hits.querySelectorAll("[data-addset]").forEach(b => b.addEventListener("click", () => {
     const code = b.dataset.addset, fin = $("#setFin").value;
-    if (COL.goals.some(g => g.set.toLowerCase() === code && (g.finish || "nonfoil") === fin)) return toast("That set is already on your list.");
+    if (COL.goals.some(g => g.set.toLowerCase() === code)) return toast("That set is already on your list.");
     COL.goals.push({set: code, finish: fin, skip_basics: $("#setNB").checked ? "yes" : "no", status: "active", deal_pct: "", notes: ""});
     markDirty("collection"); SETS.adding = false; renderSETS(); toast("Set added. Needed cards start getting tracked on the next morning run.", 6000);
   }));
@@ -5205,7 +5224,7 @@ function ownedSetsHTML(goals){
 function wireOwnedSets(box){
   box.querySelectorAll("[data-starset]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); const code = b.dataset.starset;
     if (COL.goals.some(g => g.set.toLowerCase() === code)) return;
-    COL.goals.push({set: code, finish: "nonfoil", skip_basics: "no", status: "active", deal_pct: "", notes: ""});
+    COL.goals.push({set: code, finish: "all", skip_basics: "no", status: "active", deal_pct: "", notes: ""});
     markDirty("collection"); renderSETS(); toast("Completing it now - its missing cards start getting tracked on the next morning run.", 6000); }));
   box.querySelectorAll("[data-ownset]").forEach(tr => { const go = () => {   // your cards from it, on My Cards
     COL.q = tr.dataset.ownname; COL.view = "all"; COL.showBulk = true; COL.limit = 100000; switchTab("col"); };
@@ -5223,7 +5242,7 @@ function renderSetDetail(g){
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
-      <h2 style="margin-top:10px">${esc(title)}${(g.finish || "nonfoil") !== "nonfoil" ? " (" + esc(g.finish) + ")" : ""}</h2>
+      <h2 style="margin-top:10px">${esc(title)}${esc(goalLabel(g))}</h2>
       <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
       <div class="row"><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
@@ -5240,18 +5259,18 @@ function renderSetDetail(g){
     <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - <b>Add &amp; Add Another</b> keeps the card filled in for the next copy (e.g. a different condition). Cards you have show <b>+ Add</b> for more copies.</p>`;
   box.innerHTML = L;
   $("#setView").value = SETS.view;
-  const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + (g.finish || "nonfoil"));
+  const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}" title="Take copies out of your Collection">Remove</button>` :
-    `<button class="btn small" data-got="${esc(r.c.id)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
+  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+    `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
-      <td><div class="cname"><a href="${esc(r.c.scryfall_uri)}" target="_blank" rel="noopener">${esc(r.c.name)}</a></div><div class="cset">${esc(r.c.type_line || "")}</div></td>
+      <td><div class="cname"><a href="${esc(r.c.scryfall_uri)}" target="_blank" rel="noopener">${esc(r.c.name)}</a></div><div class="cset">${pr.multi ? `<b>${finName(r.fin)}</b> · ` : ""}${esc(r.c.type_line || "")}</div></td>
       <td class="hide-sm mut">${esc(r.c.collector_number)}</td><td class="hide-sm mut" style="text-transform:capitalize">${esc(r.c.rarity)}</td>
       <td class="r">${r.price == null ? '<span class="mut">–</span>' : money(r.price)}</td><td class="r hide-sm">${trend(r)}</td><td class="mk">${act(r)}</td></tr>`).join("") ||
      `<tr><td colspan="7" class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</td></tr>`) + "</tbody>";
   $("#setTiles").innerHTML = rows.map(r => `<div class="tile"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:44px;border-radius:3px;margin-right:10px" data-zoom="${esc(r.c.id)}">
-      <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">#${esc(r.c.collector_number)} · ${esc(r.c.rarity)} ${trend(r)}</div><div class="t-chips mk">${act(r)}</div></div>
+      <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">#${esc(r.c.collector_number)} · ${pr.multi ? finName(r.fin) + " · " : ""}${esc(r.c.rarity)} ${trend(r)}</div><div class="t-chips mk">${act(r)}</div></div>
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">No cards.</p>';
   $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
@@ -5261,14 +5280,14 @@ function renderSetDetail(g){
   $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
   $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
     COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
-  box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const c = (SETS.cards[k] || []).find(x => x.id === b.dataset.got); if (!c) return;
-    openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: g.finish || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
+  box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.got.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c) return;
+    openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
-  box.querySelectorAll("[data-srem]").forEach(b => b.addEventListener("click", () => { const c = (SETS.cards[k] || []).find(x => x.id === b.dataset.srem); if (c) openSetRemove(g, c); }));
+  box.querySelectorAll("[data-srem]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.srem.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (c) openSetRemove(g, c, f); }));
 }
 // Sets → Remove: your copies of one card (each Collection row), take one off or remove a row
-function openSetRemove(g, c){
-  const fin = g.finish || "nonfoil", code = g.set.toLowerCase();
+function openSetRemove(g, c, f){
+  const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", code = g.set.toLowerCase();
   const mine = () => COL.inv.filter(r => (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
     (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
   const draw = () => {
