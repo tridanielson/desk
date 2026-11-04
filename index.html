@@ -301,6 +301,12 @@ select option{background:var(--panel);color:var(--ink)}
 .aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rv-stockbox{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0 6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
 .rv-stocknote{font-size:13px;margin:6px 0}
+.cv-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:14px 0}
+.cv-box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.cv-k{font-size:11.5px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.cv-v{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.25}.cv-s{font-size:12px;color:var(--muted)}
+.cv-add{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cv-views{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+tr.cv-bulk td{background:var(--soft)}
 .stat .d{font-size:11.5px;line-height:1.35;color:var(--muted);margin-top:4px}
 .ln-head{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:2px 0 6px}
 .ln-head>div{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:8px;padding:12px 14px;min-width:0}
@@ -469,7 +475,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:52 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 03:14 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3947,7 +3953,8 @@ const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "languag
 const SALE_COLS = ["id", "date", "item_id", "name", "qty", "price_each", "shipping_charged", "shipping_cost", "platform", "fees", "notes"];
 const REC_COLS = ["line_id", "qty", "date"];
 const COL = {goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
-             q: "", src: "", status: "held", kind: "", limit: 150, showSales: false};
+             q: "", src: "", status: "held", kind: "", limit: 150, showSales: false, view: "all", showBulk: false};
+const BULK_EACH = 5;   // under this each, a card folds into the one Bulk line
 const todayAZ = () => new Date().toLocaleDateString("en-CA", {timeZone: "America/Phoenix"});
 const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 async function loadCOL(force){
@@ -4448,7 +4455,7 @@ function openSDEdit(id, pre){
 function colItems(){
   const val = new Map(((COL.data && COL.data.items) || []).map(i => [i.id, i]));
   const sold = {}; COL.sales.forEach(s => { if (s.item_id) sold[s.item_id] = (sold[s.item_id] || 0) + (parseInt(s.qty) || 1); });
-  return COL.inv.map(r => {
+  return COL.inv.map((r, idx) => {
     const v = val.get(r.id) || {}; const qty = parseInt(r.qty) || 0; const left = Math.max(0, qty - (sold[r.id] || 0));
     const cost = numOrNull(r.cost_each) || 0; let each = v.value_each ?? null, approxSL = false;
     if (each == null && r.kind === "secret_lair" && r.ref && SL.orders){ const ln = SL.orders.lines.find(x => x.line_id === r.ref); if (ln && ln.value != null && ln.qty){ each = Math.round(ln.value / ln.qty * 100) / 100; approxSL = true; } }
@@ -4456,7 +4463,8 @@ function colItems(){
       finish: r.finish || "nonfoil", condition: r.condition || "NM", qty, left, cost_each: cost, source: r.source || "Unspecified",
       status: left === 0 && sold[r.id] ? "sold" : (r.status || "owned"), kind: r.kind || "card", value_each: each, market_each: v.market_each ?? null,
       value: each == null ? null : Math.round(each * left * 100) / 100, cost_left: Math.round(cost * left * 100) / 100,
-      pending: !val.has(r.id) && !approxSL, approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || ""};
+      pending: !val.has(r.id) && !approxSL, approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || "",
+      base_each: v.base_each ?? null, base_at: v.base_at || "", idx};   // idx: order added (newest = highest)   // its value when first priced: "since added"
   });
 }
 // ---- ⬇ Export to Excel: My Cards / Sealed Product / Secret Lair orders, one sheet each (or all together with a Summary)
@@ -4591,29 +4599,61 @@ function renderCOL(){
   const all = colAll(), held = all.filter(i => !i.ordered), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
   const stat = (label, v, sub) => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
-  const pend = all.filter(i => i.pending).length, singles = held.filter(i => i.kind === "card"), sealed = held.filter(i => i.kind === "sealed");
-  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Collection</h2>
-      <p class="sub" style="margin:0">Everything you own and what it's worth - singles and sealed product. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}${pend ? ` <b>${pend} new item${pend > 1 ? "s" : ""}</b> get values on the next morning run.` : ""}</p></div>
-      <div class="row"><button class="btn small" id="colAdd">+ Add Card</button><button class="btn ghost small" id="colAddS">+ Add Sealed</button><button class="btn ghost small" id="colExport" type="button" title="Download your cards, sealed product and Secret Lair orders as an Excel file">⬇ Export to Excel</button><label class="btn ghost small" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label></div></div>
-    <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
-      ${stat("You have", `${sum(held, i => i.left)} items`, `${sum(singles, i => i.left)} singles · ${sum(sealed, i => i.left)} sealed`)}
-      ${stat("You paid", money(sum(held, i => i.cost_left)), "for what you have")}
-      ${stat("Worth Now", money(sum(priced, i => i.value)), held.length - priced.length ? `${held.length - priced.length} rows not priced yet` : "")}
-      ${stat("Gain", gainHTML(sum(priced, i => i.value - i.cost_left), sum(priced, i => i.cost_left)), "if you sold at market")}
+  const singles = held.filter(i => i.kind === "card"), sealedR = held.filter(i => i.kind === "sealed");
+  const good = priced.filter(i => i.kind === "sealed" || (i.value_each || 0) >= BULK_EACH), worth = sum(priced, i => i.value), goodV = sum(good, i => i.value);
+  const based = priced.filter(i => i.base_each != null), since = sum(based, i => (i.value_each - i.base_each) * i.left);
+  const known = priced.filter(i => i.cost_each > 0), onWay = all.filter(i => i.ordered);
+  const since0 = based.map(i => i.base_at).filter(Boolean).sort()[0];
+  const box2 = (label, big, sub) => `<div class="cv-box"><div class="cv-k">${label}</div><div class="cv-v">${big}</div><div class="cv-s">${sub}</div></div>`;
+  const VIEWS = colViews(held);
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>My Cards</h2>
+      <p class="sub" style="margin:0">What you own and what it's worth. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}</p></div></div>
+    <div class="cv-sum">
+      ${box2("Worth today", money(worth), `${sum(held, i => i.left)} items · ${sum(singles, i => i.left)} cards · ${sum(sealedR, i => i.left)} sealed${held.length - priced.length ? ` · ${held.length - priced.length} not priced yet` : ""}`)}
+      ${box2(`The good ones (${"$" + BULK_EACH}+)`, money(goodV), `${sum(good, i => i.left)} items · ${worth ? Math.round(goodV / worth * 100) : 0}% of the value`)}
+      ${box2("Since added", based.length ? gainHTML(since) : "–", based.length ? `change in value since each card was added${since0 ? ` (tracking since ${esc(since0)})` : ""}` : "starts with the next update")}
+      ${box2("Paid vs worth", known.length ? `${money(sum(known, i => i.cost_left))} → ${money(sum(known, i => i.value))}` : "–", known.length ? `only the ${sum(known, i => i.left)} with a price paid · blank = unknown` : "no prices paid entered - that's fine")}
+      ${onWay.length ? box2("On the way", `${sum(onWay, i => i.left)}`, `ordered, not received yet · paid ${money(sum(onWay, i => i.cost_left))}`) : ""}
+    </div>
+    <div class="panel cv-add">
+      <button class="btn" id="colAdd" type="button">+ Add Card</button>
+      <button class="btn ghost" id="colPaste" type="button" title="Paste a list - one card per line">Paste a List</button>
+      <button class="btn ghost" id="colAddS" type="button">+ Add Sealed</button>
+      <label class="btn ghost" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label>
+      <button class="btn ghost" id="colExport" type="button" title="Download your cards, sealed product and Secret Lair orders as an Excel file">⬇ Export</button>
     </div>
     <div id="colWaiting"></div>
-    <div class="panel row"><input id="colQ" placeholder="Search your collection…" value="${esc(COL.q)}" style="flex:1;min-width:180px">
-      <select id="colKind"><option value="">Everything</option><option value="card">Singles</option><option value="sealed">Sealed Product</option></select>
-      <span class="status" id="colCount"></span></div>
-    <div class="panel scroll"><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table>
+    <div class="cv-views" role="group" aria-label="Views">${VIEWS.map(([k, l, n, tip]) => `<button type="button" class="btn small${COL.view === k ? "" : " ghost"}" data-cview="${k}" title="${esc(tip)}">${l}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("")}
+      <input id="colQ" type="search" placeholder="Find a card…" value="${esc(COL.q)}" style="margin-left:auto;min-width:160px;flex:0 1 220px"></div>
+    <p class="mut" id="colViewTip" style="font-size:12px;margin:4px 0 8px">${esc((VIEWS.find(v => v[0] === COL.view) || [])[3] || "")}</p>
+    <div class="panel scroll"><span class="status" id="colCount"></span><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table>
       <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show More</button></div></div>`;
-  $("#colKind").value = ["", "card", "sealed"].includes(COL.kind) ? COL.kind : "";
-  [["#colQ", "q"], ["#colKind", "kind"]].forEach(([sel, k]) => $(sel).addEventListener("input", e => { COL[k] = e.target.value; COL.limit = 150; renderCOLList(); }));
+  $("#colQ").addEventListener("input", e => { COL.q = e.target.value; COL.limit = 150; renderCOLList(); });
+  box.querySelectorAll("[data-cview]").forEach(b => b.addEventListener("click", () => { COL.view = b.dataset.cview; COL.limit = 150; COL.showBulk = false; renderCOL(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
   $("#colAdd").addEventListener("click", () => openColEdit(null));
+  $("#colPaste").addEventListener("click", openColPaste);
   $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
   renderColWaiting(); renderCOLList();
+}
+// the ready-made views: [key, label, count, what it shows]
+function colViews(held){
+  const copies = {}; held.filter(i => i.kind === "card").forEach(i => { const k = (i.name + "|" + i.set).toLowerCase(); copies[k] = (copies[k] || 0) + i.left; });
+  COL._copies = copies;
+  const recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const cnt = f => held.filter(f).length;
+  return [["all", "All", null, `Everything, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
+    ["sell", "Worth selling", cnt(colSellable), "Up 2.5× or more from what you paid, or up 50%+ since you added it - and worth $20+."],
+    ["extra", "Extra copies", Object.values(copies).filter(n => n >= 4).length, "Cards you have 4 or more of (same card and set) - candidates to sell or trade."],
+    ["recent", "Recently added", cnt(i => i.kind === "card" && (i.acquired || "") >= recent), "Singles added in the last 30 days - the last one you entered first."],
+    ["listed", "For sale", cnt(i => i.status === "listed"), "Marked Listed for Sale."],
+    ["sealed", "Sealed", cnt(i => i.kind === "sealed"), "Unopened product - manage it on the Sealed tab."],
+    ["bulk", "Bulk", cnt(i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH), `Cards worth under ${"$" + BULK_EACH} each.`]];
+}
+function colSellable(i){
+  if (i.kind !== "card" || i.value_each == null || i.value_each < 20) return false;
+  return (i.cost_each > 0 && i.value_each >= 2.5 * i.cost_each) || (i.base_each > 0 && i.value_each >= 1.5 * i.base_each);
 }
 // singles (Collection rows) + sealed product (Sealed tab rows still sealed), in one list
 function colAll(){
@@ -4639,22 +4679,34 @@ function renderColWaiting(){
 document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-colmark]"); if (!b) return; e.preventDefault(); markReceived(b.dataset.colmark); setTimeout(renderCOL, 50); });
 function renderCOLList(){
   const q = COL.q.trim().toLowerCase();
-  const rows = colAll().filter(i => !i.ordered && (!COL.kind || i.kind === COL.kind) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
-    .sort((a, b) => (b.value || 0) - (a.value || 0));
-  $("#colCount").textContent = `${rows.length} rows`;
+  const v = COL.view || "all", copies = COL._copies || {}, recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const inView = i => v === "all" ? true : v === "sell" ? colSellable(i) : v === "extra" ? i.kind === "card" && copies[(i.name + "|" + i.set).toLowerCase()] >= 4
+    : v === "recent" ? i.kind === "card" && (i.acquired || "") >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
+    : v === "bulk" ? i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH : true;
+  let rows = colAll().filter(i => !i.ordered && inView(i) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
+    .sort(v === "recent" ? (a, b) => (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
+  // All, no search: the cheap cards fold into one Bulk line at the end (tap to open)
+  const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
+  const bulk = v === "all" && !q && !COL.showBulk ? rows.filter(isBulk) : [];
+  if (bulk.length) rows = rows.filter(i => !isBulk(i));
+  $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
   const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
-  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort">Gain</th><th class="nosort"></th></tr></thead><tbody>` +
+  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
     (show.map(i => `<tr><td><div class="cname">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.name)}</a>` : esc(i.name)}</div><div class="cset">${meta(i)}</div></td>
-      <td class="r">${i.left}</td><td class="r">${money(i.cost_each)}</td>
-      <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${i.value == null ? "–" : gainHTML(i.value - i.cost_left)}</td><td class="mk" style="white-space:nowrap">${acts(i)}</td></tr>`).join("") ||
+      <td class="r">${i.left}</td><td class="r">${i.cost_each > 0 ? money(i.cost_each) : '<span class="mut" title="Not entered">–</span>'}</td>
+      <td class="r">${i.value_each == null ? "–" : money(i.value_each)}</td><td class="r">${worth(i)}</td><td class="r">${colChange(i)}</td><td class="mk" style="white-space:nowrap">${acts(i)}</td></tr>`).join("")
+      + (bulk.length ? `<tr class="cv-bulk"><td><b>Bulk under ${"$" + BULK_EACH}</b> <span class="mut">· ${bulk.reduce((t, i) => t + i.left, 0)} cards</span></td><td></td><td></td><td></td><td class="r"><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></td><td></td><td class="mk"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></td></tr>` : "") ||
      '<tr><td colspan="7" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
   $("#colTiles").innerHTML = show.map(i => `<div class="tile"><div class="t-main"><div class="t-name">${esc(i.name)}</div><div class="t-sub">${meta(i)}</div>
-      <div class="t-sub">Have ${i.left} · paid ${money(i.cost_each)} each</div><div class="t-chips mk">${acts(i)}</div></div>
-      <div class="t-right"><div class="t-price">${worth(i)}</div>${i.value == null ? "" : `<div style="font-size:12px">${gainHTML(i.value - i.cost_left)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
+      <div class="t-sub">Have ${i.left}${i.cost_each > 0 ? ` · paid ${money(i.cost_each)} each` : ""}</div><div class="t-chips mk">${acts(i)}</div></div>
+      <div class="t-right"><div class="t-price">${worth(i)}</div>${i.value == null ? "" : `<div style="font-size:12px">${colChange(i)}</div>`}</div></div>`).join("")
+    + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
+    || '<p class="empty">Nothing here yet.</p>';
+  document.querySelectorAll("#colBody [data-showbulk]").forEach(b => b.addEventListener("click", () => { COL.showBulk = true; COL.limit = 100000; renderCOLList(); }));
   $("#colMore").hidden = rows.length <= COL.limit;
   document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
   document.querySelectorAll("#colBody [data-crem]").forEach(b => b.addEventListener("click", () => openColRemove(b.dataset.crem)));
@@ -4666,6 +4718,68 @@ function renderCOLList(){
     try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
     catch(e){ r.status = "ordered"; toast("Couldn't save: " + e.message, 6000); }
   }));
+}
+// change: against what you paid when you entered it; otherwise since it was added (no cost needed)
+function colChange(i){
+  if (i.value == null) return "–";
+  if (i.cost_each > 0) return gainHTML(i.value - i.cost_left, i.cost_left);
+  if (i.base_each != null) return `<span title="Since added (${esc(i.base_at || "")})">${gainHTML(Math.round((i.value_each - i.base_each) * i.left * 100) / 100)}</span>`;
+  return '<span class="mut">new</span>';
+}
+// Paste a List: one card per line ("4 Lightning Bolt LEB", "Demonic Tutor (LEB) 105 NM foil"); each is looked up, you check, then add
+function parseCardLine(line){
+  let t = line.trim().replace(/\s+/g, " "); if (!t) return null;
+  const out = {qty: 1, name: "", set: "", number: "", condition: "", finish: "nonfoil"};
+  let m = t.match(/^(\d+)\s*[x×]?\s+(.*)$/i); if (m){ out.qty = +m[1]; t = m[2]; }
+  m = t.match(/\b(NM|LP|MP|HP|DMG|near mint|lightly played|moderately played|heavily played|damaged)\b/i);
+  if (m){ const c = m[1].toLowerCase(); out.condition = {"near mint": "NM", "lightly played": "LP", "moderately played": "MP", "heavily played": "HP", damaged: "DMG"}[c] || c.toUpperCase(); t = t.replace(m[0], " "); }
+  if (/\*?\b(etched)\b\*?/i.test(t)){ out.finish = "etched"; t = t.replace(/\*?\betched\b\*?/i, " "); }
+  else if (/\*?\b(foil|\*f\*)\b\*?|\*f\*/i.test(t)){ out.finish = "foil"; t = t.replace(/\*f\*|\*?\bfoil\b\*?/i, " "); }
+  m = t.match(/\(([a-z0-9]{2,6})\)\s*([a-z0-9★-]+)?\s*$/i) || t.match(/\s([A-Z0-9]{3,5})(?:\s+#?([0-9][a-z0-9★-]*))?\s*$/);
+  if (m){ out.set = m[1].toLowerCase(); out.number = m[2] || ""; t = t.slice(0, m.index); }
+  out.name = t.replace(/[\s,|-]+$/, "").trim();
+  return out.name ? out : null;
+}
+function openColPaste(){
+  openModal(`<h3>Paste a List</h3><p class="mut" style="font-size:13px;margin:4px 0 8px">One card per line. Quantity, set code, number, condition and foil are all optional:<br>
+      <code>4 Lightning Bolt LEB</code> · <code>Demonic Tutor (LEB) 105 NM</code> · <code>Raphael, the Muscle TMC 91 foil</code></p>
+    <textarea id="cpText" rows="9" style="width:100%;font:inherit" placeholder="One card per line"></textarea>
+    <div class="grid" style="margin-top:8px"><div><label for="cpCond">Condition (when a line doesn't say)</label><select id="cpCond"><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
+      <div><label for="cpSrc">Where From</label><input id="cpSrc" placeholder="e.g. Friend collection"></div></div>
+    <div id="cpOut" style="margin-top:10px"></div>
+    <div class="acts"><button class="btn ghost" id="cpCancel" type="button">Cancel</button><button class="btn ghost" id="cpCheck" type="button">Check the List</button><button class="btn" id="cpAdd" type="button" disabled>Add Them</button></div>`, true);
+  $("#cpCancel").addEventListener("click", closeModal);
+  let found = [];
+  $("#cpCheck").addEventListener("click", async () => {
+    const lines = $("#cpText").value.split(/\n/).map(parseCardLine).filter(Boolean).slice(0, 300);
+    if (!lines.length) return toast("Paste at least one card name.");
+    const out = $("#cpOut"); out.innerHTML = `<p class="mut">Looking up ${lines.length} card${lines.length === 1 ? "" : "s"}…</p>`; $("#cpAdd").disabled = true;
+    found = [];
+    for (const [k, l] of lines.entries()){
+      let c = null;
+      try{
+        if (l.set && l.number) c = await sf(`/cards/${encodeURIComponent(l.set)}/${encodeURIComponent(l.number)}`);
+        if (!c || !c.id) c = await sf(`/cards/named?fuzzy=${encodeURIComponent(l.name)}${l.set ? "&set=" + encodeURIComponent(l.set) : ""}`);
+        if ((!c || !c.id) && l.set) c = await sf(`/cards/named?fuzzy=${encodeURIComponent(l.name)}`);
+      }catch{}
+      found.push(Object.assign({}, l, {c: c && c.id ? c : null}));
+      if (k % 5 === 4) out.innerHTML = `<p class="mut">Looked up ${k + 1} of ${lines.length}…</p>`;
+      await new Promise(r => setTimeout(r, 80));   // Scryfall asks for ~10 lookups a second at most
+    }
+    const ok = found.filter(f => f.c), bad = found.filter(f => !f.c);
+    out.innerHTML = `<p style="margin:0 0 6px"><b>${ok.length} found</b>${bad.length ? ` · <span class="down">${bad.length} not found</span> (fix the line and check again)` : ""}</p>
+      <div style="max-height:260px;overflow:auto"><table class="desk-table"><tbody>${found.map(f => f.c
+        ? `<tr><td>${f.qty}×</td><td><b>${esc(f.c.name)}</b></td><td class="mut">${esc(f.c.set_name)} · ${esc(f.c.set.toUpperCase())} #${esc(f.c.collector_number)}${f.set ? "" : " <i>(newest printing - add the set code if it's another)</i>"}</td><td>${esc(f.condition || $("#cpCond").value)}${f.finish !== "nonfoil" ? " · " + f.finish : ""}</td></tr>`
+        : `<tr class="down"><td>${f.qty}×</td><td colspan="3">${esc(f.name)}${f.set ? " (" + esc(f.set.toUpperCase()) + ")" : ""} - not found</td></tr>`).join("")}</tbody></table></div>`;
+    $("#cpAdd").disabled = !ok.length;
+  });
+  $("#cpAdd").addEventListener("click", () => {
+    const ok = found.filter(f => f.c); if (!ok.length) return;
+    const cond = $("#cpCond").value, src = $("#cpSrc").value.trim(), today = todayAZ();
+    ok.forEach(f => COL.inv.push({id: newId("c-"), name: f.c.name, set: f.c.set, number: f.c.collector_number, finish: (f.c.finishes || ["nonfoil"]).includes(f.finish) ? f.finish : (f.c.finishes || ["nonfoil"])[0],
+      condition: f.condition || cond, language: "EN", qty: String(f.qty), cost_each: "", acquired: today, source: src, status: "owned", list_price: "", notes: "", scryfall_id: f.c.id, kind: "card", ref: ""}));
+    markDirty("collection"); closeModal(); renderCOL(); toast(`Added ${ok.reduce((t, f) => t + f.qty, 0)} cards.`, 4000);
+  });
 }
 // Remove copies of one Collection row: −1, or the whole row (tap twice)
 function openColRemove(id){
