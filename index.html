@@ -469,7 +469,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:38 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 02:52 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4774,7 +4774,7 @@ function colFastAdd(r){
   inp.addEventListener("blur", () => setTimeout(() => ul.hidden = true, 150));
   const cb = $("#eCondBtns"), sel = $("#eCond");
   const mark = () => cb.querySelectorAll("[data-c]").forEach(b => b.classList.toggle("ghost", b.dataset.c !== sel.value));
-  cb.addEventListener("click", e => { const b = e.target.closest("[data-c]"); if (b){ sel.value = b.dataset.c; mark(); } });
+  cb.addEventListener("click", e => { const b = e.target.closest("[data-c]"); if (b){ sel.value = b.dataset.c; mark(); const q = $("#eQty"); if (q){ q.focus(); q.select(); } } });
   setTimeout(mark, 0);
   if (!r.id && !r.name) setTimeout(() => inp.focus(), 50);
 }
@@ -4859,7 +4859,8 @@ function openColEdit(id, pre){
     // next card: save, then clear the card (name, printing, quantity) but keep condition, where from, date and status - the usual batch
     $("#eNext").addEventListener("click", () => { if (save(true) === false) return; Object.assign(r, {name: "", set: "", number: "", scryfall_id: ""});
       $("#eName").value = ""; $("#eSet").value = ""; $("#eNum").value = ""; $("#eCost").value = ""; $("#ePrints").innerHTML = ""; numFor = ""; $("#eName").focus(); });
-    $("#eName").closest(".grid").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id !== "eName" && e.target.tagName !== "BUTTON"){ e.preventDefault(); $("#eNext").click(); } }); }
+    // Enter anywhere in the form (after tapping a printing, a condition or the finish too) = Add & Next Card
+    $("#eName").closest(".grid").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id !== "eName"){ e.preventDefault(); $("#eNext").click(); } }); }
 }
 function importCSV(file){
   if (!file) return;
