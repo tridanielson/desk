@@ -459,7 +459,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 09:39 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 03, 09:44 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1788,7 +1788,7 @@ function qualityHTML(d){
   h += d.upside ? `<span class="flag buy" style="font-weight:700" title="${esc((d.cond_note || "Listed as " + d.upside) + ". SlaveAI says it's the original - look closely before buying.")}">💎 mislabeled bargain</span> ` : "";
   h += whyHTML(d);
   h += isSigned(d) ? '<span class="flag buy" title="Signed / autographed">✍ signed</span> ' : "";
-  if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden) && !(d.ai_verdict === "warn" && reviewedByMe(d))) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ SlaveAI checked" : d.ai_verdict === "warn" ? "⚠ SlaveAI: check it" : "✕ SlaveAI rejected"}</span> `;
+  if (d.ai_verdict && !(d.ai_verdict === "reject" && !d.hidden) && !(d.ai_verdict === "warn" && reviewedByMe(d))) h += `<span class="flag ${d.ai_verdict === "ok" ? "buy" : "sus"}" title="${esc(d.ai_reason || "")}">${d.ai_verdict === "ok" ? "✓ SlaveAI checked" : d.ai_verdict === "warn" ? "⚠ SlaveAI: " + aiWorry(d) : "✕ SlaveAI rejected"}</span> `;
   if (d.damage) h += `<span class="flag sus" title="Listing mentions '${esc(d.damage)}' - valued as Damaged">${esc(d.damage)}</span> `;
   if (d.reprint && !reviewedByMe(d)) h += /^#/.test(d.reprint)
     ? `<span class="flag sus" title="The listing doesn't say which version this is. It's valued as the one you track - if it's the ${esc(d.reprint)} instead, it isn't a deal. Check the photos.">which version? could be ${esc(d.reprint)}</span> `
@@ -2472,6 +2472,10 @@ document.addEventListener("click", e => { const a = e.target.closest && e.target
   d._graded = false; d._ngTemp = true;
   if (document.querySelector("#tab-audit.on #rvQueue")) renderAudit(); else openReview(d);
   toast("Rate it like a raw card - your condition is saved as \"not graded\".", 4000); });
+// what a SlaveAI warning is about, in a few words (its category), for the tag on the deal
+const AI_WORRY = {price: "too cheap?", verify: "can't confirm", condition: "more wear", stock: "stock photo", edition: "edition?",
+  wrongcard: "different card?", language: "foreign?", fake: "fake?", lot: "not one card?", seller: "seller"};
+function aiWorry(d){ return AI_WORRY[d.ai_category] || "see notes"; }
 function reviewHTML(d, mode){
   const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
@@ -3044,7 +3048,7 @@ function audBoard(noLoupe){
     ${hand.n ? ` <span class="mut">Verified in hand: ${hand.n} (edition right ${pctOf(hand.eOk, hand.e)}, condition exact ${pctOf(hand.cOk, hand.c)}).</span>` : ""}
     <div class="mut" style="font-size:12px">This is the number to quote. The tiles below include every review; ones you pick yourself lean toward SlaveAI's mistakes.</div></div>`;
   return honest + (noLoupe ? "" : pcBoard()) + `<div class="stats aud-stats">${tile(pctOf(a.all, a.n), `Fully right <span class="mut">(${a.all}/${a.n})</span>`, "Verdict, edition and condition all matched your call")}
-    ${tile(pctOf(a.vOk, a.v), "Verdict right", "OK / check it / reject matched what you'd have said")}
+    ${tile(pctOf(a.vOk, a.v), "Verdict right", "OK / warning / reject matched what you'd have said")}
     ${tile(pctOf(a.eOk, a.e), "Edition right", "Right vs wrong edition/card, where both of you could tell")}
     ${tile(pctOf(a.cOk, a.c) + ` <span class="mut" style="font-size:13px">${pctOf(a.c1, a.c)} within 1</span>`, "Condition exact", "Same grade as yours; 'within 1' = off by at most one grade")}
     ${tile(String(a.falseReject), "Good deals it rejected", "SlaveAI said reject, you said it was fine - deals you'd have missed")}
