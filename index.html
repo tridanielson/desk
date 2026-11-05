@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 09:14 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 09:20 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5160,7 +5160,7 @@ function importCSV(file){
   set(); if (window.ResizeObserver) new ResizeObserver(set).observe(h); window.addEventListener("resize", set); })();
 
 // ---------------------------------------------------------------- Sets (completion goals)
-const GOAL_COLS = ["set", "finish", "skip_basics", "status", "deal_pct", "notes"];
+const GOAL_COLS = ["set", "finish", "skip_basics", "status", "deal_pct", "notes", "want_cond"];   // want_cond NM: only a Near Mint copy completes a card
 const SETS = {cards: {}, loading: {}, err: {}, open: "", allSets: null, q: "", view: "need", adding: false};
 async function sfAll(q){   // every printing in a search, following Scryfall's pages
   let path = "/cards/search?unique=prints&order=set&q=" + encodeURIComponent(q), out = [];
@@ -5213,8 +5213,11 @@ function goalProgress(g){
     const price = c.prices && c.prices[pkOf(f)] != null ? +c.prices[pkOf(f)] : null;
     const cs = (conds[c.collector_number + "|" + f] || conds["n:" + k] || []).slice().sort((a, b) => COND_LIST5.indexOf(a) - COND_LIST5.indexOf(b));
     return {c, have, price, fin: f, conds: cs, best: cs[0] || ""}; }));
-  const need = rows.filter(r => !r.have);
-  return {rows, need, multi: new Set(rows.map(r => r.fin)).size > 1, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
+  // upgrade to NM: a card you only have in worse condition still counts as needed (at its NM price)
+  const wantNM = (g.want_cond || "").toUpperCase() === "NM";
+  rows.forEach(r => { r.upgrade = wantNM && r.have > 0 && r.best !== "NM"; });
+  const need = rows.filter(r => !r.have || r.upgrade);
+  return {rows, need, wantNM, multi: new Set(rows.map(r => r.fin)).size > 1, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
           unpriced: need.filter(r => r.price == null).length, owned: rows.filter(r => r.have).reduce((t, r) => t + (r.price || 0), 0)};
 }
 async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
@@ -5392,14 +5395,16 @@ function renderSetDetail(g){
   const deal = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
   const tracked = new Map(S.cards.map(x => [x.s.toLowerCase() + "|" + x.num + "|" + x.f, x]));
   const q = SETS.q.trim().toLowerCase();
+  const cf = SETS.cond || "";   // condition filter: your best copy is this condition ("none" = not owned)
   const rows = (SETS.view === "need" ? pr.need : SETS.view === "have" ? pr.rows.filter(r => r.have) : pr.rows)
-    .filter(r => !q || r.c.name.toLowerCase().includes(q)).slice().sort((a, b) => (b.price || 0) - (a.price || 0));
+    .filter(r => !q || r.c.name.toLowerCase().includes(q)).filter(r => !cf || (cf === "none" ? !r.have : r.best === cf))
+    .slice().sort((a, b) => (b.price || 0) - (a.price || 0));
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
       <h2 style="margin-top:10px">${esc(title)}${esc(goalLabel(g))}</h2>
-      <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
-      <div class="row"><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
+      <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${pr.wantNM ? " · <b>only NM copies count</b>" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
+      <div class="row"><button class="btn ${pr.wantNM ? "" : "ghost "}small" id="setNMt" title="Only a Near Mint copy completes a card - worse copies stay on the need list until you upgrade">${pr.wantNM ? "✓ Upgrading to NM" : "Upgrade to NM"}</button><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       <div class="stat"><span>Progress</span><b>${pr.have} / ${pr.total}</b><span>${pct}% complete</span></div>
       <div class="stat"><span>Still need</span><b>${pr.need.length} cards</b><span>${pr.unpriced ? pr.unpriced + " without a price" : ""}</span></div>
@@ -5408,15 +5413,16 @@ function renderSetDetail(g){
     </div><div class="bar" style="margin-bottom:14px"><span style="width:${pct}%"></span></div>
     <div class="panel row"><input id="setFind" placeholder="Search this set…" value="${esc(SETS.q)}" style="flex:1;min-width:180px">
       <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
+      <label for="setCond" class="mut" style="font-size:13px">Best copy</label><select id="setCond" title="Show cards by the condition of your best copy"><option value="">Any condition</option>${COND_LIST5.map(c => `<option value="${c}">${c}</option>`).join("")}<option value="none">Don't have</option></select>
       <label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>
       <span class="status">${rows.length} cards</span></div>
     <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable" class="desk-table"></table></div>
     <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - <b>Add &amp; Add Another</b> keeps the card filled in for the next copy (e.g. a different condition). Cards you have show <b>+ Add</b> for more copies.</p>`;
   box.innerHTML = L;
-  $("#setView").value = SETS.view;
+  $("#setView").value = SETS.view; $("#setCond").value = cf;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
@@ -5429,6 +5435,9 @@ function renderSetDetail(g){
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">No cards.</p>';
   $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
+  $("#setCond").addEventListener("input", e => { SETS.cond = e.target.value; renderSetDetail(g); });
+  $("#setNMt").addEventListener("click", () => { g.want_cond = pr.wantNM ? "" : "NM"; markDirty("collection"); renderSetDetail(g);
+    toast(pr.wantNM ? "Any condition counts again." : "Upgrade to NM: cards you only have in worse condition are back on your need list.", 5000); });
   $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g); const f = $("#setFind"); f.focus(); f.setSelectionRange(pos, pos); });
   $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
   $("#setNBt").addEventListener("click", () => { g.skip_basics = isNB ? "no" : "yes"; markDirty("collection"); loadSetCards(g); renderSetDetail(g); toast(isNB ? "Basic lands now count toward this set." : "Basic lands left out of this set."); });
