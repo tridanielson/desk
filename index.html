@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 09:20 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 10:13 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3052,7 +3052,8 @@ function wireQuick(d, q){
   $("#qkNo").addEventListener("click", () => pickPrinting(d, (fact, wrongCard) => saveReview(d, {edition: wrongCard ? "wrongcard" : "edition", condition: "unclear", back: "skip", fault: "seller", factNote: fact}, "", done)));
   // a stock photo isn't the card being sold: a fact (hidden, like Stock Photo in the full review), never a printing lesson
   $("#qkStock").addEventListener("click", () => photoProblem(d, why => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
-  $("#qkSkip").addEventListener("click", () => { if (!back) AUD.i = Math.min(q.length - 1, AUD.i + 1); onward(); });
+  // can't tell is an answer too: saved (the photos don't show enough - a fact, never a printing lesson), so it doesn't come back
+  $("#qkSkip").addEventListener("click", () => saveReview(d, {edition: "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't tell from the photos"}, "", done));
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
