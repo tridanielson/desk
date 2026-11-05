@@ -480,7 +480,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 04:25 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 05:48 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4967,25 +4967,44 @@ async function colPrints(name, r){
   const box = $("#ePrints"); if (!box) return;
   box.innerHTML = `<p class="mut" style="font-size:13px;margin:4px 0">Loading printings of ${esc(name)}…</p>`;
   try{
-    const j = await sf("/cards/search?unique=prints&order=released&dir=asc&include_extras=true&q=" + encodeURIComponent(`!"${name}" -is:digital`));
-    const prints = j.data || [];
+    // every page (basic lands have 1,000+ printings), oldest first
+    let path = "/cards/search?unique=prints&order=released&dir=asc&include_extras=true&q=" + encodeURIComponent(`!"${name}" -is:digital`), prints = [];
+    for (let i = 0; i < 12 && path; i++){
+      const j = await sf(path); prints = prints.concat(j.data || []);
+      path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : null;
+      if (path && i === 0) box.innerHTML = `<p class="mut" style="font-size:13px;margin:4px 0">Loading printings of ${esc(name)}… (lots of them)</p>`;
+    }
     if (!prints.length){ box.innerHTML = `<p class="mut" style="font-size:13px">No printings found - check the name.</p>`; return; }
     if ($("#eName").value.trim().toLowerCase() !== name.toLowerCase()) return;   // typed on since
-    box.innerHTML = `<p style="margin:4px 0 0;font-size:13px"><b>Which printing?</b> <span class="mut">${prints.length > 1 ? "Oldest first - tap the one you have." : "Only one - picked for you."}</span></p><div class="prints col-prints"></div>`;
+    const tiles = [];
+    for (const p of prints) for (const fin of p.finishes || ["nonfoil"]) tiles.push({p, fin, find: [p.set_name, p.set, p.collector_number, (p.released_at || "").slice(0, 4), fin].join(" ").toLowerCase()});
+    const many = tiles.length > 24, CAP = 120;
+    box.innerHTML = `<p style="margin:4px 0 0;font-size:13px"><b>Which printing?</b> <span class="mut">${tiles.length === 1 ? "Only one - picked for you." : `${prints.length} printings, oldest first - tap the one you have.`}</span></p>
+      ${many ? `<input id="ePrFind" type="search" placeholder="Find the set - name, code or year (e.g. Unlimited, 4ED, 1995)" autocomplete="off" style="width:100%;margin-top:6px">` : ""}
+      <div class="prints col-prints"></div><p class="mut" id="ePrMore" style="font-size:12px;margin:4px 0 0" hidden></p>`;
     const grid = box.querySelector(".prints");
-    for (const p of prints){
-      const img = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).small || "";
-      for (const fin of p.finishes || ["nonfoil"]){
+    const draw = q => {
+      const words = (q || "").toLowerCase().split(/\s+/).filter(Boolean);
+      const hit = tiles.filter(t => words.every(w => t.find.includes(w)));
+      grid.innerHTML = "";
+      hit.slice(0, CAP).forEach(({p, fin}) => {
+        const img = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).small || "";
         const price = fin === "foil" ? p.prices.usd_foil : fin === "etched" ? p.prices.usd_etched : p.prices.usd;
         const b = document.createElement("button"); b.className = "print"; b.type = "button";
         b.innerHTML = `${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}<div class="cname" style="font-size:12px">${esc(p.set_name)}</div><div class="cset">${esc(p.set.toUpperCase())} #${esc(p.collector_number)} · ${esc((p.released_at || "").slice(0, 4))}</div><div class="cset">${fin === "nonfoil" ? "Non-foil" : fin === "foil" ? "Foil" : "Etched"} · ${price ? money(+price) : "no price"}</div>`;
         b.addEventListener("click", () => { $("#eName").value = p.name; $("#eSet").value = p.set; $("#eNum").value = p.collector_number; $("#eFin").value = fin;
           r.scryfall_id = p.id; grid.querySelectorAll(".print").forEach(x => x.classList.toggle("on", x === b));
-          ($("#eQty") || $("#eCost")).focus(); ($("#eQty") || {}).select && $("#eQty").select(); });
+          const q2 = $("#eQty") || $("#eCost"); q2.focus(); if (q2.select) q2.select(); });
         grid.appendChild(b);
-      }
-    }
-    if (grid.children.length === 1) grid.firstChild.click();
+      });
+      const more = $("#ePrMore"); more.hidden = hit.length <= CAP && !(words.length && !hit.length);
+      more.textContent = !hit.length ? "No printing matches - try the set's name, its code, or the year." : `Showing ${CAP} of ${hit.length} - type the set to narrow it down.`;
+    };
+    draw("");
+    const f = $("#ePrFind");
+    if (f){ f.addEventListener("input", () => draw(f.value)); f.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); e.stopPropagation(); const one = grid.querySelectorAll(".print"); if (one.length === 1) one[0].click(); } });
+      f.focus(); }
+    if (tiles.length === 1) grid.firstChild.click();
   }catch{ box.innerHTML = `<p class="mut" style="font-size:13px">Couldn't reach Scryfall - type the set code and number instead.</p>`; }
 }
 function openColEdit(id, pre){
