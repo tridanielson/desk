@@ -312,6 +312,8 @@ select option{background:var(--panel);color:var(--ink)}
 .cv-views{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
 tr.cv-bulk td{background:var(--soft)}
 tr.cv-lot td{background:var(--soft);font-size:13px}
+.cv-wait>summary{cursor:pointer;list-style:none}.cv-wait>summary::-webkit-details-marker{display:none}
+.cv-wait>summary::before{content:"▸";display:inline-block;width:16px;color:var(--muted);transition:transform .15s}.cv-wait[open]>summary::before{transform:rotate(90deg)}
 #colBinder{display:none}.is-binder #colBinder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 14px}
 .is-binder #colTiles,.is-binder #colTable{display:none!important}
 .pocket{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}.pocket:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:9px}
@@ -4692,11 +4694,13 @@ function renderColWaiting(){
   const sl = (SL.orders && SL.orders.lines || []).filter(l => !l.dead && /shipped|delivered/i.test(l.status) && !isReceived(l));
   if (!ebay.length && !sl.length){ box.innerHTML = ""; return; }
   const row = (name, sub, btn) => `<div class="bdl-row"><span><b>${esc(name)}</b> <span class="mut">${sub}</span></span><span style="margin-left:auto;white-space:nowrap">${btn}</span></div>`;
-  box.innerHTML = `<div class="panel" style="border-left:4px solid #d08a2c"><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span>
+  // folds up (tap the title); remembered on this device
+  box.innerHTML = `<details class="panel cv-wait" style="border-left:4px solid #d08a2c"${store.get("pd_wait_closed") === "1" ? "" : " open"}><summary><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span></summary>
     <div class="bdl-list" style="margin-top:8px;max-height:320px;overflow:auto">
       ${ebay.map(i => row(i.name, `${esc(i.set)} · ${esc(i.condition)} · eBay buy · paid ${money(i.cost_each)}${i.acquired ? " · " + esc(i.acquired) : ""}`, `<span class="btn small" role="button" data-recv="${esc(i.id)}">Mark Received</span>`)).join("")}
       ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
-    </div></div>`;
+    </div></details>`;
+  box.querySelector("details").addEventListener("toggle", e => store.set("pd_wait_closed", e.target.open ? "0" : "1"));
 }
 document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-colmark]"); if (!b) return; e.preventDefault(); markReceived(b.dataset.colmark); setTimeout(renderCOL, 50); });
 function renderCOLList(){
