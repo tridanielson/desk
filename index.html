@@ -497,7 +497,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:37 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:40 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3864,7 +3864,8 @@ function renderSLDetail(){
   if (d.cards.length){
     L += `<h3 style="font-size:16px;margin:8px 0 10px">Cards (${d.cards.length})</h3><div class="sl-cards">` + d.cards.map(c => `<figure>
       <img src="${esc(sfImg(c.sid, "large"))}" data-full="${esc(sfImg(c.sid, "png"))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
-      <figcaption><b>${esc(c.n)}</b> <span class="mut">#${esc(c.num)}</span><br>Non-foil ${money(c.usd)} · Foil ${money(c.usdf)}<br>
+      <figcaption>${c.fl && c.fl !== c.n ? `<b>${esc(c.fl)}</b><br><span class="mut">${esc(c.n)}</span>` : `<b>${esc(c.n)}</b>`} <span class="mut">#${esc(c.num)}</span><br>Non-foil ${money(c.usd)} · Foil ${money(c.usdf)}<br>
+      ${"avg_usd" in c || "avg_usdf" in c ? `<span class="sl-singles" title="Average price of this card's other printings - a guide to what the Secret Lair version may be worth">Singles avg: ${c.avg_usd != null ? `<b>${money(c.avg_usd)}</b> non-foil <span class="mut">(${c.n_nf})</span>` : '<span class="mut">no non-foil price</span>'} · ${c.avg_usdf != null ? `<b>${money(c.avg_usdf)}</b> foil <span class="mut">(${c.n_f})</span>` : '<span class="mut">no foil price</span>'}</span><br>` : ""}
       ${c.u ? `<a href="${esc(c.u)}" target="_blank" rel="noopener">Scryfall</a>` : ""}${c.tcg ? ` · <a href="${esc(c.tcg)}" target="_blank" rel="noopener">TCGplayer</a>` : ""}${c.art ? ` · <span class="mut">${esc(c.art)}</span>` : ""}</figcaption></figure>`).join("") + "</div>";
   } else if (!myB.length) L += `<p class="mut">${/bundle/i.test(d.name) ? "This is a bundle - its cards are listed on each drop inside it." : "Card list not published yet - it appears once the cards are previewed."}</p>`;
   if (st.length){
