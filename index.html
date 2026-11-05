@@ -480,7 +480,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 05:58 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 06:03 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4948,7 +4948,7 @@ function colFastAdd(r){
     if (q.length < 2){ ul.hidden = true; return; }
     const starts = local.filter(n => n.toLowerCase().startsWith(q)), has = local.filter(n => !n.toLowerCase().startsWith(q) && n.toLowerCase().includes(q));
     show(starts.concat(has)); const mine = ++seq;
-    timer = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?q=" + encodeURIComponent(q)); if (mine !== seq) return;
+    timer = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?include_extras=true&q=" + encodeURIComponent(q)); if (mine !== seq) return;   // tokens and emblems too
       show(starts.concat(has, (j.data || []).filter(x => typeof x === "string"))); }catch{} }, 90); });
   ul.addEventListener("mousedown", e => { const li = e.target.closest("li"); if (li){ e.preventDefault(); pick(li.textContent); } });
   inp.addEventListener("keydown", e => { const lis = [...ul.querySelectorAll("li")];
