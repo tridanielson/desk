@@ -493,7 +493,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 06:40 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 06:47 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4745,7 +4745,8 @@ function renderCOLList(){
     return tile(i, false) + (isOpen ? i.lots.map(l => tile(l, true)).join("") : ""); }).join("")
     + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
     || '<p class="empty">Nothing here yet.</p>';
-  if (COL.layout === "binder") $("#colBinder").innerHTML = colBinderHTML(show, bulk);
+  // the binder holds singles only - sealed product lives on the Sealed tab (and in the List view)
+  if (COL.layout === "binder") $("#colBinder").innerHTML = colBinderHTML(show.map((i, k) => Object.assign({}, i, {_k: k})).filter(i => i.kind === "card"), bulk);
   document.querySelectorAll("#colBinder [data-pocket]").forEach(b => b.addEventListener("click", () => openPocket(show[+b.dataset.pocket])));
   document.querySelectorAll("#colBody [data-cgrp]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.cgrp; open.has(k) ? open.delete(k) : open.add(k); renderCOLList(); }));
   document.querySelectorAll("#colBody [data-showbulk]").forEach(b => b.addEventListener("click", () => { COL.showBulk = true; COL.limit = 100000; renderCOLList(); }));
@@ -4773,7 +4774,7 @@ const COND_BADGE = {NM: ["#ece6dc", "#1b120a"], LP: ["#c9d6e2", "#1b120a"], MP: 
 const cardImg = i => i.sid ? `https://cards.scryfall.io/normal/front/${i.sid[0]}/${i.sid[1]}/${i.sid}.jpg`
   : i.set && i.number ? `https://api.scryfall.com/cards/${encodeURIComponent(i.set.toLowerCase())}/${encodeURIComponent(i.number)}?format=image&version=normal` : "";
 function colBinderHTML(show, bulk){
-  const pocket = (i, k) => { const c = (i.condition || "NM").toUpperCase(), [bg, fg] = COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
+  const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.condition || "NM").toUpperCase(), [bg, fg] = COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
     return `<button type="button" class="pocket" data-pocket="${k}" title="${esc(i.name)}">
       <span class="pk-card">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
         ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
