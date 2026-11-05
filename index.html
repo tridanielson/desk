@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 11:57 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 12:01 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4931,7 +4931,9 @@ async function openReceiveCheck(r){
 function addedNote(text){
   let box = $("#addedSoFar"); const h = $("#colModalBody h3");
   if (!box){ box = document.createElement("div"); box.id = "addedSoFar"; box.className = "added-so-far"; h.insertAdjacentElement("afterend", box); }
-  box.insertAdjacentHTML("beforeend", `<div>✓ Added ${esc(text)}</div>`);
+  // one line: the last card added, plus how many so far (Recently Added on My Cards lists them all)
+  const n = (+box.dataset.n || 0) + 1; box.dataset.n = n;
+  box.innerHTML = `<div>✓ Added ${esc(text)}</div>${n > 1 ? `<div class="mut" style="font-size:12px;font-weight:400">${n} added this time - see them all under Recently Added</div>` : ""}`;
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
   $("#colModal").scrollTop = 0;
 }
