@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 06:47 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 07:00 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4694,8 +4694,8 @@ function renderColWaiting(){
   const sl = (SL.orders && SL.orders.lines || []).filter(l => !l.dead && /shipped|delivered/i.test(l.status) && !isReceived(l));
   if (!ebay.length && !sl.length){ box.innerHTML = ""; return; }
   const row = (name, sub, btn) => `<div class="bdl-row"><span><b>${esc(name)}</b> <span class="mut">${sub}</span></span><span style="margin-left:auto;white-space:nowrap">${btn}</span></div>`;
-  // folds up (tap the title); remembered on this device
-  box.innerHTML = `<details class="panel cv-wait" style="border-left:4px solid #d08a2c"${store.get("pd_wait_closed") === "1" ? "" : " open"}><summary><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span></summary>
+  // starts folded (tap the title to open); remembered on this device
+  box.innerHTML = `<details class="panel cv-wait" style="border-left:4px solid #d08a2c"${store.get("pd_wait_closed") === "0" ? " open" : ""}><summary><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span></summary>
     <div class="bdl-list" style="margin-top:8px;max-height:320px;overflow:auto">
       ${ebay.map(i => row(i.name, `${esc(i.set)} · ${esc(i.condition)} · eBay buy · paid ${money(i.cost_each)}${i.acquired ? " · " + esc(i.acquired) : ""}`, `<span class="btn small" role="button" data-recv="${esc(i.id)}">Mark Received</span>`)).join("")}
       ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
