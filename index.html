@@ -510,7 +510,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:46 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 04:24 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5066,7 +5066,9 @@ function colFastAdd(r){
     const starts = local.filter(n => n.toLowerCase().startsWith(q)), has = local.filter(n => !n.toLowerCase().startsWith(q) && n.toLowerCase().includes(q));
     show(starts.concat(has)); const mine = ++seq;
     timer = setTimeout(async () => { try{ const j = await sf("/cards/autocomplete?include_extras=true&q=" + encodeURIComponent(q)); if (mine !== seq) return;   // tokens and emblems too
-      show(starts.concat(has, (j.data || []).filter(x => typeof x === "string"))); }catch{} }, 90); });
+      let found = (j.data || []).filter(x => typeof x === "string");
+      if (!found.length && q.length >= 4){ try{ const fz = await sf("/cards/named?fuzzy=" + encodeURIComponent(q)); if (mine !== seq) return; if (fz && fz.name) found = [fz.name]; }catch{} }   // a foreign name (Kavu Furens -> Raging Kavu)
+      show(starts.concat(has, found)); }catch{} }, 90); });
   ul.addEventListener("mousedown", e => { const li = e.target.closest("li"); if (li){ e.preventDefault(); pick(li.textContent); } });
   inp.addEventListener("keydown", e => { const lis = [...ul.querySelectorAll("li")];
     if (e.key === "Enter"){ e.preventDefault(); if (!ul.hidden && lis[idx]) pick(lis[idx].textContent); else if (inp.value.trim()) colPrints(inp.value.trim(), r); return; }
@@ -5104,7 +5106,7 @@ async function colPrints(name, r){
   let path = "/cards/search?unique=prints&order=released&dir=asc&include_extras=true&q=" + encodeURIComponent(`!"${name}" -is:digital`);
   const tiles = [], CAP = 24; let total = 0, done = false, grid, f, more;
   const stale = () => my !== colPrints.seq || !document.body.contains(box) || $("#eName").value.trim().toLowerCase() !== name.toLowerCase();
-  const add = prints => { for (const p of prints) for (const fin of p.finishes || ["nonfoil"]) tiles.push({p, fin, find: [p.set_name, p.set, p.collector_number, (p.released_at || "").slice(0, 4), fin].join(" ").toLowerCase()}); };
+  const add = prints => { for (const p of prints) for (const fin of p.finishes || ["nonfoil"]) tiles.push({p, fin, find: [p.set_name, p.set, p.collector_number, (p.released_at || "").slice(0, 4), fin, p.lang !== "en" ? langName(p.lang) + " " + (p.printed_name || "") : ""].join(" ").toLowerCase()}); };
   const draw = () => {
     const words = (f ? f.value : "").toLowerCase().split(/\s+/).filter(Boolean);
     const hit = tiles.filter(t => words.every(w => t.find.includes(w)));
@@ -5114,10 +5116,11 @@ async function colPrints(name, r){
       const img = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).small || "";
       const price = fin === "foil" ? p.prices.usd_foil : fin === "etched" ? p.prices.usd_etched : p.prices.usd;
       const b = document.createElement("button"); b.className = "print" + (picked === p.id + fin ? " on" : ""); b.type = "button"; b.dataset.k = p.id + fin;
-      b.innerHTML = `${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}<div class="cname" style="font-size:12px">${esc(p.set_name)}</div><div class="cset">${esc(p.set.toUpperCase())} #${esc(p.collector_number)} · ${esc((p.released_at || "").slice(0, 4))}</div><div class="cset">${fin === "nonfoil" ? "Non-foil" : fin === "foil" ? "Foil" : "Etched"} · ${price ? money(+price) : "no price"}</div>`;
+      b.innerHTML = `${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}<div class="cname" style="font-size:12px">${esc(p.set_name)}${p.lang && p.lang !== "en" ? ` <span class="mut">· ${esc(langName(p.lang))} only</span>` : ""}</div><div class="cset">${esc(p.set.toUpperCase())} #${esc(p.collector_number)} · ${esc((p.released_at || "").slice(0, 4))}</div><div class="cset">${fin === "nonfoil" ? "Non-foil" : fin === "foil" ? "Foil" : "Etched"} · ${price ? money(+price) : "no price"}</div>`;
       const big = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).normal;
       if (big){ b.addEventListener("mouseenter", () => prPopShow(b, big)); b.addEventListener("mouseleave", prPopHide); }
       b.addEventListener("click", () => { prPopHide(); $("#eName").value = p.name; $("#eSet").value = p.set; $("#eNum").value = p.collector_number; $("#eFin").value = fin;
+        if (p.lang && $("#eLang")){ const lg = p.lang.toUpperCase(); if (![...$("#eLang").options].some(o => o.value === lg)) $("#eLang").insertAdjacentHTML("beforeend", `<option value="${esc(lg)}">${esc(lg)}</option>`); $("#eLang").value = lg; }
         r.scryfall_id = p.id; grid.querySelectorAll(".print").forEach(x => x.classList.toggle("on", x === b));
         const q2 = $("#eQty") || $("#eCost"); q2.focus(); if (q2.select) q2.select(); });
       grid.appendChild(b);
@@ -5147,6 +5150,13 @@ async function colPrints(name, r){
       add(j.data || []); all.push(...(j.data || [])); path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : null;
       done = !path; draw();
     }
+    // printings that only exist in another language (e.g. Invasion's Latin prerelease Kavu Furens = Raging Kavu)
+    try{ const en = new Set(all.map(p => p.set + "#" + p.collector_number)); let fp = "/cards/search?unique=prints&include_multilingual=true&include_extras=true&q=" + encodeURIComponent(`!"${name}" -lang:en -is:digital`);
+      for (let i = 0; i < 3 && fp; i++){ const jf = await sf(fp); if (stale()) return;
+        const only = (jf.data || []).filter(p => !en.has(p.set + "#" + p.collector_number)); only.forEach(p => en.add(p.set + "#" + p.collector_number));
+        if (only.length){ add(only); all.push(...only); total += only.length; }
+        fp = jf.has_more && jf.next_page ? jf.next_page.replace("https://api.scryfall.com", "") : null; }
+    }catch{}
     done = true; draw(); cache[ck] = all;
   }catch{ if (!stale()) box.innerHTML = tiles.length ? box.innerHTML : `<p class="mut" style="font-size:13px">Couldn't reach Scryfall - type the set code and number instead.</p>`; }
 }
