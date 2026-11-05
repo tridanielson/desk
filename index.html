@@ -510,7 +510,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:32 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:46 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3780,15 +3780,16 @@ function slStatusBadge(d){
   return '<span class="badge b-out">PAST</span>';
 }
 function slMins(m){ return m < 90 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} hr` : `${Math.round(m / 1440)} days`; }
-function slCardFig(c){ return `<figure>
-      <img src="${esc(sfImg(c.sid || c.img, "large", c.rev && SL.flip ? "back" : ""))}" data-full="${esc(sfImg(c.sid || c.img, "png", c.rev && SL.flip ? "back" : ""))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
-      <figcaption>${c.qty > 1 ? `<b>${c.qty}× </b>` : ""}${c.fl && c.fl !== c.n ? `<b>${esc(c.fl)}</b><br><span class="mut">${esc(c.n)}</span>` : `<b>${esc(c.n)}</b>`}${c.num ? ` <span class="mut">#${esc(c.num)}</span>` : ""}<br>${c.soon ? `<span class="mut" style="font-size:12px">Secret Lair art not out yet${c.img ? " - an older printing shown" : ""}</span>` : `Non-foil ${money(c.usd)} · Foil ${money(c.usdf)}`}<br>
+function slCardFig(c){ const wz = c.wimg ? (c.rev && SL.flip && c.wback ? c.wback : c.wimg) : "";   // Wizards' picture until Scryfall has the card
+  return `<figure>
+      <img src="${esc(wz || sfImg(c.sid || c.img, "large", c.rev && SL.flip ? "back" : ""))}" data-full="${esc(wz || sfImg(c.sid || c.img, "png", c.rev && SL.flip ? "back" : ""))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
+      <figcaption>${c.qty > 1 ? `<b>${c.qty}× </b>` : ""}${c.fl && c.fl !== c.n ? `<b>${esc(c.fl)}</b><br><span class="mut">${esc(c.n)}</span>` : `<b>${esc(c.n)}</b>`}${c.num ? ` <span class="mut">#${esc(c.num)}</span>` : ""}<br>${c.soon ? `<span class="mut" style="font-size:12px">${c.wimg ? "Not on Scryfall yet - picture from Wizards' announcement" : "Secret Lair art not out yet" + (c.img ? " - an older printing shown" : "")}</span>` : `Non-foil ${money(c.usd)} · Foil ${money(c.usdf)}`}<br>
       ${"avg_usd" in c || "avg_usdf" in c ? `<span class="sl-singles" title="Average price of this card's other printings - a guide to what the Secret Lair version may be worth">Singles avg: ${c.avg_usd != null ? `<b>${money(c.avg_usd)}</b> non-foil <span class="mut">(${c.n_nf})</span>` : '<span class="mut">no non-foil price</span>'} · ${c.avg_usdf != null ? `<b>${money(c.avg_usdf)}</b> foil <span class="mut">(${c.n_f})</span>` : '<span class="mut">no foil price</span>'}</span><br>` : ""}
       ${c.u ? `<a href="${esc(c.u)}" target="_blank" rel="noopener">Scryfall</a>` : ""}${c.tcg ? ` · <a href="${esc(c.tcg)}" target="_blank" rel="noopener">TCGplayer</a>` : ""}${c.art ? ` · <span class="mut">${esc(c.art)}</span>` : ""}</figcaption></figure>`; }
 function slCover(d){
   if (d.parts && d.parts.length && !(d.teaser && d.teaser.length) && !(d.store || []).some(p => p.images && p.images.length)){
     const all = (SL.data && SL.data.drops) || []; for (const k of d.parts){ const x = all.find(y => y.key === k); const cv = x && !x.parts ? slCover(x) : null; if (cv && cv.src) return cv; } }
-  const c = d.cards && d.cards[0]; if (c && (c.sid || c.img)) return {src: sfImg(c.sid || c.img, "normal"), wide: false};
+  const c = d.cards && d.cards[0]; if (c && (c.wimg || c.sid || c.img)) return {src: c.wimg || sfImg(c.sid || c.img, "normal"), wide: false};
   const st = (d.store || []).find(p => p.images && p.images.length); if (st) return {src: st.images[0], wide: true};
   return d.teaser && d.teaser.length ? {src: d.teaser[0], wide: true} : {src: "", wide: false};   // Coming Soon teaser (store homepage or your Picture)
 }
@@ -4095,7 +4096,7 @@ function bundleListHTML(l){
 function peekHTML(key){
   const d = ((SL.data && SL.data.drops) || []).find(x => x.key === key); if (!d) return "";
   const cards = d.cards.slice(0, 10);
-  return `<b>${esc(d.name)}</b>${cards.length ? `<div class="peek-cards">${cards.map(c => `<img src="${esc(sfImg(c.sid || c.img, "small"))}" alt="${esc(c.n)}" title="${esc(c.n)}" loading="lazy">`).join("")}</div>${d.cards.length > 10 ? `<div class="mut" style="font-size:11px">+${d.cards.length - 10} more</div>` : ""}` : '<div class="mut" style="font-size:12px">Card list not published yet.</div>'}`;
+  return `<b>${esc(d.name)}</b>${cards.length ? `<div class="peek-cards">${cards.map(c => `<img src="${esc(c.wimg || sfImg(c.sid || c.img, "small"))}" alt="${esc(c.n)}" title="${esc(c.n)}" loading="lazy">`).join("")}</div>${d.cards.length > 10 ? `<div class="mut" style="font-size:11px">+${d.cards.length - 10} more</div>` : ""}` : '<div class="mut" style="font-size:12px">Card list not published yet.</div>'}`;
 }
 function showPeek(key, x, y){
   let p = $("#cardPeek"); if (!p){ p = document.createElement("div"); p.id = "cardPeek"; document.body.appendChild(p); }
