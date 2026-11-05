@@ -510,7 +510,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:16 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:29 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3758,6 +3758,7 @@ const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", dat
 const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image"];
 function openSL(key){   // open a drop; remember where the list was so ← All Secret Lairs comes back to the same spot
   if (!SL.detail) SL.listY = window.scrollY;
+  else { const cur = ((SL.data && SL.data.drops) || []).find(x => x.key === SL.detail); if (cur && cur.parts && cur.parts.includes(key)) SL.supY = window.scrollY; }
   SL.detail = key; renderSL(); window.scrollTo(0, 0);
 }
 const sfImg = (sid, size) => sid ? `https://cards.scryfall.io/${size || "large"}/front/${sid[0]}/${sid[1]}/${sid}.${size === "png" ? "png" : "jpg"}` : "";
@@ -3874,7 +3875,8 @@ function renderSLDetail(){
   if (!d){ SL.detail = null; renderSL(); return; }
   const st = d.store || [], cd = slCountdown(d.on_sale_at);
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
-  let L = `<button class="btn ghost small" id="slBack">← All Secret Lairs</button>
+  const up = ((SL.data && SL.data.drops) || []).find(x => x.parts && x.parts.includes(d.key));   // a drop inside a superdrop goes back to it
+  let L = `<button class="btn ghost small" id="slBack">← ${up ? esc(up.name) : "All Secret Lairs"}</button>
     <div style="margin:14px 0 6px"><h2 style="margin:0">${esc(d.name)}</h2>${(d.promo && d.promo.length) || d.promo_text ? `<div class="mut" style="font-size:13px">🎁 ${d.promo_text ? esc(d.promo_text) : "Promo: <b>" + d.promo.map(c => esc(c.fl ? c.fl + " (" + c.n + ")" : c.n)).join(", ") + "</b>"}</div>` : ""}${d.announced ? `<div style="font-size:13px"><a href="${esc(d.announced)}" target="_blank" rel="noopener">Wizards' announcement ↗</a></div>` : ""}<div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 18px">
       ${stat("On Sale", esc(slDate(d, true)) + (cd ? `<div class="sl-count">${cd}</div>` : ""))}
@@ -3916,7 +3918,8 @@ function renderSLDetail(){
     if (imgs.length) L += `<div class="sl-store-imgs">${imgs.map(u => `<img src="${esc(u)}" data-full="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`).join("")}</div>`;
   }
   box.innerHTML = L;
-  $("#slBack").addEventListener("click", () => { SL.detail = null; renderSL(); const y = SL.listY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); });
+  $("#slBack").addEventListener("click", () => { if (up){ SL.detail = up.key; renderSL(); const y = SL.supY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); return; }
+    SL.detail = null; renderSL(); const y = SL.listY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); });
   box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); openSL(el.dataset.sl); }));
   box.querySelectorAll("[data-bdrop]").forEach(r => r.addEventListener("click", () => { if (r.dataset.bdrop){ openSL(r.dataset.bdrop); } }));
   if ($("#slToSealed")) $("#slToSealed").addEventListener("click", e => { e.preventDefault(); SD.q = d.name.replace(/^Secret Lair (x )?/i, "").slice(0, 40); SD.status = "sealed"; switchTab("sealed"); });
