@@ -510,7 +510,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 09:53 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:16 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5329,7 +5329,7 @@ function diceDieHTML(d, have){
   const on = have.has(d.id), r = have.get(d.id), qty = r ? parseInt(r.qty) || 1 : 0;
   const k = d.kind || (d.num ? "#" + d.num : "");
   return `<button class="dc-die${on ? " on" : ""}" type="button" data-die="${esc(d.id)}" ${READONLY ? "disabled" : ""} title="${esc((d.kind ? d.kind + " · " : "") + (d.look || "") + (on ? " · you have " + qty : " · tap if you have it"))}">
-    <span class="ck">${qty > 1 ? qty : "✓"}</span><img src="${esc(d.img)}" data-big="${esc(d.big)}" alt="${esc(d.set + " " + k)}" loading="lazy" onerror="this.style.visibility='hidden'">
+    <span class="ck">${qty > 1 ? qty : "✓"}</span><img src="${esc(d.img)}" referrerpolicy="no-referrer" data-big="${esc(d.big)}" alt="${esc(d.set + " " + k)}" loading="lazy" onerror="this.style.visibility='hidden'">
     <div class="k">${esc(k)}${d.recolor ? " · recolor" : ""}</div></button>`;
 }
 function renderDICE(){
@@ -5342,7 +5342,7 @@ function renderDICE(){
   const nHave = all.filter(d => have.has(d.id)).length, bySet = new Map(); all.forEach(d => bySet.set(d.set, (bySet.get(d.set) || []).concat(d)));
   const done = [...bySet.values()].filter(ds => ds.every(d => have.has(d.id))).length;
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Spindown Dice</h2>
-    <p class="sub" style="margin:0">${READONLY ? "Every Magic spindown life counter." : "Every Magic spindown life counter. Tap a die you have; tap again to undo."} Pictures and list from <a href="${esc(DICE.cat.source || "https://www.dicecollector.com")}" target="_blank" rel="noopener">dicecollector.com</a>.</p></div></div>
+    <p class="sub" style="margin:0">${READONLY ? "Every Magic spindown life counter." : "Every Magic spindown life counter. Tap a die you have; tap again to undo."} Pictures and list courtesy of <a href="${esc(DICE.cat.source || "https://www.dicecollector.com")}" target="_blank" rel="noopener">dicecollector.com</a>.</p></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 14px">
       <div class="stat"><span>You have</span><b>${nHave} <span class="mut" style="font-size:14px;font-weight:500">of ${all.length}</span></b></div>
       <div class="stat"><span>Complete sets</span><b>${done} <span class="mut" style="font-size:14px;font-weight:500">of ${bySet.size}</span></b></div></div>
@@ -5370,7 +5370,7 @@ function wireDice(box){
     b.addEventListener("pointerenter", e => { if (e.pointerType === "mouse" && matchMedia("(hover: hover)").matches) dicePop(b); });
     b.addEventListener("pointerleave", () => dicePopHide());
     b.addEventListener("pointerdown", e => { if (e.pointerType === "mouse") return; clearTimeout(press);
-      press = setTimeout(() => { longDone = true; const i = b.querySelector("img"); $("#lightboxImg").src = i.dataset.big; $("#lightbox").classList.add("on"); }, 500); });
+      press = setTimeout(() => { longDone = true; const i = b.querySelector("img"); $("#lightboxImg").referrerPolicy = "no-referrer"; $("#lightboxImg").src = i.dataset.big; $("#lightbox").classList.add("on"); }, 500); });
     ["pointerup", "pointercancel", "pointermove"].forEach(ev => b.addEventListener(ev, e => { if (ev !== "pointermove" || Math.abs(e.movementX) + Math.abs(e.movementY) > 6) clearTimeout(press); }));
     b.addEventListener("contextmenu", e => { if (e.pointerType !== "mouse") e.preventDefault(); });
   });
@@ -5384,7 +5384,7 @@ function toggleDie(id){
   const y = window.scrollY; renderDICE(); window.scrollTo(0, y);   // same spot - nothing jumps
 }
 function dicePop(el){
-  let pop = $("#dcPop"); if (!pop){ pop = document.createElement("div"); pop.id = "dcPop"; pop.innerHTML = '<img alt=""><div></div>'; document.body.appendChild(pop); }
+  let pop = $("#dcPop"); if (!pop){ pop = document.createElement("div"); pop.id = "dcPop"; pop.innerHTML = '<img alt="" referrerpolicy="no-referrer"><div></div>'; document.body.appendChild(pop); }
   const i = el.querySelector("img"), r = el.getBoundingClientRect(), W = 300, H = 330, gap = 10;
   let x = r.right + gap; if (x + W > innerWidth - 8) x = r.left - gap - W; if (x < 8) x = 8;
   const y = Math.max(8, Math.min(innerHeight - H - 8, r.top + r.height / 2 - H / 2));
