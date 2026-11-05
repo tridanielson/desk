@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 07:04 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 09:14 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4772,6 +4772,9 @@ function colChangeVal(i){
   return null;
 }
 function colChangeSum(lots){ const v = lots.map(colChangeVal).filter(x => x != null); return v.length ? gainHTML(Math.round(v.reduce((t, x) => t + x, 0) * 100) / 100) : '<span class="mut">new</span>'; }
+const COND_LIST5 = ["NM", "LP", "MP", "HP", "DMG"];
+// "1 LP, 1 MP"
+const condSummary = cs => { const n = {}; (cs || []).forEach(c => n[c] = (n[c] || 0) + 1); return Object.entries(n).sort((a, b) => COND_LIST5.indexOf(a[0]) - COND_LIST5.indexOf(b[0])).map(([c, k]) => k + " " + c).join(", "); };
 // ---- Binder view: each card a pocket with its picture; one pocket per condition; Bulk is the last pocket
 const COND_BADGE = {NM: ["#ece6dc", "#1b120a"], LP: ["#c9d6e2", "#1b120a"], MP: ["#e0a24a", "#1b120a"], HP: ["#e07b5a", "#1b120a"], DMG: ["#b0574a", "#fff"]};
 const cardImg = i => i.sid ? `https://cards.scryfall.io/normal/front/${i.sid[0]}/${i.sid[1]}/${i.sid}.jpg`
@@ -5198,15 +5201,18 @@ function goalProgress(g){
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
   const fins = goalFins(g), code = g.set.toLowerCase();
   const left = new Map(colItems().filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));
-  const byNum = {}, byName = {};
+  const byNum = {}, byName = {}, conds = {};   // conds: the condition of every copy you hold, per printing+finish
   COL.inv.forEach(r => { const n = left.get(r.id), f = r.finish || "nonfoil"; if (!n || (r.set || "").toLowerCase() !== code || !fins.includes(f)) return;
+    const ck = r.number ? r.number + "|" + f : "n:" + (r.name || "").toLowerCase() + "|" + f;
+    (conds[ck] = conds[ck] || []).push(...Array(n).fill((r.condition || "NM").toUpperCase()));
     if (r.number) byNum[r.number + "|" + f] = (byNum[r.number + "|" + f] || 0) + n; else { const k = (r.name || "").toLowerCase() + "|" + f; byName[k] = (byName[k] || 0) + n; } });
   const pool = Object.assign({}, byName), pkOf = f => f === "foil" ? "usd_foil" : f === "etched" ? "usd_etched" : "usd";
   // every version: one row per card per finish it was actually made in (a foil-only card is never "needed" in non-foil)
   const rows = cards.flatMap(c => fins.filter(f => (c.finishes || ["nonfoil"]).includes(f)).map(f => { let have = byNum[c.collector_number + "|" + f] || 0; const k = c.name.toLowerCase() + "|" + f;
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
     const price = c.prices && c.prices[pkOf(f)] != null ? +c.prices[pkOf(f)] : null;
-    return {c, have, price, fin: f}; }));
+    const cs = (conds[c.collector_number + "|" + f] || conds["n:" + k] || []).slice().sort((a, b) => COND_LIST5.indexOf(a) - COND_LIST5.indexOf(b));
+    return {c, have, price, fin: f, conds: cs, best: cs[0] || ""}; }));
   const need = rows.filter(r => !r.have);
   return {rows, need, multi: new Set(rows.map(r => r.fin)).size > 1, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
           unpriced: need.filter(r => r.price == null).length, owned: rows.filter(r => r.have).reduce((t, r) => t + (r.price || 0), 0)};
@@ -5410,7 +5416,7 @@ function renderSetDetail(g){
   $("#setView").value = SETS.view;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `<span class="badge b-on">HAVE${r.have > 1 ? " ×" + r.have : ""}</span> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+  const act = r => r.have ? `<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
