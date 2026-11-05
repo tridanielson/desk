@@ -497,7 +497,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:40 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:54 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3749,7 +3749,7 @@ function slCountdown(v){
   if (!v) return ""; const ms = new Date(v) - Date.now(); if (ms <= 0) return "";
   const h = ms / 36e5; return h < 1 ? `in ${Math.max(1, Math.round(ms / 6e4))} min` : h < 36 ? `in ${Math.round(h)} hours` : `in ${Math.round(h / 24)} days`;
 }
-const SRC = {store: "official store", you: "your list", scryfall: "card database"};
+const SRC = {store: "official store", you: "your list", scryfall: "card database", wizards: "Wizards announcement"};
 function slStatusBadge(d){
   if (d.status === "upcoming") return '<span class="badge b-up">UPCOMING</span>';
   if (d.status === "on sale") return '<span class="badge b-on">ON SALE</span>';
@@ -3783,7 +3783,13 @@ function renderSL(){
   if (SL.editing) L += slEditorHTML();
   if (SL.orders && !READONLY) L += slOrdersHTML();
   L += `<h3 style="margin:18px 0 10px;font-size:16px">Upcoming</h3>`;
-  L += up.length ? `<div class="sl-grid">${up.map(slCardHTML).join("")}</div>` : '<p class="mut">No upcoming drops known yet.</p>';
+  // drops of one superdrop together, under its name, with its promo / bonus card
+  if (!up.length) L += '<p class="mut">No upcoming drops known yet.</p>';
+  else { const groups = []; up.forEach(d => { const k = d.superdrop || ""; let g = k && groups.find(x => x.k === k); if (!g){ g = {k, drops: []}; groups.push(g); } g.drops.push(d); });
+    groups.forEach(g => { const pd = g.drops.find(d => d.promo_text || (d.promo && d.promo.length));
+      if (g.k && g.drops.length > 1) L += `<div style="margin:6px 0 8px"><b style="font-size:15px">${esc(g.k)}</b> <span class="mut" style="font-size:13px">· ${g.drops.length} drops you can buy${g.drops[0].on_sale_at ? " · " + esc(slDate(g.drops[0])) : ""}</span>
+        ${pd ? `<div class="mut" style="font-size:13px">🎁 ${pd.promo && pd.promo.length ? "Promo: <b>" + pd.promo.map(c => esc(c.fl ? c.fl + " (" + c.n + ")" : c.n)).join(", ") + "</b>" : ""}${pd.promo_text ? (pd.promo && pd.promo.length ? " - " : "") + esc(pd.promo_text) : ""}</div>` : ""}</div>`;
+      L += `<div class="sl-grid" style="margin-bottom:14px">${g.drops.map(slCardHTML).join("")}</div>`; }); }
   L += `<h3 style="margin:26px 0 10px;font-size:16px">All Drops</h3>
     <div class="panel row"><input id="slQ" placeholder="Search drops or cards…" value="${esc(SL.q)}" style="flex:1;min-width:180px">
       <select id="slStatus"><option value="">All</option><option value="on sale">On Sale Now</option><option value="sold out">Sold Out</option><option value="past">Past</option><option value="upcoming">Upcoming</option></select>
@@ -3843,7 +3849,7 @@ function renderSLDetail(){
   const st = d.store || [], cd = slCountdown(d.on_sale_at);
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   let L = `<button class="btn ghost small" id="slBack">← All Secret Lairs</button>
-    <div style="margin:14px 0 6px"><h2 style="margin:0">${esc(d.name)}</h2><div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
+    <div style="margin:14px 0 6px"><h2 style="margin:0">${esc(d.name)}</h2>${(d.promo && d.promo.length) || d.promo_text ? `<div class="mut" style="font-size:13px">🎁 ${d.promo && d.promo.length ? "Promo: <b>" + d.promo.map(c => esc(c.fl ? c.fl + " (" + c.n + ")" : c.n)).join(", ") + "</b> " : ""}${esc(d.promo_text || "")}</div>` : ""}${d.announced ? `<div style="font-size:13px"><a href="${esc(d.announced)}" target="_blank" rel="noopener">Wizards' announcement ↗</a></div>` : ""}<div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 18px">
       ${stat("On Sale", esc(slDate(d, true)) + (cd ? `<div class="sl-count">${cd}</div>` : ""))}
       ${stat("Cards", d.n_cards || "–")}${stat("Retail non-foil / foil", `${money(d.retail_nonfoil)} / ${money(d.retail_foil)}`)}
