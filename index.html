@@ -96,6 +96,8 @@ td.r,th.r{text-align:right}
 .print:hover{border-color:var(--accent)}
 .print img{width:100%;border-radius:4px;display:block;margin-bottom:6px}
 .col-prints{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:320px;overflow:auto;margin-top:6px}
+#prPop{position:fixed;z-index:2000;pointer-events:none;border-radius:4.5%/3.2%;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.55);background:#111}
+#prPop img{display:block;width:100%;aspect-ratio:488/680}
 .col-prints .print{padding:5px}.col-prints .print.on{outline:2px solid var(--accent);border-color:var(--accent)}
 .empty{color:var(--muted);text-align:center;padding:28px}
 .toast a{color:inherit;text-decoration:underline;font-weight:600}
@@ -495,7 +497,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 12:01 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:37 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4938,7 +4940,7 @@ function addedNote(text){
   $("#colModal").scrollTop = 0;
 }
 function openModal(html, wide){ $("#colModalBody").innerHTML = html; $("#colModal").classList.toggle("wide", !!wide); $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
-function closeModal(){ $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); }
+function closeModal(){ prPopHide(); $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); }
 $("#colModalBg").addEventListener("click", closeModal);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#colModal").classList.contains("on")) closeModal(); });
 function openSell(id){
@@ -5030,6 +5032,21 @@ function colFastAdd(r){
   setTimeout(mark, 0);
   if (!r.id && !r.name) setTimeout(() => inp.focus(), 50);
 }
+// hover a printing (mouse only): a bigger, sharp copy of that card beside it, to read it. Gone on leave, scroll, click or close.
+const PR_HOVER = window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches;
+function prPopShow(el, src){
+  if (!PR_HOVER) return;
+  let pop = $("#prPop");
+  if (!pop){ pop = document.createElement("div"); pop.id = "prPop"; pop.innerHTML = '<img alt="">'; document.body.appendChild(pop); }
+  const r = el.getBoundingClientRect(), W = Math.max(240, Math.min(320, Math.round(r.width * 2.2))), H = Math.round(W * 680 / 488), gap = 10;
+  let x = r.right + gap; if (x + W > innerWidth - 8) x = r.left - gap - W; if (x < 8) x = Math.max(8, Math.min(innerWidth - W - 8, r.left));
+  const y = Math.max(8, Math.min(innerHeight - H - 8, r.top + r.height / 2 - H / 2));
+  pop.style.cssText = `left:${x}px;top:${y}px;width:${W}px`;
+  const img = pop.querySelector("img"); if (img.getAttribute("src") !== src) img.src = src;
+  pop.hidden = false;
+}
+function prPopHide(){ const pop = $("#prPop"); if (pop) pop.hidden = true; }
+window.addEventListener("scroll", prPopHide, true);   // any scroll - the page, the window or the printing grid
 async function colPrints(name, r){
   const box = $("#ePrints"); if (!box) return;
   const my = (colPrints.seq = (colPrints.seq || 0) + 1);
@@ -5044,13 +5061,15 @@ async function colPrints(name, r){
     const words = (f ? f.value : "").toLowerCase().split(/\s+/).filter(Boolean);
     const hit = tiles.filter(t => words.every(w => t.find.includes(w)));
     const keep = grid.querySelector(".print.on"), picked = keep && keep.dataset.k;
-    grid.innerHTML = "";
+    prPopHide(); grid.innerHTML = "";
     hit.slice(0, CAP).forEach(({p, fin}) => {
       const img = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).small || "";
       const price = fin === "foil" ? p.prices.usd_foil : fin === "etched" ? p.prices.usd_etched : p.prices.usd;
       const b = document.createElement("button"); b.className = "print" + (picked === p.id + fin ? " on" : ""); b.type = "button"; b.dataset.k = p.id + fin;
       b.innerHTML = `${img ? `<img src="${esc(img)}" alt="" loading="lazy">` : ""}<div class="cname" style="font-size:12px">${esc(p.set_name)}</div><div class="cset">${esc(p.set.toUpperCase())} #${esc(p.collector_number)} · ${esc((p.released_at || "").slice(0, 4))}</div><div class="cset">${fin === "nonfoil" ? "Non-foil" : fin === "foil" ? "Foil" : "Etched"} · ${price ? money(+price) : "no price"}</div>`;
-      b.addEventListener("click", () => { $("#eName").value = p.name; $("#eSet").value = p.set; $("#eNum").value = p.collector_number; $("#eFin").value = fin;
+      const big = (p.image_uris || (p.card_faces || [{}])[0].image_uris || {}).normal;
+      if (big){ b.addEventListener("mouseenter", () => prPopShow(b, big)); b.addEventListener("mouseleave", prPopHide); }
+      b.addEventListener("click", () => { prPopHide(); $("#eName").value = p.name; $("#eSet").value = p.set; $("#eNum").value = p.collector_number; $("#eFin").value = fin;
         r.scryfall_id = p.id; grid.querySelectorAll(".print").forEach(x => x.classList.toggle("on", x === b));
         const q2 = $("#eQty") || $("#eCost"); q2.focus(); if (q2.select) q2.select(); });
       grid.appendChild(b);
