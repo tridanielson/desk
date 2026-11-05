@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 07:00 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 07:04 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4663,17 +4663,15 @@ function renderCOL(){
 }
 // the ready-made views: [key, label, count, what it shows]
 function colViews(held){
+  if (!["all", "singles", "sealed", "recent"].includes(COL.view)) COL.view = "all";
   const copies = {}; held.filter(i => i.kind === "card").forEach(i => { const k = (i.name + "|" + i.set).toLowerCase(); copies[k] = (copies[k] || 0) + i.left; });
   COL._copies = copies;
   const recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const cnt = f => held.filter(f).length;
-  return [["all", "All", null, `Everything, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
-    ["sell", "Worth selling", cnt(colSellable), "Up 2.5× or more from what you paid, or up 50%+ since you added it - and worth $20+."],
-    ["extra", "Extra copies", Object.values(copies).filter(n => n >= 4).length, "Cards you have 4 or more of (same card and set) - candidates to sell or trade."],
-    ["recent", "Recently added", cnt(i => i.kind === "card" && (i.acquired || "") >= recent), "Singles added in the last 30 days - the last one you entered first."],
-    ["listed", "For sale", cnt(i => i.status === "listed"), "Marked Listed for Sale."],
+  return [["all", "All", null, `Singles and sealed, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
+    ["singles", "Singles", cnt(i => i.kind === "card"), `Your cards, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
     ["sealed", "Sealed", cnt(i => i.kind === "sealed"), "Unopened product - manage it on the Sealed tab."],
-    ["bulk", "Bulk", cnt(i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH), `Cards worth under ${"$" + BULK_EACH} each.`]];
+    ["recent", "Recently Added", cnt(i => i.kind === "card" && (i.acquired || "") >= recent), "Singles added in the last 30 days - the last one you entered first."]];
 }
 function colSellable(i){
   if (i.kind !== "card" || i.value_each == null || i.value_each < 20) return false;
@@ -4705,15 +4703,16 @@ function renderColWaiting(){
 document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-colmark]"); if (!b) return; e.preventDefault(); markReceived(b.dataset.colmark); setTimeout(renderCOL, 50); });
 function renderCOLList(){
   const q = COL.q.trim().toLowerCase();
-  const v = COL.view || "all", copies = COL._copies || {}, recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
-  const inView = i => v === "all" ? true : v === "sell" ? colSellable(i) : v === "extra" ? i.kind === "card" && copies[(i.name + "|" + i.set).toLowerCase()] >= 4
+  if (!["all", "singles", "sealed", "recent"].includes(COL.view)) COL.view = "all";
+  const v = COL.view, copies = COL._copies || {}, recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  const inView = i => v === "all" ? true : v === "singles" ? i.kind === "card" : v === "sell" ? colSellable(i) : v === "extra" ? i.kind === "card" && copies[(i.name + "|" + i.set).toLowerCase()] >= 4
     : v === "recent" ? i.kind === "card" && (i.acquired || "") >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
     : v === "bulk" ? i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH : true;
   let rows = colAll().filter(i => !i.ordered && inView(i) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
     .sort(v === "recent" ? (a, b) => (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
   // All, no search: the cheap cards fold into one Bulk line at the end (tap to open)
   const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
-  const bulk = v === "all" && !q && !COL.showBulk ? rows.filter(isBulk) : [];
+  const bulk = (v === "all" || v === "singles") && !q && !COL.showBulk ? rows.filter(isBulk) : [];
   if (bulk.length) rows = rows.filter(i => !isBulk(i));
   // the same card in several rows (bought at different times / prices): one line, tap to see each lot. Recently added keeps every entry.
   if (v !== "recent"){
