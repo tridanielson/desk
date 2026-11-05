@@ -510,7 +510,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:29 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 03:32 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3759,9 +3759,9 @@ const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image
 function openSL(key){   // open a drop; remember where the list was so ← All Secret Lairs comes back to the same spot
   if (!SL.detail) SL.listY = window.scrollY;
   else { const cur = ((SL.data && SL.data.drops) || []).find(x => x.key === SL.detail); if (cur && cur.parts && cur.parts.includes(key)) SL.supY = window.scrollY; }
-  SL.detail = key; renderSL(); window.scrollTo(0, 0);
+  SL.detail = key; SL.flip = false; renderSL(); window.scrollTo(0, 0);
 }
-const sfImg = (sid, size) => sid ? `https://cards.scryfall.io/${size || "large"}/front/${sid[0]}/${sid[1]}/${sid}.${size === "png" ? "png" : "jpg"}` : "";
+const sfImg = (sid, size, side) => sid ? `https://cards.scryfall.io/${size || "large"}/${side || "front"}/${sid[0]}/${sid[1]}/${sid}.${size === "png" ? "png" : "jpg"}` : "";
 const azFmt = (v, o) => v ? new Date(v).toLocaleString("en-US", Object.assign({timeZone: "America/Phoenix"}, o)) : "";
 function slDate(d, withYear){
   if (!d.on_sale_at) return "Date TBA";
@@ -3781,7 +3781,7 @@ function slStatusBadge(d){
 }
 function slMins(m){ return m < 90 ? `${m} min` : m < 2880 ? `${Math.round(m / 60)} hr` : `${Math.round(m / 1440)} days`; }
 function slCardFig(c){ return `<figure>
-      <img src="${esc(sfImg(c.sid || c.img, "large"))}" data-full="${esc(sfImg(c.sid || c.img, "png"))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
+      <img src="${esc(sfImg(c.sid || c.img, "large", c.rev && SL.flip ? "back" : ""))}" data-full="${esc(sfImg(c.sid || c.img, "png", c.rev && SL.flip ? "back" : ""))}" alt="${esc(c.n)}" loading="lazy" onerror="this.style.visibility='hidden'">
       <figcaption>${c.qty > 1 ? `<b>${c.qty}× </b>` : ""}${c.fl && c.fl !== c.n ? `<b>${esc(c.fl)}</b><br><span class="mut">${esc(c.n)}</span>` : `<b>${esc(c.n)}</b>`}${c.num ? ` <span class="mut">#${esc(c.num)}</span>` : ""}<br>${c.soon ? `<span class="mut" style="font-size:12px">Secret Lair art not out yet${c.img ? " - an older printing shown" : ""}</span>` : `Non-foil ${money(c.usd)} · Foil ${money(c.usdf)}`}<br>
       ${"avg_usd" in c || "avg_usdf" in c ? `<span class="sl-singles" title="Average price of this card's other printings - a guide to what the Secret Lair version may be worth">Singles avg: ${c.avg_usd != null ? `<b>${money(c.avg_usd)}</b> non-foil <span class="mut">(${c.n_nf})</span>` : '<span class="mut">no non-foil price</span>'} · ${c.avg_usdf != null ? `<b>${money(c.avg_usdf)}</b> foil <span class="mut">(${c.n_f})</span>` : '<span class="mut">no foil price</span>'}</span><br>` : ""}
       ${c.u ? `<a href="${esc(c.u)}" target="_blank" rel="noopener">Scryfall</a>` : ""}${c.tcg ? ` · <a href="${esc(c.tcg)}" target="_blank" rel="noopener">TCGplayer</a>` : ""}${c.art ? ` · <span class="mut">${esc(c.art)}</span>` : ""}</figcaption></figure>`; }
@@ -3907,6 +3907,7 @@ function renderSLDetail(){
     L += `<h3 style="font-size:16px;margin:8px 0 10px">Teaser</h3><a href="${esc(d.teaser[0])}" target="_blank" rel="noopener"><img src="${esc(d.teaser[0])}" alt="" style="width:100%;max-width:900px;border-radius:12px;display:block" onerror="this.remove()"></a>`;
   if (d.cards.length){
     L += `<h3 style="font-size:16px;margin:8px 0 10px">Cards (${d.cards.length})</h3><div class="sl-cards">` + d.cards.map(slCardFig).join("") + "</div>";
+    if (d.cards.some(c => c.rev)) L += `<div style="text-align:center;margin:14px 0 4px"><button class="btn ghost" id="slFlip">↻ ${SL.flip ? "Show the fronts" : "Reverse the cards"}</button></div>`;
   }
   if (d.promo && d.promo.length && d.promo.some(c => c.n)) L += `<h3 style="font-size:16px;margin:${d.cards.length ? 24 : 8}px 0 10px">Promo card</h3><div class="sl-cards">` + d.promo.map(slCardFig).join("") + "</div>";
   if (d.cards.length || (d.parts && d.parts.length)){} else if (!myB.length) L += `<p class="mut">${/bundle/i.test(d.name) ? "This is a bundle - its cards are listed on each drop inside it." : "Card list not published yet - it appears once the cards are previewed."}</p>`;
@@ -3918,6 +3919,7 @@ function renderSLDetail(){
     if (imgs.length) L += `<div class="sl-store-imgs">${imgs.map(u => `<img src="${esc(u)}" data-full="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">`).join("")}</div>`;
   }
   box.innerHTML = L;
+  const fl = $("#slFlip"); if (fl) fl.addEventListener("click", () => { SL.flip = !SL.flip; const y = window.scrollY; renderSL(); window.scrollTo(0, y); });
   $("#slBack").addEventListener("click", () => { if (up){ SL.detail = up.key; renderSL(); const y = SL.supY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); return; }
     SL.detail = null; renderSL(); const y = SL.listY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); });
   box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); openSL(el.dataset.sl); }));
