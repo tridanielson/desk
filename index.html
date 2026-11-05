@@ -495,7 +495,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 10:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 04, 11:57 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1140,10 +1140,17 @@ async function saveAll(){
       S.rulesSha = await putIfChanged("rules.csv", toCSV(cols, S.rules.filter(r => (r.query || "").trim())), S.rulesSha, "Update auto lists (Price Desk)"); }
     if (S.dirty.has("settings")){ S.dirty.delete("settings"); S.iniSha = await putIfChanged("settings.ini", buildINI(), S.iniSha, "Update settings (Price Desk)"); }
     if (S.dirty.has("collection")){ S.dirty.delete("collection");
-      COL.invSha = await putIfChanged("collection/inventory.csv", toCSV(INV_COLS, COL.inv), COL.invSha, "Update collection (Price Desk)");
-      COL.salesSha = await putIfChanged("collection/sales.csv", toCSV(SALE_COLS, COL.sales), COL.salesSha, "Update sales (Price Desk)");
+      // changed on GitHub since this page loaded (another tab or device, an import, or a save whose reply got lost)? Merge, don't fail:
+      // keep rows added elsewhere, keep yours, drop only the ones you removed here
+      const keyS = r => r.id || r.item_id + "|" + r.date, base = COL.base || {inv: new Set(), sales: new Set()};
+      COL.invSha = await putMerged("collection/inventory.csv", COL.invSha, () => toCSV(INV_COLS, COL.inv),
+        rows => { const mine = new Set(COL.inv.map(r => r.id)); rows.forEach(r => { if (r.id && !mine.has(r.id) && !base.inv.has(r.id)) COL.inv.push(r); }); }, "Update collection (Price Desk)");
+      COL.salesSha = await putMerged("collection/sales.csv", COL.salesSha, () => toCSV(SALE_COLS, COL.sales),
+        rows => { const mine = new Set(COL.sales.map(keyS)); rows.forEach(r => { if (!mine.has(keyS(r)) && !base.sales.has(keyS(r))) COL.sales.push(r); }); }, "Update sales (Price Desk)");
+      COL.base = {inv: new Set(COL.inv.map(r => r.id)), sales: new Set(COL.sales.map(keyS))};
       COL.recSha = await putIfChanged("collection/sl_received.csv", toCSV(REC_COLS, COL.rec), COL.recSha, "Mark Secret Lair items received (Price Desk)");
-      COL.goalsSha = await putIfChanged("collection/sets.csv", toCSV(GOAL_COLS, COL.goals), COL.goalsSha, "Update set goals (Price Desk)");
+      COL.goalsSha = await putMerged("collection/sets.csv", COL.goalsSha, () => toCSV(GOAL_COLS, COL.goals),
+        rows => rows.forEach(r => { if (r.set && !COL.goals.some(x => (x.set || "").toLowerCase() === r.set.toLowerCase())) COL.goals.push(r); }), "Update set goals (Price Desk)");
       if (SD.loaded) SD.sha = await putIfChanged("collection/sealed.csv", toCSV(SEALED_COLS, SD.rows), SD.sha, "Update sealed product (Price Desk)"); }
     if (S.dirty.has("dealcond")){ S.dirty.delete("dealcond");
       DC.sha = await putMerged("collection/deal_condition.csv", DC.sha, () => toCSV(DC_COLS, Object.entries(DC.map).map(([url, v]) => ({url, condition: v.c || "", card: v.card || "", at: v.at || "", listed: v.listed || "", ai: v.ai || "", seller: v.seller || "", title: v.title || "", note: v.note || "", fault: v.fault || "", variant: v.v || "", variant_price: v.vp || "", marks: v.m || ""}))),
@@ -3987,6 +3994,7 @@ async function loadCOL(force){
     const g = (k) => f[k] || {text: null, sha: null};
     COL.inv = g("collection/inventory.csv").text ? parseCSV(g("collection/inventory.csv").text) : []; COL.invSha = g("collection/inventory.csv").sha;
     COL.sales = g("collection/sales.csv").text ? parseCSV(g("collection/sales.csv").text) : []; COL.salesSha = g("collection/sales.csv").sha;
+    COL.base = {inv: new Set(COL.inv.map(r => r.id)), sales: new Set(COL.sales.map(r => r.id || r.item_id + "|" + r.date))};   // what this page loaded (to merge, not overwrite)
     COL.rec = g("collection/sl_received.csv").text ? parseCSV(g("collection/sl_received.csv").text) : []; COL.recSha = g("collection/sl_received.csv").sha;
     COL.goals = g("collection/sets.csv").text ? parseCSV(g("collection/sets.csv").text) : []; COL.goalsSha = g("collection/sets.csv").sha;
     if (mergeGoals() | mergeDupRows()) markDirty("collection");   // a set is completed in every version: one goal per set (non-foil + foil + etched)
