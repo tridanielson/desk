@@ -297,7 +297,7 @@ body.peek #muteBtn,body.peek #runBtn,body.peek #acctBody,body.peek #srvBody,body
 body.peek #reasonEditor,body.peek .rv-btn,body.peek #dRej,body.peek #dWhy,body.peek #dBy,
 body.peek [data-crem],body.peek [data-edit],body.peek [data-pkedit],body.peek [data-pkrem],body.peek .cv-add,body.peek #sdAdd,body.peek [data-sdedit],body.peek [data-sdgive],
 body.peek [data-sdlist],body.peek [data-sdmore],body.peek [data-sdopen],body.peek [data-sdsell],body.peek [data-sdundoid],body.peek #setAdd,body.peek [data-nagot],
-body.peek [data-got],body.peek [data-srem],body.peek #setStar,body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+body.peek [data-got],body.peek [data-bought],body.peek [data-srem],body.peek #setStar,body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 09:00 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 11:24 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1941,8 +1941,9 @@ function openBought(d, done, title){
       closeModal();
       const paid = $("#bPaid").value.trim();
       if (done){ const s = snipeOf(d); if (s) s.paid = paid; done(); }
+      if (DFREEZE.order) DFREEZE.order.delete(d.url);   // off your deals now
       await saveFB(d, "bought", "", $("#bNote") ? "" : "");
-      renderCOL(); toast(`Added to Collection as Ordered. Mark it received when it arrives.`, 6000);
+      renderCOL(); renderDeals(); toast(`🛒 Added to Collection as Ordered and taken off your deals. Mark it received when it arrives.`, 6000);
     }catch(e){ btn.disabled = false; toast("Couldn't add it: " + e.message, 7000); }
   });
 }
@@ -2044,7 +2045,7 @@ function renderDeals_(){
     .sort((a, b) => (DSORT.k ? 0 : isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   if (DFREEZE.order){   // hold the order you were looking at
     const O = DFREEZE.order, inRows = new Set(rows), byUrl = new Map(S.deals.map(d => [d.url, d]));
-    const kept = [...O.keys()].map(u => byUrl.get(u)).filter(d => d && (inRows.has(d) || !(d.hidden || d.ai_verdict === "reject" || GONE.rows[itemId(d)])));   // what you hid / marked gone yourself leaves right away
+    const kept = [...O.keys()].map(u => byUrl.get(u)).filter(d => d && (inRows.has(d) || !(d.hidden || d.ai_verdict === "reject" || GONE.rows[itemId(d)] || (FB.loaded && boughtFor(d)) || isIgnored(d))));   // what you hid / marked gone / bought / ignored leaves right away
     const fresh = rows.filter(d => !O.has(d.url));
     kept.forEach(d => { d._held = !inRows.has(d); });
     const n = fresh.length + kept.filter(d => d._held).length;
@@ -2426,7 +2427,15 @@ function reviewedState(d){
   if (!f && !a && !c) return null;
   return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
-function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + offerBtnHTML(d, tile) + goneBtnHTML(d, tile) + ignoreBtnHTML(d, tile) : r; }
+function reviewBtnHTML(d, tile){ const r = reviewBtnHTML0(d, tile); return r ? r + boughtBtnHTML(d, tile) + offerBtnHTML(d, tile) + goneBtnHTML(d, tile) + ignoreBtnHTML(d, tile) : r; }
+// 🛒 Bought: right on the deal - fill in what you paid, it goes to Collection as Ordered and leaves your deals
+function boughtBtnHTML(d, tile){
+  if (READONLY || !FB.loaded || boughtFor(d)) return "";
+  const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
+  return ` <${tag} class="btn ghost small" data-bought="${esc(d.url)}" title="I bought this - add it to Collection as on the way and take it off your deals">🛒 Bought</${end}>`;
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-bought]"); if (!b) return; e.preventDefault(); e.stopPropagation();
+  const d = S.deals.find(x => x.url === b.dataset.bought); if (d) openBought(d); });
 // ---- "Sold / Gone": a Buy It Now you can see has sold - hide it now; the scan marks it ended without spending an eBay check (collection/gone.csv)
 const GONE_COLS = ["item_id", "url", "card", "at"];
 const GONE = {rows: {}, sha: null, loaded: false};
@@ -2624,7 +2633,7 @@ function reviewHTML(d, mode){
     <div class="mut" style="font-size:12px;margin-top:2px">Optional - facts about the listing, pick as many as apply. Foreign language is recorded and left to your language filter; the others hide it. Signed / graded / where the seller is: use the filters - they're preferences, not problems.</div>
     </div>
     </div>
-    ${boughtFor(d) ? "" : `<div class="aud-q"><span>Bought It?</span><label class="rv-check"><input type="checkbox" id="rvBought"> 🛒 Yes - Add to Collection as Ordered</label></div>`}
+
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
     ${S.ini && !READONLY ? `<div class="rv-always" style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="rvAlways" aria-label="Always tell SlaveAI this note" style="width:18px;height:18px;margin:0;padding:0;flex:none;cursor:pointer"><span>📌 Always tell SlaveAI this <span class="mut" style="font-size:12px">- every future check follows this note (remove it in Settings → SlaveAI)</span></span></div>` : ""}
     ${condGuideHTML()}`;
