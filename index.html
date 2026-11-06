@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 07:37 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 10:18 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -613,6 +613,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel">
     <div class="row">
     <input type="hidden" id="dDays" value="7"><input type="hidden" id="dMin" value="0"><!-- always the last 7 days (what the scanner re-checks), no minimum -->
+    <select id="dRvw" class="owner-only" aria-label="Reviewed" title="Deals you haven't reviewed yet"><option value="">Reviewed + Not Reviewed</option><option value="todo">Not Reviewed Yet</option><option value="done">Reviewed Only</option></select>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" aria-label="Sort by"><option value="Best Value|-1">Sort: Best Value</option><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
@@ -1761,6 +1762,7 @@ function dealExtraOK(d){
   if ($("#dPref").checked && !prefOK(d)) return false;
   if ($("#dUSA").checked && (d.location || "") !== "US") return false;
   const g = $("#dGraded").value; if (g === "raw" && isGraded(d)) return false; if (g === "graded" && !isGraded(d)) return false;
+  const rw = $("#dRvw") ? $("#dRvw").value : ""; if (rw && FB.loaded){ const done = !!reviewedState(d); if (rw === "todo" && done) return false; if (rw === "done" && !done) return false; }
   const mc = $("#dCond").value;
   if (mc && !isGraded(d)){ const c = (d.condition || "").replace("?", "").toUpperCase(); if ((COND_RANK[c] ?? 0) < COND_RANK[mc]) return false; }
   return true;
@@ -2066,7 +2068,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-unsnipe]").forEach(b => b.addEventListener("click", () => setSnipe(rows.find(x => x.url === b.dataset.unsnipe), null)));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dType", "#dEnded", "#dLang", "#dSet"];
+const DEAL_FILTERS = ["#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dRvw", "#dType", "#dEnded", "#dLang", "#dSet"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 // which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
 const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
