@@ -517,7 +517,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 08:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 08:38 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3946,8 +3946,9 @@ const gainHTML = (v, base) => v == null ? "–" : `<span class="${v >= 0 ? "up" 
 function slOrdersHTML(){
   const O = SL.orders, t = O.totals;
   const stat = (label, v, sub) => `<div class="stat"><span>${label}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
-  let L = `<div class="panel" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="margin:0;font-size:16px">My Orders</h3>
-</div>
+  // starts folded (tap to open); remembers if you leave it open
+  let L = `<details class="panel" id="slOrdersBox" style="margin-top:14px"${store.get("pd_slorders_open") === "1" ? " open" : ""}><summary style="cursor:pointer"><h3 style="margin:0;font-size:16px;display:inline">My Orders</h3>
+    <span class="mut" style="font-size:13px"> · worth ${money(t.value)} · ${t.outstanding_items} items still coming</span></summary>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:12px 0">
       ${stat("Spent", money(t.spent), `${t.items} items · ${t.lines} lines`)}
       ${stat("Worth Now", money(t.value), t.unpriced_lines ? `${t.unpriced_lines} lines not priced (${money(t.unpriced_cost)})` : "all priced")}
@@ -3966,7 +3967,7 @@ function slOrdersHTML(){
       <input id="oQ" placeholder="Search products…" style="flex:1;min-width:160px" value="${esc(SL.oQ)}"><span class="status" id="oCount"></span></div>
       <div class="scroll" id="oWrap" style="margin-top:8px"><div class="tiles" id="oTiles"></div><table id="oTable" class="desk-table"></table></div>`;
   }
-  return L + "</div>";
+  return L + "</details>";
 }
 function slOrderRows(){
   const q = SL.oQ.trim().toLowerCase();
@@ -4017,6 +4018,7 @@ function renderSLOrders(){
   document.querySelectorAll("[data-mark]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); markReceived(el.dataset.mark); }));
 }
 function wireSLOrders(){
+  const box = $("#slOrdersBox"); if (box) box.addEventListener("toggle", () => store.set("pd_slorders_open", box.open ? "1" : "0"));
   $("#slOrdersToggle").addEventListener("click", () => { SL.ordersOpen = !SL.ordersOpen; renderSL(); });
   if (!SL.ordersOpen) return;
   $("#oAcct").value = SL.oAcct; $("#oStatus").value = SL.oStatus;
@@ -4316,13 +4318,14 @@ function sdRecentHTML(){
   const rec = SD.rows.filter(r => (when(r) || "") >= cut)
     .sort((a, b) => (when(b) + "|" + String(sdTs(b)).padStart(14, "0")).localeCompare(when(a) + "|" + String(sdTs(a)).padStart(14, "0"))).slice(0, 60);
   if (!rec.length) return "";
-  return `<div class="panel" style="padding:10px 14px"><b style="font-size:13px">Recently added, opened, sold or given</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span>
+  return `<details class="panel" id="sdRecentBox" style="padding:10px 14px"${store.get("pd_sdrecent_open") === "1" ? " open" : ""}><summary style="cursor:pointer"><b style="font-size:13px">Recently added, opened, sold or given (${rec.length})</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span></summary>
     <div class="bdl-list sd-recent" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
       return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px;display:flex;gap:6px;align-items:center"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdedit="${esc(r.id)}" title="Change the price, quantity, where from, date...">✎ Edit</span>${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
-        : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></div>`;
+        : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></details>`;
 }
 function renderSDList(){
-  if ($("#sdRecent")) $("#sdRecent").innerHTML = SD.status === "sealed" ? sdRecentHTML() : "";
+  if ($("#sdRecent")){ $("#sdRecent").innerHTML = SD.status === "sealed" ? sdRecentHTML() : "";
+    const rb = $("#sdRecentBox"); if (rb) rb.addEventListener("toggle", () => store.set("pd_sdrecent_open", rb.open ? "1" : "0")); }
   const q = SD.q.trim().toLowerCase();
   const items = sdItems().filter(i => i.qty > 0 && (!SD.status || i.status === SD.status) && (!SD.kind || i.kind === SD.kind) &&
     (!q || (i.product + " " + sdKindLabel(i.kind) + " " + (i.row.source || "") + " " + (i.row.notes || "") + " " + (i.row.location || "")).toLowerCase().includes(q)));
