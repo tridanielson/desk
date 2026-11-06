@@ -297,7 +297,7 @@ body.peek #muteBtn,body.peek #runBtn,body.peek #acctBody,body.peek #srvBody,body
 body.peek #reasonEditor,body.peek .rv-btn,body.peek #dRej,body.peek #dWhy,body.peek #dBy,
 body.peek [data-crem],body.peek [data-edit],body.peek [data-pkedit],body.peek [data-pkrem],body.peek .cv-add,body.peek #sdAdd,body.peek [data-sdedit],body.peek [data-sdgive],
 body.peek [data-sdlist],body.peek [data-sdmore],body.peek [data-sdopen],body.peek [data-sdsell],body.peek [data-sdundoid],body.peek #setAdd,body.peek [data-nagot],
-body.peek [data-got],body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+body.peek [data-got],body.peek [data-srem],body.peek #setStar,body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -335,6 +335,13 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .cv-wait>summary{cursor:pointer;list-style:none}.cv-wait>summary::-webkit-details-marker{display:none}
 .cv-wait>summary::before{content:"▸";display:inline-block;width:16px;color:var(--muted);transition:transform .15s}.cv-wait[open]>summary::before{transform:rotate(90deg)}
 #colBinder{display:none}.is-binder #colBinder{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px 14px}
+#setBinder{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:16px 12px}
+.pocket.missing .pk-card img{filter:grayscale(1);opacity:.28}.pocket.missing .pk-name,.pocket.missing .pk-row b{color:var(--muted)}
+.pk-num{position:absolute;z-index:2;top:6px;left:6px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px}
+.own-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.own-chip{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);min-width:0}
+.own-chip:hover{border-color:var(--accent)}.own-chip .cname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:700px){#setBinder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}.own-grid{grid-template-columns:1fr}}
 .is-binder #colTiles,.is-binder #colTable{display:none!important}
 .pocket{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}.pocket:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:9px}
 .pk-card{position:relative;aspect-ratio:63/88;border-radius:9px;overflow:hidden;background:#1b1b1b;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.35)}
@@ -517,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 08:38 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 09:00 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5290,7 +5297,9 @@ function importCSV(file){
 
 // ---------------------------------------------------------------- Sets (completion goals)
 const GOAL_COLS = ["set", "finish", "skip_basics", "status", "deal_pct", "notes", "want_cond"];   // want_cond NM: only a Near Mint copy completes a card
-const SETS = {cards: {}, loading: {}, err: {}, open: "", allSets: null, q: "", view: "need", adding: false};
+const SETS = {cards: {}, loading: {}, err: {}, open: "", allSets: null, q: "", view: "all", adding: false, ownQ: "", ownAll: false, layout: store.get("pd_set_layout") || "binder"};
+// a set you own cards from but aren't completing: same binder page, just without the goal settings
+const setTemp = code => ({set: code, finish: "all", skip_basics: "no", status: "active", _temp: true});
 async function sfAll(q){   // every printing in a search, following Scryfall's pages
   let path = "/cards/search?unique=prints&order=set&q=" + encodeURIComponent(q), out = [];
   for (let i = 0; i < 12 && path; i++){
@@ -5460,6 +5469,11 @@ function renderSETS(){
   goals.forEach(loadSetCards);
   if (SETS.needAll) return renderNeedAll(goals);
   if (SETS.open && goals.some(g => goalKey(g) === SETS.open)) return renderSetDetail(goals.find(g => goalKey(g) === SETS.open));
+  if (SETS.open.startsWith("own:")){ const code = SETS.open.slice(4), gg = goals.find(x => x.set.toLowerCase() === code);
+    if (gg){ SETS.open = goalKey(gg); return renderSetDetail(gg); }
+    const t = setTemp(code), tk = goalKey(t);
+    if (!SETS.cards[tk] && !SETS.loading[tk] && !SETS.err[tk]) loadSetCards(t).then(() => { if (SETS.open === "own:" + code) renderSETS(); });
+    return renderSetDetail(t); }
   SETS.open = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
     <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
@@ -5468,7 +5482,7 @@ function renderSETS(){
       <select id="setFin"><option value="all">Every Version</option><option value="nonfoil">Non-Foil Only</option><option value="foil">Foil Only</option><option value="etched">Etched Only</option></select>
       <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
   if (goals.length) L += `<h3 style="margin:16px 0 0">⭐ Completing</h3>`;
-  if (!goals.length) L += `<div class="panel"><p class="mut" style="margin:0">Not completing any sets. Tap <b>☆ Complete</b> on a set below (or <b>+ Add a Set</b> for one you don't own anything from) to track what's missing.</p></div>`;
+  if (!goals.length) L += `<div class="panel"><p class="mut" style="margin:0">Not completing any sets. Open one of your sets below and tap <b>☆ Complete This Set</b> (or <b>+ Add a Set</b> for one you don't own anything from) to track what's missing.</p></div>`;
   else {
     L += `<div class="sl-grid" style="margin-top:10px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
       const pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0;
@@ -5598,44 +5612,47 @@ function ownedSetsHTML(goals){
   colItems().filter(i => i.kind === "card" && i.left > 0 && i.status !== "ordered" && i.set).forEach(i => {
     const k = i.set.toLowerCase(), a = by.get(k) || {code: k, name: i.set_name || "", cards: 0, nums: new Set(), value: 0};
     a.cards += i.left; a.nums.add(String(i.number || i.name).toLowerCase()); a.value += i.value || 0; if (!a.name && i.set_name) a.name = i.set_name; by.set(k, a); });
-  const rows = [...by.values()].sort((a, b) => b.value - a.value);
-  if (!rows.length) return `<h3 style="margin:22px 0 0">Sets You Own Cards From</h3><div class="panel"><p class="mut" style="margin:0">Add cards on My Cards and their sets show up here.</p></div>`;
   const starred = new Set(goals.map(g => g.set.toLowerCase()));
-  return `<h3 style="margin:22px 0 0">Sets You Own Cards From <span class="mut" style="font-size:13px;font-weight:400">· ${rows.length} sets · tap one to see your cards</span></h3>
-    <div class="panel own-sets" style="margin-top:8px">
-    ${rows.map(a => { const x = info.get(a.code) || {}, nm = x.name || a.name || a.code.toUpperCase(), tot = x.card_count;
-      return `<div class="os-row" role="button" tabindex="0" data-ownset="${esc(a.code)}" data-ownname="${esc(nm)}">${setIcon(a.code, 34)}
-        <div class="os-name"><div class="cname">${esc(nm)}</div><div class="cset">${esc(a.code.toUpperCase())}${x.released_at ? " · " + esc(x.released_at.slice(0, 4)) : ""} · ${a.nums.size}${tot ? ` of ${tot}` : ""} cards${a.cards !== a.nums.size ? ` (${a.cards} copies)` : ""}</div></div>
-        <div class="os-val"><b>${money(Math.round(a.value * 100) / 100)}</b></div>
-        <div class="os-act">${starred.has(a.code) ? '<span class="mut" style="font-size:12px">⭐ Completing</span>' : `<button class="btn ghost small" type="button" data-starset="${esc(a.code)}" title="Track this set: what's missing and what it costs to finish">☆ Complete</button>`}</div></div>`; }).join("")}
-    </div>`;
+  const all = [...by.values()].filter(a => !starred.has(a.code)).sort((a, b) => b.value - a.value);
+  if (!all.length) return by.size ? "" : `<h3 style="margin:22px 0 0">Your Other Sets</h3><div class="panel"><p class="mut" style="margin:0">Add cards on My Cards and their sets show up here.</p></div>`;
+  const q = SETS.ownQ.trim().toLowerCase(), nameOf = a => (info.get(a.code) || {}).name || a.name || a.code.toUpperCase();
+  const hits = q ? all.filter(a => nameOf(a).toLowerCase().includes(q) || a.code.includes(q)) : all, SHOW = 12;
+  const rows = q || SETS.ownAll ? hits : hits.slice(0, SHOW);
+  return `<h3 style="margin:22px 0 6px">Your Other Sets <span class="mut" style="font-size:13px;font-weight:400">· ${all.length} sets you own cards from · tap one to see it as a binder</span></h3>
+    <input id="ownQ" placeholder="Find a set…" value="${esc(SETS.ownQ)}" style="width:100%;max-width:360px;margin-bottom:10px" autocomplete="off">
+    <div class="own-grid" id="ownGrid">${rows.map(a => { const x = info.get(a.code) || {}, tot = x.card_count;
+      return `<button type="button" class="own-chip" data-ownset="${esc(a.code)}">${setIcon(a.code, 30)}<span style="min-width:0;flex:1"><span class="cname" style="display:block">${esc(nameOf(a))}</span>
+        <span class="cset">${a.nums.size}${tot ? ` of ${tot}` : ""} cards${x.released_at ? " · " + esc(x.released_at.slice(0, 4)) : ""}</span></span><b style="font-size:13px">${money(Math.round(a.value * 100) / 100)}</b></button>`; }).join("") || '<p class="mut">No set matches.</p>'}</div>
+    ${!q && hits.length > SHOW ? `<button class="btn ghost small" id="ownMore" style="margin-top:10px">${SETS.ownAll ? "Show fewer" : `Show all ${hits.length}`}</button>` : ""}`;
 }
 function wireOwnedSets(box){
   box.querySelectorAll("[data-starset]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); const code = b.dataset.starset;
     if (COL.goals.some(g => g.set.toLowerCase() === code)) return;
     COL.goals.push({set: code, finish: "all", skip_basics: "no", status: "active", deal_pct: "", notes: ""});
     markDirty("collection"); renderSETS(); toast("Completing it now - its missing cards start getting tracked on the next morning run.", 6000); }));
-  box.querySelectorAll("[data-ownset]").forEach(tr => { const go = () => {   // your cards from it, on My Cards
-    COL.q = tr.dataset.ownname; COL.view = "all"; COL.showBulk = true; COL.limit = 100000; switchTab("col"); };
-    tr.addEventListener("click", go); tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); }); });
+  box.querySelectorAll("[data-ownset]").forEach(b => b.addEventListener("click", () => { SETS.open = "own:" + b.dataset.ownset; SETS.q = ""; SETS.cond = ""; renderSETS(); window.scrollTo(0, 0); }));   // the set as a binder, here
+  const oq = $("#ownQ"); if (oq) oq.addEventListener("input", e => { SETS.ownQ = e.target.value; const pos = e.target.selectionStart; renderSETS(); const f = $("#ownQ"); if (f){ f.focus(); f.setSelectionRange(pos, pos); } });
+  const om = $("#ownMore"); if (om) om.addEventListener("click", () => { SETS.ownAll = !SETS.ownAll; renderSETS(); });
 }
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
+  if (!pr && SETS.err[k]){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty">${esc(SETS.err[k])}</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
   if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty loadmsg">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
   const deal = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
   const tracked = new Map(S.cards.map(x => [x.s.toLowerCase() + "|" + x.num + "|" + x.f, x]));
   const q = SETS.q.trim().toLowerCase();
   const cf = SETS.cond || "";   // condition filter: your best copy is this condition ("none" = not owned)
+  const binder = SETS.layout !== "list";   // binder: the set in its own order, what you don't have faded out
   const rows = (SETS.view === "need" ? pr.need : SETS.view === "have" ? pr.rows.filter(r => r.have) : pr.rows)
     .filter(r => !q || r.c.name.toLowerCase().includes(q)).filter(r => !cf || (cf === "none" ? !r.have : r.best === cf))
-    .slice().sort((a, b) => (b.price || 0) - (a.price || 0));
+    .slice().sort(binder ? setOrder : (a, b) => (b.price || 0) - (a.price || 0));
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
       <h2 style="margin-top:10px">${esc(title)}${esc(goalLabel(g))}</h2>
       <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${pr.wantNM ? " · <b>only NM copies count</b>" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
-      <div class="row"><button class="btn ${pr.wantNM ? "" : "ghost "}small" id="setNMt" title="Only a Near Mint copy completes a card - worse copies stay on the need list until you upgrade">${pr.wantNM ? "✓ Upgrading to NM" : "Upgrade to NM"}</button><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>
+      ${g._temp ? `<div class="row"><button class="btn small" id="setStar" title="Track this set: what's missing, what it costs to finish, NEED tags on deals">☆ Complete This Set</button></div></div>` : `<div class="row"><button class="btn ${pr.wantNM ? "" : "ghost "}small" id="setNMt" title="Only a Near Mint copy completes a card - worse copies stay on the need list until you upgrade">${pr.wantNM ? "✓ Upgrading to NM" : "Upgrade to NM"}</button><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>`}
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       <div class="stat"><span>Progress</span><b>${pr.have} / ${pr.total}</b><span>${pct}% complete</span></div>
       <div class="stat"><span>Still need</span><b>${pr.need.length} cards</b><span>${pr.unpriced ? pr.unpriced + " without a price" : ""}</span></div>
@@ -5645,40 +5662,73 @@ function renderSetDetail(g){
     <div class="panel row"><input id="setFind" placeholder="Search this set…" value="${esc(SETS.q)}" style="flex:1;min-width:180px">
       <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
       <label for="setCond" class="mut" style="font-size:13px">Best copy</label><select id="setCond" title="Show cards by the condition of your best copy"><option value="">Any condition</option>${COND_LIST5.map(c => `<option value="${c}">${c}</option>`).join("")}<option value="none">Don't have</option></select>
-      <label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>
+      ${g._temp ? "" : `<label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>`}
+      <span class="seg" role="group" aria-label="Layout"><button type="button" class="btn small${binder ? "" : " ghost"}" data-slayout="binder">▦ Binder</button><button type="button" class="btn small${binder ? " ghost" : ""}" data-slayout="list">☰ List</button></span>
       <span class="status">${rows.length} cards</span></div>
-    <div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable" class="desk-table"></table></div>
-    <p class="mut" style="font-size:12px">Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - <b>Add &amp; Add Another</b> keeps the card filled in for the next copy (e.g. a different condition). Cards you have show <b>+ Add</b> for more copies.</p>`;
+    ${binder ? `<div class="panel"><div id="setBinder"></div></div>` : `<div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable" class="desk-table"></table></div>`}
+    <p class="mut" style="font-size:12px">${binder ? "Faded cards are the ones you don't have. Tap any card for a bigger look and <b>Got It</b> / <b>+ Add a Copy</b>." : ""} Bought one? Tap <b>Got it</b> to add it to your Collection (with what you paid) - <b>Add &amp; Add Another</b> keeps the card filled in for the next copy (e.g. a different condition). Cards you have show <b>+ Add</b> for more copies.</p>`;
   box.innerHTML = L;
   $("#setView").value = SETS.view; $("#setCond").value = cf;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
   const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
-  $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
+  if (binder) $("#setBinder").innerHTML = rows.map((r, i) => setPocketHTML(r, i, pr)).join("") || `<p class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</p>`;
+  else $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
     (rows.map(r => `<tr><td style="width:46px"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:40px;border-radius:3px;cursor:zoom-in" data-zoom="${esc(r.c.id)}"></td>
       <td><div class="cname"><a href="${esc(r.c.scryfall_uri)}" target="_blank" rel="noopener">${esc(r.c.name)}</a></div><div class="cset">${pr.multi ? `<b>${finName(r.fin)}</b> · ` : ""}${esc(r.c.type_line || "")}</div></td>
       <td class="hide-sm mut">${esc(r.c.collector_number)}</td><td class="hide-sm mut" style="text-transform:capitalize">${esc(r.c.rarity)}</td>
       <td class="r">${r.price == null ? '<span class="mut">–</span>' : money(r.price)}</td><td class="r hide-sm">${trend(r)}</td><td class="mk">${act(r)}</td></tr>`).join("") ||
      `<tr><td colspan="7" class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</td></tr>`) + "</tbody>";
-  $("#setTiles").innerHTML = rows.map(r => `<div class="tile"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:44px;border-radius:3px;margin-right:10px" data-zoom="${esc(r.c.id)}">
+  if (!binder) $("#setTiles").innerHTML = rows.map(r => `<div class="tile"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:44px;border-radius:3px;margin-right:10px" data-zoom="${esc(r.c.id)}">
       <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">#${esc(r.c.collector_number)} · ${pr.multi ? finName(r.fin) + " · " : ""}${esc(r.c.rarity)} ${trend(r)}</div><div class="t-chips mk">${act(r)}</div></div>
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">No cards.</p>';
   $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setCond").addEventListener("input", e => { SETS.cond = e.target.value; renderSetDetail(g); });
-  $("#setNMt").addEventListener("click", () => { g.want_cond = pr.wantNM ? "" : "NM"; markDirty("collection"); renderSetDetail(g);
+  box.querySelectorAll("[data-slayout]").forEach(b => b.addEventListener("click", () => { SETS.layout = b.dataset.slayout; store.set("pd_set_layout", SETS.layout); renderSetDetail(g); }));
+  box.querySelectorAll("[data-spocket]").forEach(b => b.addEventListener("click", () => openSetPocket(g, rows[+b.dataset.spocket], pr)));
+  if ($("#setStar")) $("#setStar").addEventListener("click", () => { const ng = {set: g.set, finish: "all", skip_basics: "no", status: "active", deal_pct: "", notes: ""};
+    COL.goals.push(ng); markDirty("collection"); SETS.open = goalKey(ng); renderSETS(); toast("Completing it now - its missing cards start getting tracked on the next morning run.", 6000); });
+  if ($("#setNMt")) $("#setNMt").addEventListener("click", () => { g.want_cond = pr.wantNM ? "" : "NM"; markDirty("collection"); renderSetDetail(g);
     toast(pr.wantNM ? "Any condition counts again." : "Upgrade to NM: cards you only have in worse condition are back on your need list.", 5000); });
   $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g); const f = $("#setFind"); f.focus(); f.setSelectionRange(pos, pos); });
-  $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
-  $("#setNBt").addEventListener("click", () => { g.skip_basics = isNB ? "no" : "yes"; markDirty("collection"); loadSetCards(g); renderSetDetail(g); toast(isNB ? "Basic lands now count toward this set." : "Basic lands left out of this set."); });
-  $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
-  $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
+  if ($("#setDeal")) $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
+  if ($("#setNBt")) $("#setNBt").addEventListener("click", () => { g.skip_basics = isNB ? "no" : "yes"; markDirty("collection"); loadSetCards(g); renderSetDetail(g); toast(isNB ? "Basic lands now count toward this set." : "Basic lands left out of this set."); });
+  if ($("#setPause")) $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
+  if ($("#setDel")) $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
     COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
   box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.got.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
   box.querySelectorAll("[data-srem]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.srem.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (c) openSetRemove(g, c, f); }));
+}
+// binder order: collector number (1, 2, 10, 10a…), then finish
+const setOrder = (a, b) => { const na = parseInt(a.c.collector_number) || 0, nb = parseInt(b.c.collector_number) || 0;
+  return na - nb || String(a.c.collector_number).localeCompare(String(b.c.collector_number)) || FINS.indexOf(a.fin) - FINS.indexOf(b.fin); };
+function setPocketHTML(r, i, pr){
+  const c = r.best, [bg, fg] = COND_BADGE[c] || COND_BADGE.NM;
+  return `<button type="button" class="pocket${r.have ? "" : " missing"}" data-spocket="${i}" title="${esc(r.c.name)}${r.have ? "" : " - you don't have it"}">
+    <span class="pk-card"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" loading="lazy" onerror="this.remove()"><span class="pk-fallback">${esc(r.c.name)}</span>
+      <span class="pk-num">#${esc(r.c.collector_number)}</span>
+      ${r.have ? `<span class="pk-cond" style="background:${r.upgrade ? "#e07b5a" : bg};color:${fg}">${esc(c || "✓")}${r.have > 1 ? " ×" + r.have : ""}</span>` : ""}
+      ${r.fin !== "nonfoil" ? `<span class="pk-foil">${r.fin === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}</span>
+    <span class="pk-row"><span class="pk-name">${esc(r.c.name)}</span><b>${r.price == null ? "–" : money(r.price)}</b></span></button>`;
+}
+// tap a card in the set binder: a bigger look, and Got it / + Add / Remove / eBay
+function openSetPocket(g, r, pr){
+  if (!r) return;
+  const eb = "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${r.c.name} ${r.c.set_name}`) + "&_sop=15";
+  openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" style="width:200px;border-radius:9px">
+    <div style="flex:1;min-width:200px"><h3 style="margin:0">${esc(r.c.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(r.c.set_name)} #${esc(r.c.collector_number)}${pr.multi || r.fin !== "nonfoil" ? " · " + esc(finName(r.fin)) : ""} · ${esc(r.c.rarity)}</p>
+      <p style="margin:0 0 10px">${r.have ? `You have <b>${r.have}</b>${r.conds.length ? " (" + esc(condSummary(r.conds)) + ")" : ""}${r.upgrade ? ' · <span class="badge" style="background:#3a2a1a;color:#f0a868">UPGRADE to NM</span>' : ""}` : "<b>You don't have this one.</b>"}</p>
+      <p style="margin:0 0 12px">Near Mint market: <b>${r.price == null ? "–" : money(r.price)}</b></p>
+      <div class="row">${r.have ? `<button class="btn small" id="spAdd">+ Add a Copy</button><button class="btn ghost small" id="spRem">Remove</button>` : `<button class="btn small" id="spAdd">Got It</button>`}<a class="btn ghost small" href="${eb}" target="_blank" rel="noopener">eBay</a></div></div></div>
+    <div class="acts"><button class="btn" id="spClose" type="button">Close</button></div>`);
+  $("#spClose").addEventListener("click", closeModal);
+  if (READONLY && ROLE !== "user"){ ["#spAdd", "#spRem"].forEach(q => { const b = $(q); if (b) b.remove(); }); return; }
+  $("#spAdd").addEventListener("click", () => { closeModal(); openColEdit(null, {name: r.c.name, set: r.c.set, number: r.c.collector_number, finish: r.fin || "nonfoil", scryfall_id: r.c.id, source: "Set: " + r.c.set_name}); });
+  if ($("#spRem")) $("#spRem").addEventListener("click", () => { closeModal(); openSetRemove(g, r.c, r.fin); });
 }
 // Sets → Remove: your copies of one card (each Collection row), take one off or remove a row
 function openSetRemove(g, c, f){
