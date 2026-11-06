@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 11:24 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 11:39 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5603,7 +5603,7 @@ async function showSetHits(q){
     try{ const j = await sf("/sets"); SETS.allSets = (j.data || []).filter(x => !x.digital && x.card_count > 0 && !["token", "memorabilia", "minigame", "alchemy"].includes(x.set_type)); }
     catch(e){ hits.innerHTML = `<p class="mut">Couldn't load the set list: ${esc(e.message)}</p>`; return; } }
   const t = q.trim().toLowerCase();
-  const list = (t ? SETS.allSets.filter(x => x.name.toLowerCase().includes(t) || x.code === t) : SETS.allSets.filter(x => (x.released_at || "9") < "1998")).slice(0, 30);
+  const list = (t ? SETS.allSets.filter(x => x.name.toLowerCase().includes(t) || x.code === t) : SETS.allSets.filter(x => (x.released_at || "9") < "1998")).slice(0, t ? 30 : 80);
   hits.innerHTML = (t ? "" : '<div class="mut" style="font-size:12px;margin-bottom:6px">Vintage sets (type to search everything):</div>') +
     `<div class="row" style="gap:6px">` + list.map(x => `<button class="btn ghost small" data-addset="${esc(x.code)}" title="${x.card_count} cards">${esc(x.name)} <span class="mut">${esc((x.released_at || "").slice(0, 4))}</span></button>`).join("") + "</div>";
   hits.querySelectorAll("[data-addset]").forEach(b => b.addEventListener("click", () => {
@@ -5627,11 +5627,15 @@ function ownedSetsHTML(goals){
   const q = SETS.ownQ.trim().toLowerCase(), nameOf = a => (info.get(a.code) || {}).name || a.name || a.code.toUpperCase();
   const hits = q ? all.filter(a => nameOf(a).toLowerCase().includes(q) || a.code.includes(q)) : all, SHOW = 12;
   const rows = q || SETS.ownAll ? hits : hits.slice(0, SHOW);
+  // searching also finds every other set (one you own nothing from yet, e.g. Summer Magic / Edgar) - open it and tap ☆ Complete
+  const mineCodes = new Set([...by.keys()]);
+  const others = q ? (SETS.allSets || []).filter(x => !mineCodes.has(x.code) && !starred.has(x.code) && (x.name.toLowerCase().includes(q) || x.code === q)).slice(0, 24) : [];
   return `<h3 style="margin:22px 0 6px">Your Other Sets <span class="mut" style="font-size:13px;font-weight:400">· ${all.length} sets you own cards from · tap one to see it as a binder</span></h3>
-    <input id="ownQ" placeholder="Find a set…" value="${esc(SETS.ownQ)}" style="width:100%;max-width:360px;margin-bottom:10px" autocomplete="off">
+    <input id="ownQ" placeholder="Find any set…" value="${esc(SETS.ownQ)}" style="width:100%;max-width:360px;margin-bottom:10px" autocomplete="off">
     <div class="own-grid" id="ownGrid">${rows.map(a => { const x = info.get(a.code) || {}, tot = x.card_count;
       return `<button type="button" class="own-chip" data-ownset="${esc(a.code)}">${setIcon(a.code, 30)}<span style="min-width:0;flex:1"><span class="cname" style="display:block">${esc(nameOf(a))}</span>
-        <span class="cset">${a.nums.size}${tot ? ` of ${tot}` : ""} cards${x.released_at ? " · " + esc(x.released_at.slice(0, 4)) : ""}</span></span><b style="font-size:13px">${money(Math.round(a.value * 100) / 100)}</b></button>`; }).join("") || '<p class="mut">No set matches.</p>'}</div>
+        <span class="cset">${a.nums.size}${tot ? ` of ${tot}` : ""} cards${x.released_at ? " · " + esc(x.released_at.slice(0, 4)) : ""}</span></span><b style="font-size:13px">${money(Math.round(a.value * 100) / 100)}</b></button>`; }).join("")}${others.map(x => `<button type="button" class="own-chip" data-ownset="${esc(x.code)}" title="You don't own anything from it yet - open it to see the whole set">${setIcon(x.code, 30)}<span style="min-width:0;flex:1"><span class="cname" style="display:block">${esc(x.name)}</span>
+        <span class="cset">0 of ${x.card_count} cards · ${esc((x.released_at || "").slice(0, 4))}</span></span></button>`).join("")}${rows.length || others.length ? "" : '<p class="mut">No set matches.</p>'}</div>
     ${!q && hits.length > SHOW ? `<button class="btn ghost small" id="ownMore" style="margin-top:10px">${SETS.ownAll ? "Show fewer" : `Show all ${hits.length}`}</button>` : ""}`;
 }
 function wireOwnedSets(box){
