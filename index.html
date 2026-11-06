@@ -291,8 +291,13 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
   #allTable+.row,.panel.scroll{overflow-x:visible}
   #tab-rules .panel.scroll{overflow-x:auto}}   /* the Auto-Track table scrolls inside its box instead of widening the whole page */
 body.readonly #saveBtn,body.readonly #runBtn,body.readonly:not(.user) #pending,body.readonly #acBox,body.readonly .star,
-body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly .owner-only,
-body.readonly #nav [data-tab=settings],body.readonly #nav [data-tab=connect],body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+body.readonly [data-del],body.readonly #addRule,body.readonly #dWatch,body.readonly:not(.peek) .owner-only,
+body.readonly:not(.peek) #nav [data-tab=settings],body.readonly #nav [data-tab=connect],
+body.peek #muteBtn,body.peek #runBtn,body.peek #acctBody,body.peek #srvBody,body.peek .peek-hide,body.peek #nav [data-tab=quick],body.peek #nav [data-tab=audit],
+body.peek #reasonEditor,body.peek .rv-btn,body.peek #dRej,body.peek #dWhy,body.peek #dBy,
+body.peek [data-crem],body.peek [data-edit],body.peek [data-pkedit],body.peek [data-pkrem],body.peek .cv-add,body.peek #sdAdd,body.peek [data-sdedit],body.peek [data-sdgive],
+body.peek [data-sdlist],body.peek [data-sdmore],body.peek [data-sdopen],body.peek [data-sdsell],body.peek [data-sdundoid],body.peek #setAdd,body.peek [data-nagot],
+body.peek [data-got],body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -512,7 +517,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 07:09 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 08:13 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1042,7 +1047,7 @@ async function server(fn, ...args){
 function showLogin(msg){ $("#login").hidden = false; $("#loginMsg").textContent = msg || ""; setTimeout(() => $("#loginPw").focus(), 50); }
 function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBtn").hidden = true; }
 const savedTab = () => { const h = (location.hash || "").slice(1); return (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; };
-const tabOK = t => !["detail", "connect"].concat(READONLY ? ["settings"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
+const tabOK = t => !["detail", "connect"].concat(READONLY && ROLE !== "peek" ? ["settings"] : []).concat(ROLE === "peek" ? ["quick", "audit"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
   document.body.classList.add("booting");   // first load: header stays, the page below is blank until your data is in (just the loading card)
   try{
@@ -1115,7 +1120,9 @@ const S = {runs: {},
   dirty: new Set(), selected: null,
 };
 let READONLY = false, ROLE = "";   // ROLE: owner | user (an account - own Collection & Sets) | viewer (username "guest")
-const MYCOL = () => ROLE === "owner" || ROLE === "user";
+const MYCOL = () => ROLE === "owner" || ROLE === "user" || ROLE === "peek";   // peek: the owner's desk, look only
+const SEES_OWNER = () => ROLE === "owner" || ROLE === "peek";
+const GUESTVIEW = () => READONLY && ROLE !== "peek";   // a guest/account view (peek reads the owner's data, but still edits nothing)
 function lockIfReadonly(){
   if (!READONLY) return;
   document.querySelectorAll("#mineTable input, #mineTable select, #rulesTable input, #rulesTable select, #settingsForm input, #settingsForm select, #settingsForm textarea")
@@ -1153,6 +1160,7 @@ async function saveAll(){
   const want = new Set(S.dirty), done = new Set();   // on an error, retry only what was actually waiting to save
   if (!COL.loaded) S.dirty.delete("collection");      // never write files this page hasn't loaded
   if (!DICE.loaded) S.dirty.delete("dice");
+  if (ROLE === "peek"){ S.dirty.clear(); return; }   // look-only: nothing is ever saved (the server refuses too)
   if (!(SL.upcoming && SL.upcoming.length) && !SL.upSha) S.dirty.delete("upcoming");
   const ok0 = S.dirty.delete.bind(S.dirty); S.dirty.delete = f => { done.add(f); return ok0(f); };
   try{
@@ -1876,7 +1884,7 @@ const titleCase = t => String(t || "").split(" ").map((w, i, arr) => !w || /[A-Z
 const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller" ? "Seller - Block Them" : titleCase(r.label)}`]);
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
-  if (READONLY || FB.loaded || FB.loading) return; FB.loading = true;
+  if (GUESTVIEW() || FB.loaded || FB.loading) return; FB.loading = true;
   try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv", "collection/offers.csv"]); loadIGN(f["collection/ignored.csv"]); loadOFR(f["collection/offers.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on, #tab-quick.on")) renderAudit(); if (document.querySelector("#tab-train.on")) renderTrain(); }
   catch(e){} FB.loading = false;
@@ -3141,7 +3149,7 @@ const pctOf = (a, b) => b ? Math.round(a / b * 100) + "%" : "–";
 // Photo check (free) vs SlaveAI (paid) on the same listings, against your answers - from data/photo_check.json
 const PC = {data: null, loading: false};
 function pcBoard(){
-  if (!PC.data && !PC.loading && !READONLY){ PC.loading = true; GH.readFiles(["data/photo_check.json"]).then(f => { try{ PC.data = JSON.parse(f["data/photo_check.json"].text || "{}"); }catch(e){ PC.data = {}; } if (document.querySelector("#tab-audit.on, #tab-quick.on")) renderAudit(); if (document.querySelector("#tab-train.on")) renderTrain(); }).catch(() => {}); }
+  if (!PC.data && !PC.loading && !GUESTVIEW()){ PC.loading = true; GH.readFiles(["data/photo_check.json"]).then(f => { try{ PC.data = JSON.parse(f["data/photo_check.json"].text || "{}"); }catch(e){ PC.data = {}; } if (document.querySelector("#tab-audit.on, #tab-quick.on")) renderAudit(); if (document.querySelector("#tab-train.on")) renderTrain(); }).catch(() => {}); }
   const sc = (PC.data || {}).score, v = sc && sc.vs_ai, L = (PC.data || {}).learning;
   if (!sc) return "";
   const P = (PC.data || {}).practice;
@@ -3466,7 +3474,7 @@ const LR = {data: null, loaded: false, open: false};
 // Listings of cards you track that look like a deal on price, but a filter or rule passed on them. Lets you see what each rule costs.
 const NEAR = {rows: [], loaded: false, reason: "", days: 7};
 async function loadNear(force){
-  if (READONLY || (NEAR.loaded && !force)) return renderNear(); NEAR.loaded = true;
+  if (GUESTVIEW() || (NEAR.loaded && !force)) return renderNear(); NEAR.loaded = true;
   let rows = [];
   try{ const f = await GH.readFiles(["data/near_misses.json"]); const t = f["data/near_misses.json"].text; rows = t ? (JSON.parse(t).rows || []) : []; }catch(e){}
   const seen = new Set(rows.map(r => r.url));
@@ -3478,7 +3486,7 @@ const nearKey = r => { const t = (r.reason || "").toLowerCase();
     : /rule|muted|blocked|requires/.test(t) ? "Your comment rules" : /grade|graded|ungraded/.test(t) ? "Graded filter" : /cheap/.test(t) ? "Too cheap - SlaveAI didn't pass it"
     : /mislabel/.test(t) ? "Seller mislabels editions" : /several conditions/.test(t) ? "Multi-condition listing" : /damage|damaged/.test(t) ? "Damage in description" : "Other"; };
 function renderNear(){
-  const box = $("#dNear"); if (!box || READONLY) return;
+  const box = $("#dNear"); if (!box || GUESTVIEW()) return;
   const cutoff = new Date(Date.now() - NEAR.days * 864e5).toISOString().slice(0, 16), rows = NEAR.rows.filter(r => (r.at || "") >= cutoff);
   const by = {}; rows.forEach(r => { const k = nearKey(r); (by[k] = by[k] || {n: 0, save: 0}); by[k].n++; by[k].save += Math.max(0, r.fair - r.total); });
   $("#dNearCount").textContent = rows.length ? `- ${rows.length} in the last ${NEAR.days} days` : "- none this week";
@@ -3817,7 +3825,7 @@ function renderSL(){
     <p class="sub" style="margin:0">${SL.data ? `Updated ${esc(azFmt(SL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ · ${D.length} drops · times in Arizona time` : "No Secret Lair data yet - it appears after the next update run."}</p></div>
     <div class="row">${SL.orders && !READONLY ? '<button class="btn ghost small xls-btn" type="button" title="Download as an Excel file">⬇ Export to Excel</button>' : ""}<button class="btn ghost small owner-only" id="slEditBtn">${SL.editing ? "Close editor" : "Edit upcoming dates"}</button></div></div>`;
   if (SL.editing) L += slEditorHTML();
-  if (SL.orders && !READONLY) L += slOrdersHTML();
+  if (SL.orders && !GUESTVIEW()) L += slOrdersHTML();
   L += `<h3 style="margin:18px 0 10px;font-size:16px">Upcoming</h3>`;
   // a superdrop is one tile; the drops inside it are on its page
   const inSup = new Set(up.flatMap(d => d.parts || []));
@@ -3839,7 +3847,7 @@ function renderSL(){
   $("#slSort").addEventListener("input", e => { SL.sort = e.target.value; renderSLList(); });
   $("#slMore").addEventListener("click", () => { SL.limit += 300; renderSLList(); });
   if (SL.editing) wireSLEditor();
-  if (SL.orders && !READONLY) wireSLOrders();
+  if (SL.orders && !GUESTVIEW()) wireSLOrders();
   renderSLList(); lockIfReadonly();
 }
 function slCardHTML(d){
@@ -4046,7 +4054,7 @@ async function loadCOL(force){
   if (!MYCOL() || (COL.loaded && !force) || COL.loading){ if (COL.loaded || !MYCOL()) renderCOL(); return; }
   COL.loading = true; COL.error = ""; renderCOL();
   try{
-    const f = await GH.readFiles(["data/collection.json", "collection/inventory.csv", "collection/sales.csv", "collection/sl_received.csv", "collection/sets.csv"].concat(ROLE === "owner" ? ["data/my_card_prices.json"] : []));
+    const f = await GH.readFiles(["data/collection.json", "collection/inventory.csv", "collection/sales.csv", "collection/sl_received.csv", "collection/sets.csv"].concat(SEES_OWNER() ? ["data/my_card_prices.json"] : []));
     try{ const mp = f["data/my_card_prices.json"]; COL.mp = mp && mp.text ? JSON.parse(mp.text).cards || {} : null; }catch{ COL.mp = null; }
     COL.data = f["data/collection.json"].text ? JSON.parse(f["data/collection.json"].text) : null;
     const g = (k) => f[k] || {text: null, sha: null};
@@ -4333,7 +4341,7 @@ function renderSDList(){
     (groups.map(g => `<tr><td><div class="cname">${g.first.url ? `<a href="${esc(g.first.url)}" target="_blank" rel="noopener">${esc(g.first.product)}</a>` : esc(g.first.product)}${badge(g)}</div><div class="cset">${meta(g)}</div></td>
       <td class="r">${g.qty}</td><td class="r">${money(g.cost)}</td><td class="r">${g.first.each == null ? "–" : (g.est ? "≈ " : "") + money(g.first.each)}</td>
       <td class="r">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</td><td class="r">${g.first.status === "sold" || g.value == null ? "–" : gainHTML(g.value - g.cost)}</td><td class="mk" style="white-space:nowrap">${acts(g)}</td></tr>${sub(g)}`).join("")
-     || `<tr><td colspan="7" class="empty">${SD.rows.length ? "Nothing matches." : (ROLE === "owner" ? "Nothing here yet. + Add Sealed, or mark Secret Lair orders received." : "Nothing here yet. Tap + Add Sealed for a Secret Lair, booster box, pack or deck you hold.")}</td></tr>`) + "</tbody>";
+     || `<tr><td colspan="7" class="empty">${SD.rows.length ? "Nothing matches." : (SEES_OWNER() ? "Nothing here yet. + Add Sealed, or mark Secret Lair orders received." : "Nothing here yet. Tap + Add Sealed for a Secret Lair, booster box, pack or deck you hold.")}</td></tr>`) + "</tbody>";
   $("#sdTiles").innerHTML = groups.map(g => `<div class="tile"><div class="t-main"><div class="t-name">${esc(g.first.product)}${badge(g)}</div><div class="t-sub">${meta(g)}</div>
       <div class="t-sub">×${g.qty} · paid ${money(g.cost)}</div><div class="t-chips mk">${acts(g)}</div>${SD.openG.has(g.key) ? sub(g).replace(/<\/?(tr|td)[^>]*>/g, "") : ""}</div>
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
@@ -4579,7 +4587,7 @@ async function exportXLS(kind){
   const X = await excelLib();
   if (!COL.loaded && MYCOL()) await loadCOL();
   if (!SD.loaded) await loadSDFiles();
-  if (!SL.orders && !READONLY) await loadSL();
+  if (!SL.orders && !GUESTVIEW()) await loadSL();
   const wb = new X.Workbook(); wb.creator = "Havoth Price Desk"; wb.created = new Date();
   const MONEY = '"$"#,##0.00', today = todayAZ();
   const num = v => v == null || v === "" || isNaN(+v) ? null : Math.round(+v * 100) / 100;
@@ -5374,7 +5382,7 @@ function diceSets(){
 function diceDieHTML(d, have){
   const on = have.has(d.id), r = have.get(d.id), qty = r ? parseInt(r.qty) || 1 : 0;
   const k = d.kind || (d.num ? "#" + d.num : "");
-  return `<button class="dc-die${on ? " on" : ""}" type="button" data-die="${esc(d.id)}" ${READONLY ? "disabled" : ""} title="${esc((d.kind ? d.kind + " · " : "") + (d.look || "") + (on ? " · you have " + qty : " · tap if you have it"))}">
+  return `<button class="dc-die${on ? " on" : ""}" type="button" data-die="${esc(d.id)}" ${READONLY && ROLE !== "user" ? "disabled" : ""} title="${esc((d.kind ? d.kind + " · " : "") + (d.look || "") + (on ? " · you have " + qty : " · tap if you have it"))}">
     <span class="ck">${qty > 1 ? qty : "✓"}</span><img src="${esc(d.img)}" referrerpolicy="no-referrer" data-big="${esc(d.big)}" alt="${esc(d.set + " " + k)}" loading="lazy" onerror="this.style.visibility='hidden'">
     <div class="k">${esc(k)}${d.recolor ? " · recolor" : ""}</div></button>`;
 }
@@ -5388,7 +5396,7 @@ function renderDICE(){
   const nHave = all.filter(d => have.has(d.id)).length, bySet = new Map(); all.forEach(d => bySet.set(d.set, (bySet.get(d.set) || []).concat(d)));
   const done = [...bySet.values()].filter(ds => ds.every(d => have.has(d.id))).length;
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Spindown Dice</h2>
-    <p class="sub" style="margin:0">${READONLY ? "Every Magic spindown life counter." : "Every Magic spindown life counter. Tap a die you have; tap again to undo."} Pictures and list courtesy of <a href="${esc(DICE.cat.source || "https://www.dicecollector.com")}" target="_blank" rel="noopener">dicecollector.com</a>.</p></div></div>
+    <p class="sub" style="margin:0">${READONLY && ROLE !== "user" ? "Every Magic spindown life counter." : "Every Magic spindown life counter. Tap a die you have; tap again to undo."} Pictures and list courtesy of <a href="${esc(DICE.cat.source || "https://www.dicecollector.com")}" target="_blank" rel="noopener">dicecollector.com</a>.</p></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 14px">
       <div class="stat"><span>You have</span><b>${nHave} <span class="mut" style="font-size:14px;font-weight:500">of ${all.length}</span></b></div>
       <div class="stat"><span>Complete sets</span><b>${done} <span class="mut" style="font-size:14px;font-weight:500">of ${bySet.size}</span></b></div></div>
@@ -5412,7 +5420,7 @@ function renderDICEList(){   // typing in the search box: only the list changes,
 function wireDice(box){
   box.querySelectorAll(".dc-die").forEach(b => {
     let press = null, longDone = false;
-    b.addEventListener("click", () => { dicePopHide(); if (longDone){ longDone = false; return; } if (READONLY) return; toggleDie(b.dataset.die); });
+    b.addEventListener("click", () => { dicePopHide(); if (longDone){ longDone = false; return; } if (READONLY && ROLE !== "user") return; toggleDie(b.dataset.die); });
     b.addEventListener("pointerenter", e => { if (e.pointerType === "mouse" && matchMedia("(hover: hover)").matches) dicePop(b); });
     b.addEventListener("pointerleave", () => dicePopHide());
     b.addEventListener("pointerdown", e => { if (e.pointerType === "mouse") return; clearTimeout(press);
@@ -5487,7 +5495,7 @@ document.addEventListener("click", () => { if (NA.pop && $("#naSetPop")){ NA.pop
 // buy links, and a TCGplayer Mass Entry copy for buying the cheap ones in one cart
 const NA = {sets: new Set(), price: "", sort: "price-desc", q: "", pop: false};
 function renderNeedAll(goals){
-  if (!NA.tcg && !NA.tcgLoading && ROLE === "owner"){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); }
+  if (!NA.tcg && !NA.tcgLoading && SEES_OWNER()){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); }
   const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
   const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
   const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + goalLabel(g); };
@@ -5715,7 +5723,7 @@ function renderUpdated(msg){
   const r = S.runs || {}, bits = [`${S.cards.length} cards`];
   const part = (k, label) => `<span class="${isStale(k) ? "stale" : ""}" title="${esc(RUN_NAMES[k])} last updated ${r[k] ? esc(ago(r[k].at)) : "-"}">${isStale(k) ? "⚠ " : ""}${label} ${esc(r[k] ? whenAZ(r[k].at) : "-")}</span>`;
   bits.push(r.prices ? part("prices", "prices") : `prices from ${esc(S.updated)}`);
-  if (!READONLY && r.deals) bits.push(part("deals", "deals"));
+  if (!GUESTVIEW() && r.deals) bits.push(part("deals", "deals"));
   if (!READONLY && S.sniper && S.sniper.on){ const st = S.sniper.status || {}, live = st.at && Date.now() - new Date(st.at) < 5 * 6e4 && !st.error;
     bits.push(`<span class="${live ? "" : "stale"}" title="${live ? "Checking new eBay listings every minute" : esc(st.error || "No sweep in the last 5 minutes")}">${live ? "⚡ sniper live" : "⚠ sniper"}</span>`); }
   el.innerHTML = bits.join(" · ");
@@ -5880,14 +5888,23 @@ function renderAccounts(){
       <button class="btn small" id="accInvSave">Save Code</button><button class="btn ghost small" id="accInvGen">Make a New Code</button></div>
     <label style="display:flex;gap:8px;align-items:center;margin:14px 0 4px;font-weight:600"><input type="checkbox" id="accDeals" ${a.dealsPublic ? "checked" : ""}> Show eBay Deals to Guests &amp; Accounts</label>
     <p class="mut" style="font-size:12px;margin:0 0 12px">Off = only you see the Deals tab. They see deals live, the same moment you do.</p>
+    <b>Look-Only Accounts</b>
+    <p class="mut" style="font-size:12px;margin:2px 0 6px">See your whole desk - deals, prices, My Cards, Sets, Sealed, Secret Lair, Training results, settings - but can't change anything, and never see emails, Wizards accounts, order numbers, notes, where cards came from, or what you paid or sold for.</p>
+    <div class="row" style="align-items:flex-end;gap:10px;margin-bottom:14px">
+      <label style="display:grid;gap:4px;font-weight:600">Username<input id="pkUser" autocomplete="off" style="width:150px"></label>
+      <label style="display:grid;gap:4px;font-weight:600">Password<input id="pkPw" type="password" autocomplete="new-password" style="width:150px"></label>
+      <button class="btn small" id="pkAdd">Add Look-Only Account</button></div>
     <b>Accounts (${a.users.length})</b>
-    ${a.users.length ? `<div class="scroll"><table class="acct-tbl"><thead><tr><th>Username</th><th>Joined</th><th>Last Sign-In</th><th></th></tr></thead><tbody>${a.users.map(u => `<tr><td><b>${esc(u.name)}</b></td><td>${esc((u.created || "").slice(0, 10))}</td><td>${esc((u.last || "").slice(0, 10))}</td>
+    ${a.users.length ? `<div class="scroll"><table class="acct-tbl"><thead><tr><th>Username</th><th>Joined</th><th>Last Sign-In</th><th></th></tr></thead><tbody>${a.users.map(u => `<tr><td><b>${esc(u.name)}</b>${u.view ? ' <span class="chip">look only</span>' : ""}</td><td>${esc((u.created || "").slice(0, 10))}</td><td>${esc((u.last || "").slice(0, 10))}</td>
       <td style="white-space:nowrap"><button class="btn ghost" data-areset="${esc(u.name)}">Reset Password</button> <button class="btn ghost" data-arm="${esc(u.name)}">Remove</button></td></tr>`).join("")}</tbody></table></div>`
       : `<p class="mut" style="font-size:13px">No accounts yet. Share the invite code and the site address.</p>`}`;
   const set = async (o, msg) => { try{ ACC.info = await server("accountsSet", o); renderAccounts(); toast(msg); }catch(e){ toast(e.message, 6000); } };
   $("#accInvSave").addEventListener("click", () => set({invite: $("#accInv").value}, $("#accInv").value.trim() ? "Invite code saved." : "Sign-ups closed."));
   $("#accInvGen").addEventListener("click", () => { const w = ["mox", "lotus", "djinn", "bolt", "tutor", "sol", "dual", "ruby", "pearl", "jet"]; const c = w[Math.floor(Math.random() * w.length)] + "-" + Math.random().toString(36).slice(2, 7);
     set({invite: c}, "New invite code saved - the old one no longer works."); });
+  $("#pkAdd").addEventListener("click", async () => { const n = $("#pkUser").value.trim(), pw = $("#pkPw").value;
+    if (!n || !pw){ toast("Enter a username and password."); return; }
+    try{ ACC.info = await server("viewerAdd", n, pw); renderAccounts(); toast(`${n} can now sign in - look only.`); }catch(e){ toast(e.message, 6000); } });
   $("#accDeals").addEventListener("change", e => set({dealsPublic: e.target.checked}, e.target.checked ? "Guests and accounts can see eBay Deals." : "eBay Deals are now yours only."));
   box.querySelectorAll("[data-areset]").forEach(b => b.addEventListener("click", async () => {
     try{ const r = await server("accountReset", b.dataset.areset);
@@ -5907,14 +5924,14 @@ function switchTab(name){
   store.set("pd_tab", name);
   try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
   const stale = k => Date.now() - (TABLOAD[k] || Date.now()) > 15 * 6e4;   // reopened after a while: quietly fetch fresh data (no Refresh buttons)
-  if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!READONLY) loadCOL(); }
+  if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!GUESTVIEW()) loadCOL(); }
   if (name === "sealed" && typeof loadCOL === "function"){ loadCOL(stale("sealed") && !S.dirty.has("collection")); TABLOAD.sealed = Date.now(); if (typeof loadSL === "function") loadSL(); renderSD(); }
-  if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); if (!READONLY && typeof loadSL === "function") loadSL(); }
+  if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); if (!GUESTVIEW() && typeof loadSL === "function") loadSL(); }
   if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "dice") loadDICE();
   if ((name === "audit" || name === "quick") && !READONLY) renderAudit();
-  if (name === "train" && !READONLY) renderTrain();
+  if (name === "train" && !GUESTVIEW()) renderTrain();
   if (name === "guide") renderGuide();
   if (name === "settings" && !READONLY){ if (!FB.loaded) loadFB(); else renderReasonEditor(); }
 }
@@ -5936,11 +5953,12 @@ async function loadAll(){
   S.deals = dedupeDeals(S.deals);
   if (GONE.loaded) applyGone();
   markNewSinceLastVisit();
-  READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : "viewer");
-  document.body.classList.toggle("readonly", READONLY); document.body.classList.toggle("user", ROLE === "user");
+  READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : d0.role === "peek" ? "peek" : "viewer");
+  document.body.classList.toggle("readonly", READONLY); document.body.classList.toggle("user", ROLE === "user"); document.body.classList.toggle("peek", ROLE === "peek");
   document.body.classList.toggle("nodeals", !d0.canEdit && !d0.dealsPublic);
   $("#acctName").textContent = d0.name || "";
   if (ROLE !== "owner"){ COL.loaded = false; }
+  if (ROLE === "peek") $("#acctName").textContent = (d0.name || "") + " · look only";
   if (!READONLY) setTimeout(checkServerCode, 1500);
   if (!READONLY && !store.get("pd_relabel1")) setTimeout(relabelSniper, 8000);
   if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
@@ -5950,7 +5968,7 @@ async function loadAll(){
   $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
   renderUpdated(d0.dashboard ? null : "No price data yet - run the update once");
-  if (!READONLY) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
+  if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
 }
