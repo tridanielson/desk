@@ -98,6 +98,7 @@ td.r,th.r{text-align:right}
 .col-prints{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;max-height:320px;overflow:auto;margin-top:6px}
 #prPop{position:fixed;z-index:2000;pointer-events:none;border-radius:4.5%/3.2%;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.55);background:#111}
 #prPop img{display:block;width:100%;aspect-ratio:488/680}
+.linkbtn{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
 .dc-set{margin:0 0 18px}.dc-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0 0 8px}
 .dc-head b{font-size:15px}.dc-bar{flex:0 0 90px;height:6px;border-radius:3px;background:var(--line);overflow:hidden;align-self:center}.dc-bar i{display:block;height:100%;background:var(--accent)}
 .dc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
@@ -510,7 +511,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 04:24 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:50 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1577,9 +1578,11 @@ function showDetail(key){
   $("#ranges").querySelectorAll("button").forEach(b => b.addEventListener("click", () => drawChart(c, w, b.dataset.r)));
   drawChart(c, w, "1Y");
 }
-function drawChart(c, w, range){
-  document.querySelectorAll("#ranges button").forEach(b => b.classList.toggle("on", b.dataset.r === range));
-  document.querySelectorAll("#ranges button").forEach(b => b.style.background = b.dataset.r === range ? "var(--soft)" : "");
+const CHARTS = {};
+function drawChart(c, w, range, slot){
+  const rid = slot ? "#" + slot + "Ranges" : "#ranges", cv = $(slot ? "#" + slot + "Chart" : "#chart");
+  document.querySelectorAll(rid + " button").forEach(b => b.classList.toggle("on", b.dataset.r === range));
+  document.querySelectorAll(rid + " button").forEach(b => b.style.background = b.dataset.r === range ? "var(--soft)" : "");
   const days = {"3M": 92, "6M": 183, "1Y": 366, "All": 1e9}[range];
   const last = c.h.length ? c.h[c.h.length - 1][0] : 0;
   const pts = c.h.filter(p => last - p[0] <= days);
@@ -1593,9 +1596,9 @@ function drawChart(c, w, range){
   ];
   const tgt = w && numOrNull(w.target_price);
   if (tgt && tcg.length) sets.push({label: "Your target", data: [{x: tcg[0].x, y: tgt}, {x: tcg[tcg.length - 1].x, y: tgt}], borderColor: cssVar("--gold"), borderDash: [2, 3], borderWidth: 1.5, pointRadius: 0});
-  if (chart) chart.destroy();
-  if (typeof Chart === "undefined"){ $("#chart").parentElement.innerHTML = '<p class="empty">Chart library didn\'t load (no internet?).</p>'; return; }
-  chart = new Chart($("#chart"), {type: "line", data: {datasets: sets}, options: {
+  if (slot){ if (CHARTS[slot]) CHARTS[slot].destroy(); } else if (chart) chart.destroy();
+  if (typeof Chart === "undefined"){ cv.parentElement.innerHTML = '<p class="empty">Chart library didn\'t load (no internet?).</p>'; return; }
+  const made = new Chart(cv, {type: "line", data: {datasets: sets}, options: {
     responsive: true, maintainAspectRatio: false, interaction: {mode: "nearest", axis: "x", intersect: false}, parsing: false,
     plugins: {legend: {labels: {color: ink, boxWidth: 14}}, tooltip: {callbacks: {
       title: items => new Date(items[0].parsed.x).toISOString().slice(0, 10),
@@ -1603,6 +1606,7 @@ function drawChart(c, w, range){
     scales: {
       x: {type: "linear", ticks: {color: muted, maxTicksLimit: 7, callback: v => new Date(v).toLocaleDateString(undefined, days <= 183 ? {month: "short", day: "numeric", timeZone: "UTC"} : {month: "short", year: "2-digit", timeZone: "UTC"})}, grid: {color: line}},
       y: {ticks: {color: muted, callback: v => "$" + Number(v).toLocaleString()}, grid: {color: line}}}}});
+  if (slot) CHARTS[slot] = made; else chart = made;
 }
 
 // ---------------------------------------------------------------- Deals
@@ -4039,7 +4043,8 @@ async function loadCOL(force){
   if (!MYCOL() || (COL.loaded && !force) || COL.loading){ if (COL.loaded || !MYCOL()) renderCOL(); return; }
   COL.loading = true; COL.error = ""; renderCOL();
   try{
-    const f = await GH.readFiles(["data/collection.json", "collection/inventory.csv", "collection/sales.csv", "collection/sl_received.csv", "collection/sets.csv"]);
+    const f = await GH.readFiles(["data/collection.json", "collection/inventory.csv", "collection/sales.csv", "collection/sl_received.csv", "collection/sets.csv"].concat(ROLE === "owner" ? ["data/my_card_prices.json"] : []));
+    try{ const mp = f["data/my_card_prices.json"]; COL.mp = mp && mp.text ? JSON.parse(mp.text).cards || {} : null; }catch{ COL.mp = null; }
     COL.data = f["data/collection.json"].text ? JSON.parse(f["data/collection.json"].text) : null;
     const g = (k) => f[k] || {text: null, sha: null};
     COL.inv = g("collection/inventory.csv").text ? parseCSV(g("collection/inventory.csv").text) : []; COL.invSha = g("collection/inventory.csv").sha;
@@ -4791,25 +4796,26 @@ function renderCOLList(){
   const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
-  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
+  $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort" title="Market price change over the last 30 days - tap it for the price history">30d</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
     (show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
       const line = (x, lot) => `<tr${lot ? ' class="cv-lot"' : ""}><td><div class="cname">${lot ? `<span class="mut">↳ ${esc(x.source || "Unspecified")}${x.acquired ? " · " + esc(x.acquired) : ""}</span>` : x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</div>${lot ? "" : `<div class="cset">${meta(x)}</div>`}</td>
       <td class="r">${x.left}</td><td class="r">${x.cost_each > 0 ? money(x.cost_each) : x.cost_each < 0 ? '<span class="mut">mixed</span>' : '<span class="mut" title="Not entered">–</span>'}</td>
-      <td class="r">${x.value_each == null ? "–" : money(x.value_each)}</td><td class="r">${worth(x)}</td><td class="r">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</td>
+      <td class="r">${x.value_each == null ? "–" : money(x.value_each)}</td><td class="r">${lot ? "" : myTrend(x, i)}</td><td class="r">${worth(x)}</td><td class="r">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</td>
       <td class="mk" style="white-space:nowrap">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</td></tr>`;
       return line(i, false) + (isOpen ? i.lots.map(l => line(l, true)).join("") : ""); }).join("")
-      + (bulk.length ? `<tr class="cv-bulk"><td><b>Bulk under ${"$" + BULK_EACH}</b> <span class="mut">· ${bulk.reduce((t, i) => t + i.left, 0)} cards</span></td><td></td><td></td><td></td><td class="r"><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></td><td></td><td class="mk"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></td></tr>` : "") ||
-     '<tr><td colspan="7" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
+      + (bulk.length ? `<tr class="cv-bulk"><td><b>Bulk under ${"$" + BULK_EACH}</b> <span class="mut">· ${bulk.reduce((t, i) => t + i.left, 0)} cards</span></td><td></td><td></td><td></td><td></td><td class="r"><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></td><td></td><td class="mk"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></td></tr>` : "") ||
+     '<tr><td colspan="8" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
   $("#colTiles").innerHTML = show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
     const tile = (x, lot) => `<div class="tile${lot ? " cv-lot" : ""}"><div class="t-main"><div class="t-name">${lot ? `↳ ${esc(x.source || "Unspecified")}` : esc(x.name)}</div><div class="t-sub">${lot ? esc(x.acquired || "") : meta(x)}</div>
       <div class="t-sub">Have ${x.left}${x.cost_each > 0 ? ` · paid ${money(x.cost_each)} each` : x.cost_each < 0 ? " · paid: mixed" : ""}</div><div class="t-chips mk">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</div></div>
-      <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}</div></div>`;
+      <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}${!lot && myP(x) && myP(x).c30 != null ? `<div style="font-size:12px">30d ${myTrend(x, i)}</div>` : ""}</div></div>`;
     return tile(i, false) + (isOpen ? i.lots.map(l => tile(l, true)).join("") : ""); }).join("")
     + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
     || '<p class="empty">Nothing here yet.</p>';
   // the binder holds singles only - sealed product lives on the Sealed tab (and in the List view)
   if (COL.layout === "binder") $("#colBinder").innerHTML = colBinderHTML(show.map((i, k) => Object.assign({}, i, {_k: k})).filter(i => i.kind === "card"), bulk);
   document.querySelectorAll("#colBinder [data-pocket]").forEach(b => b.addEventListener("click", () => openPocket(show[+b.dataset.pocket])));
+  document.querySelectorAll("#colTable [data-trend], #colTiles [data-trend]").forEach(b => b.addEventListener("click", () => openPocket(show.find(x => (x.gkey || x.id) === b.dataset.trend))));
   document.querySelectorAll("#colBody [data-cgrp]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.cgrp; open.has(k) ? open.delete(k) : open.add(k); renderCOLList(); }));
   document.querySelectorAll("#colBody [data-showbulk]").forEach(b => b.addEventListener("click", () => { COL.showBulk = true; COL.limit = 100000; renderCOLList(); }));
   $("#colMore").hidden = rows.length <= COL.limit;
@@ -4851,18 +4857,28 @@ function colBinderHTML(show, bulk){
       <span class="pk-row"><span class="pk-name">Bulk</span><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></span></button>` : "")
     || '<p class="empty">Nothing here yet.</p>';
 }
+// My Cards price history (data/my_card_prices.json: every card you own, from the daily price run)
+const myP = i => COL.mp && i && i.sid ? COL.mp[i.sid + "|" + (i.finish || "nonfoil")] || null : null;
+function myTrend(x, g){ const m = myP(x); if (!m || m.c30 == null) return '<span class="mut">–</span>';
+  return `<button type="button" class="linkbtn" data-trend="${esc((g || x).gkey || (g || x).id)}" title="Price history">${pct(m.c30)}</button>`; }
 // tap a pocket: its copies (each lot), with Edit / Remove
 function openPocket(i){
   if (!i) return;
   if (i.kind === "sealed"){ SD.q = i.name.slice(0, 40); SD.status = "sealed"; switchTab("sealed"); return; }
   const lots = i.lots || [i], img = cardImg(i);
+  const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${img ? `<img src="${esc(img)}" alt="" style="width:180px;border-radius:9px">` : ""}
     <div style="flex:1;min-width:220px"><h3 style="margin:0">${esc(i.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(i.set_name || i.set || "")}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish || "")} · ${esc(i.condition || "")}</p>
       <p style="margin:0 0 10px">Have <b>${i.left}</b> · worth <b>${i.value == null ? "–" : money(i.value)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
+      ${(m => m ? `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 10px">${stat("Market (NM)", money(m.p))}${stat("CK buylist", money(m.ck))}${stat("30 days", pct(m.c30))}${stat("90 days", pct(m.c90))}${stat("1 year", pct(m.c1y))}</div>
+        ${m.h && m.h.length > 1 ? `<div class="row" id="pkRanges" style="justify-content:flex-end;margin-bottom:4px">${["3M","6M","1Y","All"].map(r => `<button class="btn ghost small" data-r="${r}">${r}</button>`).join("")}</div><div class="chartbox" style="height:200px"><canvas id="pkChart"></canvas></div>
+        <p class="mut" style="font-size:12px;margin:4px 0 10px">Near Mint market and Card Kingdom's cash buylist, since ${esc(m.since || "–")}.</p>` : ""}` : "")(i.kind === "card" ? myP(i) : null)}
       ${lots.map(l => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:6px 0;gap:8px"><span>${l.left}× · ${esc(l.source || "Unspecified")}${l.acquired ? " · " + esc(l.acquired) : ""}${l.cost_each > 0 ? " · paid " + money(l.cost_each) : ""}</span>
         <span><button class="btn ghost small" data-pkrem="${esc(l.id)}">Remove</button> <button class="btn ghost small" data-pkedit="${esc(l.id)}">Edit</button></span></div>`).join("")}
     </div></div><div class="acts"><button class="btn" id="pkClose" type="button">Close</button></div>`);
   $("#pkClose").addEventListener("click", closeModal);
+  const pm = i.kind === "card" ? myP(i) : null;
+  if (pm && $("#pkChart")){ $("#pkRanges").querySelectorAll("button").forEach(b => b.addEventListener("click", () => drawChart(pm, null, b.dataset.r, "pk"))); drawChart(pm, null, "1Y", "pk"); }
   document.querySelectorAll("[data-pkedit]").forEach(b => b.addEventListener("click", () => { closeModal(); openColEdit(b.dataset.pkedit); }));
   document.querySelectorAll("[data-pkrem]").forEach(b => b.addEventListener("click", () => { closeModal(); openColRemove(b.dataset.pkrem); }));
 }
