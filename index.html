@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 07:30 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 07:37 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2717,8 +2717,11 @@ function wireReview(root, d, done){
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
-      row.hidden = !changed; const mr = root.querySelector("#rvMarkRow"); if (mr){ mr.hidden = !changed; if (changed) markPhotos(root, d); }
-      if (changed && RV.sel.cfault !== "app"){ const better = COND_LIST.indexOf(b.dataset.v) < COND_LIST.indexOf(condCode(d._c0 || d.condition)); RV.sel.cfault = better ? "under" : "seller";
+      // better than listed: nothing to point at and no reason needed - "seller understated it" is the answer
+      const better = changed && COND_LIST.indexOf(b.dataset.v) < COND_LIST.indexOf(condCode(d._c0 || d.condition));
+      row.hidden = !changed; const mr = root.querySelector("#rvMarkRow"); if (mr){ mr.hidden = !changed || better; if (changed && !better) markPhotos(root, d); }
+      const nt = root.querySelector("#rvNote"); if (nt) nt.placeholder = better ? "Optional - better than listed needs no reason" : "Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'";
+      if (changed && RV.sel.cfault !== "app"){ RV.sel.cfault = better ? "under" : "seller";
         row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.cfault)); } } }
   }));
   const ai = root.querySelector("#rvAIok");
@@ -2849,6 +2852,8 @@ function saveReview(d, sel, note, done, agreeAI){
   const listed = condCode(d._c0 || d.condition), cur = (DC.map[d.url] || {}).c || listed;
   const condChanged = COND_LIST.includes(sel.condition) && (sel.condition !== listed || d._ngTemp) && !d._graded;
   if (condChanged && d._ngTemp && !/^not graded/i.test(note)) note = "Not graded - " + (note || "the listing isn't a slab");
+  const condBetter = condChanged && !d._ngTemp && COND_LIST.indexOf(sel.condition) < COND_LIST.indexOf(listed);
+  if (condBetter){ if (!note) note = `Better than listed (${listed} → ${sel.condition})`; if (sel.cfault !== "app") sel.cfault = "under"; }   // the grade is the lesson - no reason to write, nothing to mark
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
     const cm0 = condMult(condCode(d._c0 || d.condition), d) || 1, vv = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
     const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition), d);
