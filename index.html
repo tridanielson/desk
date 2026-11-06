@@ -338,6 +338,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .pk-cond,.pk-foil,.pk-lang{position:absolute;z-index:2;font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px;line-height:1.3}
 .pk-cond{top:6px;right:6px}.pk-foil{top:6px;left:6px;background:linear-gradient(90deg,#f0a868,#9ad1f0,#c79af0);color:#1b120a;font-size:10px}
 .pk-lang{bottom:6px;left:6px;background:#1f2a33;color:#8cc4f0;font-size:10px}
+.pk-sp{position:absolute;z-index:2;bottom:6px;right:6px;background:#2b2140;color:#e3c8ff;font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px;line-height:1.3}
 .pk-bulk{border:2px dashed var(--line);background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--ink)}
 .pk-bulk b{font-size:30px}.pk-bulk small{color:var(--muted)}.pk-bulk u{color:var(--accent);font-size:13px}
 .pk-row{display:flex;justify-content:space-between;gap:6px;font-size:13px}.pk-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -511,7 +512,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 06:50 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 07:09 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4031,7 +4032,9 @@ function wireSLEditor(){
 }
 
 // ---------------------------------------------------------------- Collection + received marks
-const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref"];
+const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value"];
+// signed: who signed it ("" = not signed) - priced like the card. proof "artist": an Artist Proof - no market price, worth what you enter (own_value)
+const colSpecial = r => (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
 const SALE_COLS = ["id", "date", "item_id", "name", "qty", "price_each", "shipping_charged", "shipping_cost", "platform", "fees", "notes"];
 const REC_COLS = ["line_id", "qty", "date"];
 const COL = {goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
@@ -4543,12 +4546,13 @@ function colItems(){
   return COL.inv.map((r, idx) => {
     const v = val.get(r.id) || {}; const qty = parseInt(r.qty) || 0; const left = Math.max(0, qty - (sold[r.id] || 0));
     const cost = numOrNull(r.cost_each) || 0; let each = v.value_each ?? null, approxSL = false;
+    if (r.proof === "artist") each = numOrNull(r.own_value);   // no market for an Artist Proof: your number (or none)
     if (each == null && r.kind === "secret_lair" && r.ref && SL.orders){ const ln = SL.orders.lines.find(x => x.line_id === r.ref); if (ln && ln.value != null && ln.qty){ each = Math.round(ln.value / ln.qty * 100) / 100; approxSL = true; } }
     return {row: r, id: r.id, name: v.name || r.name, set: v.set || (r.set || "").toUpperCase(), set_name: v.set_name || "", number: v.number || r.number,
       finish: r.finish || "nonfoil", condition: r.condition || "NM", qty, left, cost_each: cost, source: r.source || "Unspecified",
       status: left === 0 && sold[r.id] ? "sold" : (r.status || "owned"), kind: r.kind || "card", value_each: each, market_each: v.market_each ?? null,
       value: each == null ? null : Math.round(each * left * 100) / 100, cost_left: Math.round(cost * left * 100) / 100,
-      pending: !val.has(r.id) && !approxSL, approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || "",
+      pending: !val.has(r.id) && !approxSL && r.proof !== "artist", approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || "",
       base_each: v.base_each ?? null, base_at: v.base_at || "", idx, sid: r.scryfall_id || v.sid || ""};   // idx: order added (newest = highest)   // its value when first priced: "since added"
   });
 }
@@ -4793,7 +4797,7 @@ function renderCOLList(){
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
-  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}`;
+  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}${i.row && (i.row.signed || i.row.proof) ? " " + colSpecial(i.row) : ""}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort" title="Market price change over the last 30 days - tap it for the price history">30d</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -4808,7 +4812,7 @@ function renderCOLList(){
   $("#colTiles").innerHTML = show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
     const tile = (x, lot) => `<div class="tile${lot ? " cv-lot" : ""}"><div class="t-main"><div class="t-name">${lot ? `↳ ${esc(x.source || "Unspecified")}` : esc(x.name)}</div><div class="t-sub">${lot ? esc(x.acquired || "") : meta(x)}</div>
       <div class="t-sub">Have ${x.left}${x.cost_each > 0 ? ` · paid ${money(x.cost_each)} each` : x.cost_each < 0 ? " · paid: mixed" : ""}</div><div class="t-chips mk">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</div></div>
-      <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}${!lot && myP(x) && myP(x).c30 != null ? `<div style="font-size:12px">30d ${myTrend(x, i)}</div>` : ""}</div></div>`;
+      <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}${!lot && myP(x) && myP(x).c30 != null && !(x.row && x.row.proof === "artist") ? `<div style="font-size:12px">30d ${myTrend(x, i)}</div>` : ""}</div></div>`;
     return tile(i, false) + (isOpen ? i.lots.map(l => tile(l, true)).join("") : ""); }).join("")
     + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
     || '<p class="empty">Nothing here yet.</p>';
@@ -4850,7 +4854,8 @@ function colBinderHTML(show, bulk){
       <span class="pk-card">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
         ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
         ${i.finish && i.finish !== "nonfoil" ? `<span class="pk-foil">${i.finish === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}
-        ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}</span>
+        ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
+        ${i.row && (i.row.signed || i.row.proof) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
       <span class="pk-row"><span class="pk-name">${esc(i.name)}</span><b>${i.value == null ? "–" : (i.approx ? "≈" : "") + money(i.value)}</b></span>
       <span class="pk-sub">${i.kind === "sealed" ? "Sealed" : esc((i.set || "").toUpperCase()) + (i.number ? " #" + esc(i.number) : "")}${i.left > 1 && i.value_each != null ? " · " + money(i.value_each) + " each" : ""}</span></button>`; };
   return show.map(pocket).join("") + (bulk.length ? `<button type="button" class="pocket" data-showbulk="1"><span class="pk-card pk-bulk"><b>${bulk.reduce((t, i) => t + i.left, 0)}</b><small>cards under $${BULK_EACH}</small><u>Open Bulk</u></span>
@@ -4859,7 +4864,7 @@ function colBinderHTML(show, bulk){
 }
 // My Cards price history (data/my_card_prices.json: every card you own, from the daily price run)
 const myP = i => COL.mp && i && i.sid ? COL.mp[i.sid + "|" + (i.finish || "nonfoil")] || null : null;
-function myTrend(x, g){ const m = myP(x); if (!m || m.c30 == null) return '<span class="mut">–</span>';
+function myTrend(x, g){ const m = x.row && x.row.proof === "artist" ? null : myP(x); if (!m || m.c30 == null) return '<span class="mut">–</span>';
   return `<button type="button" class="linkbtn" data-trend="${esc((g || x).gkey || (g || x).id)}" title="Price history">${pct(m.c30)}</button>`; }
 // tap a pocket: its copies (each lot), with Edit / Remove
 function openPocket(i){
@@ -4872,12 +4877,12 @@ function openPocket(i){
       <p style="margin:0 0 10px">Have <b>${i.left}</b> · worth <b>${i.value == null ? "–" : money(i.value)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
       ${(m => m ? `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 10px">${stat("Market (NM)", money(m.p))}${stat("CK buylist", money(m.ck))}${stat("30 days", pct(m.c30))}${stat("90 days", pct(m.c90))}${stat("1 year", pct(m.c1y))}</div>
         ${m.h && m.h.length > 1 ? `<div class="row" id="pkRanges" style="justify-content:flex-end;margin-bottom:4px">${["3M","6M","1Y","All"].map(r => `<button class="btn ghost small" data-r="${r}">${r}</button>`).join("")}</div><div class="chartbox" style="height:200px"><canvas id="pkChart"></canvas></div>
-        <p class="mut" style="font-size:12px;margin:4px 0 10px">Near Mint market and Card Kingdom's cash buylist, since ${esc(m.since || "–")}.</p>` : ""}` : "")(i.kind === "card" ? myP(i) : null)}
+        <p class="mut" style="font-size:12px;margin:4px 0 10px">Near Mint market and Card Kingdom's cash buylist, since ${esc(m.since || "–")}.</p>` : ""}` : "")(i.kind === "card" && !(i.row && i.row.proof === "artist") ? myP(i) : null)}
       ${lots.map(l => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:6px 0;gap:8px"><span>${l.left}× · ${esc(l.source || "Unspecified")}${l.acquired ? " · " + esc(l.acquired) : ""}${l.cost_each > 0 ? " · paid " + money(l.cost_each) : ""}</span>
         <span><button class="btn ghost small" data-pkrem="${esc(l.id)}">Remove</button> <button class="btn ghost small" data-pkedit="${esc(l.id)}">Edit</button></span></div>`).join("")}
     </div></div><div class="acts"><button class="btn" id="pkClose" type="button">Close</button></div>`);
   $("#pkClose").addEventListener("click", closeModal);
-  const pm = i.kind === "card" ? myP(i) : null;
+  const pm = i.kind === "card" && !(i.row && i.row.proof === "artist") ? myP(i) : null;
   if (pm && $("#pkChart")){ $("#pkRanges").querySelectorAll("button").forEach(b => b.addEventListener("click", () => drawChart(pm, null, b.dataset.r, "pk"))); drawChart(pm, null, "1Y", "pk"); }
   document.querySelectorAll("[data-pkedit]").forEach(b => b.addEventListener("click", () => { closeModal(); openColEdit(b.dataset.pkedit); }));
   document.querySelectorAll("[data-pkrem]").forEach(b => b.addEventListener("click", () => { closeModal(); openColRemove(b.dataset.pkrem); }));
@@ -5040,7 +5045,7 @@ const langName = c => ((COL_LANGS.find(x => x[0] === (c || "EN").toUpperCase()) 
 // ---- the same card twice: one row when EVERYTHING matches (printing, finish, condition, language, where from, paid, status);
 // copies that differ only in where from / paid stay their own rows (so each sale's profit is right) but show as one line
 const colCardKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil",
-  (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase()].join("|");
+  (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase(), (r.signed || "").toLowerCase(), r.proof || ""].join("|");
 const colLotKey = r => [colCardKey(r), (r.source || "").trim().toLowerCase(), String(numOrNull(r.cost_each) || ""), r.status || "owned", String(numOrNull(r.list_price) || "")].join("|");
 const colMergeable = r => (r.kind || "card") === "card" && !r.ref && r.status !== "ordered" && !COL.sales.some(x => x.item_id === r.id);
 // add a row - or add its quantity to the identical row already there (which then counts as just added)
@@ -5188,7 +5193,12 @@ function openColEdit(id, pre){
       ${isSL ? "" : `<div><label for="eSet">Set Code</label><input id="eSet" value="${esc(r.set)}" placeholder="e.g. 3ed"></div><div><label for="eNum">Collector #</label><input id="eNum" value="${esc(r.number)}"></div>`}
       <div><label for="eFin">Finish</label><select id="eFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></div>
       ${isSL ? "" : `<div class="full"><label>Condition</label><div class="seg" id="eCondBtns">${["NM", "LP", "MP", "HP", "DMG"].map(c => `<button type="button" class="btn small ghost" data-c="${c}">${c}</button>`).join("")}</div><select id="eCond" hidden><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select></div>
-      <div><label for="eLang">Language</label><select id="eLang">${COL_LANGS.map(([c, l]) => `<option value="${c}">${l}</option>`).join("")}</select></div>`}
+      <div><label for="eLang">Language</label><select id="eLang">${COL_LANGS.map(([c, l]) => `<option value="${c}">${l}</option>`).join("")}</select></div>
+      <div class="full row" style="gap:14px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eSigned" style="width:18px;height:18px;margin:0;flex:none" ${r.signed ? "checked" : ""}> ✍ Signed</label>
+        <input id="eSignedBy" placeholder="By whom? (artist, player…)" value="${esc(r.signed && r.signed !== "yes" ? r.signed : "")}" style="flex:1;min-width:150px" ${r.signed ? "" : "hidden"}>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eProof" style="width:18px;height:18px;margin:0;flex:none" ${r.proof === "artist" ? "checked" : ""}> Artist Proof</label>
+        <span id="eOwnWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap" ${r.proof === "artist" ? "" : "hidden"}><label for="eOwn" style="margin:0;display:inline">Your value each ($)</label><input id="eOwn" inputmode="decimal" value="${esc(r.own_value || "")}" style="width:110px"></span></div>`}
       <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
@@ -5211,6 +5221,8 @@ function openColEdit(id, pre){
   if ($("#eNum")) $("#eNum").addEventListener("input", () => { numFor = $("#eName").value.trim().toLowerCase(); });
   $("#eName").addEventListener("change", fixNum); $("#eName").addEventListener("blur", fixNum);
   if (!isSL) colFastAdd(r);
+  if ($("#eSigned")){ $("#eSigned").addEventListener("change", e => { $("#eSignedBy").hidden = !e.target.checked; if (e.target.checked) $("#eSignedBy").focus(); });
+    $("#eProof").addEventListener("change", e => { $("#eOwnWrap").hidden = !e.target.checked; if (e.target.checked) $("#eOwn").focus(); }); }
   $("#eCancel").addEventListener("click", closeModal);
   if (id) $("#eDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to delete"; return; }
     COL.inv = COL.inv.filter(x => x.id !== id); COL.sales = COL.sales.filter(x => x.item_id !== id); if (r.ref) COL.rec = COL.rec.filter(x => x.line_id !== r.ref);
@@ -5220,7 +5232,9 @@ function openColEdit(id, pre){
     const upd = {name, finish: $("#eFin").value, qty: String(Math.max(0, parseInt(($("#eQty") || {}).value) || 0)), cost_each: $("#eCost").value.trim(), source: $("#eSrc").value.trim(),
       acquired: $("#eAcq").value, status: $("#eStat").value, list_price: $("#eList").value.trim(), notes: $("#eNotes").value.trim()};
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value; if ($("#eLang")) upd.language = $("#eLang").value;
-      if (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name) upd.scryfall_id = ""; }
+      if (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name) upd.scryfall_id = "";
+      if ($("#eSigned")){ upd.signed = $("#eSigned").checked ? ($("#eSignedBy").value.trim() || "yes") : ""; upd.proof = $("#eProof").checked ? "artist" : "";
+        upd.own_value = upd.proof ? $("#eOwn").value.trim().replace(/[$,]/g, "") : ""; } }
     if (id) Object.assign(r, upd); else colAddRow(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
     if (more){   // keep the same card filled in for the next copy - usually just a different condition
