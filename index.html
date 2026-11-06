@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 11:39 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 05, 11:49 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2384,6 +2384,13 @@ const GUIDE_CMP = [
   {title: "Revised vs 4th Edition", a: ["Prodigal Sorcerer", "3ed", "Revised"], b: ["Prodigal Sorcerer", "4ed", "4th Edition"],
    tells: ["<b>Copyright line:</b> 4th Edition prints \"©1995 Wizards of the Coast\" at the bottom; Revised has none.",
            "<b>Tap symbol:</b> 4th uses a curved arrow over a tilted card instead of Revised's circled T."]},
+  {title: "Revised vs Summer Magic / \"Edgar\" (1994 - very rare)", a: ["Hurricane", "3ed", "Revised"], b: ["Hurricane", "sum", "Summer Magic / Edgar"],
+   tells: ["<b>What it is:</b> a 1994 reprint of Revised meant to fix its problems (washed-out colors, a wrong picture, some Satanic imagery). It was code-named \"Edgar\" and printed that summer, then recalled and destroyed - only a small number of boxes got out, so real ones are worth far more than Revised.",
+           "<b>The main tell - the artist line:</b> Summer Magic has a <b>1994 date</b> between the © and the artist's name (\"Illus. ©1994 …\"). Revised has <b>no date</b> there. 4th Edition says \"©1995 Wizards of the Coast\" instead.",
+           "<b>Colors:</b> richer and darker than Revised's washed-out look (clearest side by side). Both are white-bordered with no set symbol.",
+           "<b>Card-specific tells:</b> <b>Hurricane</b> has a <b>blue</b> frame (green on Revised) · <b>Serendib Efreet</b> has the right picture but still credits the wrong artist (Jesper Myrfors) · <b>Onulet</b> credits Anson Maddocks (Kerstin Kaman on Revised) · <b>Demonic Tutor</b> and <b>Unholy Strength</b> lost the pentacle · some names drop the apostrophe (\"Aladdins Lamp\").",
+           "<b>Most common:</b> basic lands (still rare); non-land cards are scarce. A \"Summer Magic\" listing priced like Revised is almost always plain Revised - zoom in on the artist line.",
+           "Expensive ones: insist on a sharp close-up of the artist line, compare against a known Summer card on Scryfall, and prefer graded copies - with only one real tell on most cards, a doctored date is the risk."]},
   {title: "Arabian Nights / Antiquities / Legends / The Dark vs Chronicles", a: ["Erhnam Djinn", "arn", "Arabian Nights"], b: ["Erhnam Djinn", "chr", "Chronicles"],
    tells: ["<b>Border:</b> the originals are black-bordered; the Chronicles reprints are white-bordered.",
            "<b>Set symbol:</b> each original has its own (Arabian Nights scimitar, Antiquities anvil, Legends column, The Dark crescent moon); Chronicles has a different one.",
@@ -3218,7 +3225,7 @@ function renderTrain(){
   const corners = (cnN.square || cnN.round || cnN.alpha) ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📐 Corners measured on listings you've answered: ${["square", "round", "alpha"].filter(g => cnN[g]).map(g => `${cnName[g]} ${CN.median[g]}mm (${cnN[g]})`).join(" · ")}${cnLines.some(l => CN.adopted[l]) ? ` - <b>using corners to tell ${cnLines.filter(l => CN.adopted[l]).map(l => l === "square" ? "CE/IE from Beta" : "Alpha from Beta").join(" and ")}</b>${CN.used && CN.used.n ? ` (right ${CN.used.right} of ${CN.used.n})` : ""}` : " - not reliable yet (needs 5+ of each kind and 90% on listings it didn't fit on)"}</p>` : "";
   const K = D.photo_kinds || {}, kc = K.counts || {};
   const kinds = K.counts ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📷 Photo problems Loupe is learning from: ${kc.stock || 0} stock photos · ${kc.lot || 0} lots · ${kc.verify || 0} can't-see${K.adopted ? ` - <b>spotting them on its own</b> (${Object.entries(K.recall || {}).map(([k, v]) => k + " " + v + "%").join(", ")})` : ` - ${esc(K.why || "")}`}</p>` : "";
-  const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `${headline}<div class="stats aud-stats">
+  const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `<div class="stats aud-stats">
       ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Of the listings where the true printing is known (your answers, slabs, titles), how often Loupe's pick matched")}
       ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Times it read the set code and number printed on the card (newer cards only), and how often that was right") : ""}
       ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Only listings where the exact printing is known (\"It's Revised #147\")")}
@@ -3229,9 +3236,33 @@ function renderTrain(){
     <p class="mut" style="font-size:12px;margin:6px 0 0">Your answers so far: ${quickN} Quick · ${fullN} Full. ${sc.cant_tell ? `${sc.cant_tell} listing(s) where every printing looks alike aren't counted. ` : ""}${sc.partial ? "<b>The last run ran out of time and only checked part of the labels</b> - the next scans finish it. " : ""}${D.updated ? "Updated " + esc(whenAZ(D.updated)) + "." : ""}</p>${kinds}${corners}${trend()}`;
   const alerts = (sc.alerts || []).length ? `<div class="panel" style="border-color:var(--gold)"><b>⚠ Early warning</b> <span class="mut" style="font-size:12px">- a pattern on one card usually means something to fix, not more reviewing</span>
     <ul style="margin:6px 0 0">${sc.alerts.map(a => `<li>${esc(a.text)}</li>`).join("")}</ul><p class="mut" style="font-size:12px;margin:4px 0 0">Ask Claude to look into it - paste this list.</p></div>` : "";
-  box.innerHTML = alerts + `<div class="panel"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span><div style="margin-top:8px">${loupe}</div></div>
-    <div class="panel"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
-      <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div>`;
+  // the easy read first: is Loupe getting better? everything else folds away underneath
+  const NS = (D.all_cards_history || []).filter(h => h.pct != null), YH = H.filter(h => h.yours != null);
+  const direction = arr => { if (arr.length < 3) return null; const k = Math.max(1, Math.floor(arr.length / 3)), a0 = arr.slice(0, k), a1 = arr.slice(-k),
+      avg = a => a.reduce((t, h) => t + (h.yours != null && arr === YH ? h.yours : h.pct), 0) / a.length, d = avg(a1) - avg(a0);
+    return d >= 3 ? ["📈", "Getting better", "var(--good, #3fa16a)"] : d <= -3 ? ["📉", "Slipping", "#e07b5a"] : ["➡️", "Holding steady", "var(--muted)"]; };
+  const line = (arr, key) => { if (arr.length < 2) return '<p class="mut" style="font-size:13px;margin:6px 0 0">A trend line shows up here after a few more scans.</p>';
+    const W = 600, Hh = 80, xs = arr.map((_, i) => 8 + i * (W - 16) / (arr.length - 1)), vals = arr.map(h => h[key]), lo = Math.max(0, Math.min(...vals) - 5), hi = Math.min(100, Math.max(...vals) + 5);
+    const y = p => Hh - 8 - (p - lo) / ((hi - lo) || 1) * (Hh - 16);
+    return `<svg viewBox="0 0 ${W} ${Hh}" style="width:100%;max-width:640px;height:${Hh}px;display:block;margin-top:6px"><polyline points="${arr.map((h, i) => xs[i].toFixed(1) + "," + y(h[key]).toFixed(1)).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="2.5"/></svg>
+      <div class="mut" style="font-size:12px">${esc(arr[0].at.slice(5, 10))} → ${esc(arr[arr.length - 1].at.slice(5, 10))} · ${lo.toFixed(0)}–${hi.toFixed(0)}%</div>`; };
+  const yp = (sc.yours || {}).pct, yn = (sc.yours || {}).n, newPct = AC.new_pct != null ? AC.new_pct : AC.pct, dirN = direction(NS), dirY = direction(YH);
+  const big = (p, txt, sub) => `<div><span class="ln-big">${p == null ? "–" : p + "%"}</span><span class="ln-what">${txt}${p != null ? ` <span class="mut">(about ${of10(p)} in 10)</span>` : ""}<br><span class="mut">${sub}</span></span></div>`;
+  const simple = `<div class="panel"><b style="font-size:16px">🔍 How Loupe is doing</b> <span class="mut" style="font-size:12px">- it looks at the photos and says which printing the card is</span>
+    <div class="ln-head" style="margin-top:10px">
+      ${big(AC.n ? newPct : null, "right on <b>cards it has never seen</b>", AC.n ? `random cards from all of Magic · ${AC.new_n || AC.n} checked so far` : "first numbers after the next scan")}
+      ${big(yp != null ? yp : null, "right on <b>listings you checked</b>", yp != null ? `graded against your own reviews · ${yn} listings` : "after the next scan")}</div>
+    <div style="margin-top:12px"><b>Is it getting better?</b> ${dirN ? `<span style="color:${dirN[2]};font-weight:700">${dirN[0]} ${dirN[1]}</span> <span class="mut">on cards it has never seen</span>` : '<span class="mut">Not enough runs yet to tell - check back in a day or two.</span>'}
+      ${line(NS, "pct")}</div>
+    ${(sc.alerts || []).length ? `<p style="margin:10px 0 0">⚠ <b>${sc.alerts.length} early warning${sc.alerts.length > 1 ? "s" : ""}</b> - a pattern on one card. Details below.</p>` : ""}
+    <p class="mut" style="font-size:12px;margin:10px 0 0">The more listings you review, the better it gets - and the more honest the second number is.</p></div>
+    ${(() => { const {random: rs} = audStats(); return `<div class="panel"><b style="font-size:16px">🤖 How SlaveAI is doing</b> <span class="mut" style="font-size:12px">- the paid Claude check</span>
+      <p style="margin:8px 0 0">${rs.n ? `Fully right on <b>${rs.n ? Math.round(10 * rs.all / rs.n) : "–"} out of 10</b> randomly picked listings you reviewed <span class="mut">(${rs.all} of ${rs.n})</span>` : 'Review some deals in <b>Full Review → Random Sample</b> to get its score.'}</p></div>`; })()}`;
+  box.innerHTML = simple + `<details class="panel" id="trDeep"${store.get("pd_tr_deep") === "1" ? " open" : ""}><summary style="cursor:pointer"><b>More detail</b> <span class="mut" style="font-size:12px">- every number, trends and warnings</span></summary>
+    ${alerts}<div style="margin-top:10px"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span>${YH.length >= 2 ? `<div style="margin:8px 0">Right on listings you checked, run by run ${dirY ? `<span style="color:${dirY[2]};font-weight:700">${dirY[0]} ${dirY[1]}</span>` : ""}${line(YH, "yours")}</div>` : ""}<div style="margin-top:8px">${loupe}</div></div>
+    <div style="margin-top:16px"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
+      <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div></details>`;
+  const dp = $("#trDeep"); dp.addEventListener("toggle", () => store.set("pd_tr_deep", dp.open ? "1" : "0"));
   $("#audRange").value = AUD.range; $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderTrain(); });
 }
 function renderAudit(){
