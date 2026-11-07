@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:19 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:22 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4393,6 +4393,8 @@ function wireSLEditor(){
 const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value", "grade"];
 // a graded slab: "BGS 8.5" - shown instead of the condition, valued at the NM raw price
 const GRADERS = ["PSA", "BGS", "CGC", "SGC"];
+const isGrade = c => /^(PSA|BGS|CGC|SGC)\b/i.test(c || "");   // a binder badge that's a slab's grade: 🏅 and gold
+const SLAB_BADGE = ["#d9b44a", "#1b120a"];
 const gradeOf = d => { const m = /\b(PSA|BGS|CGC|SGC|Beckett)\s*(?:grade\s*)?(10|[1-9](?:\.5)?)\b/i.exec([d.condition, d.title].join(" ")); return m ? (m[1].toUpperCase() === "BECKETT" ? "BGS" : m[1].toUpperCase()) + " " + m[2] : ""; };
 // signed: who signed it ("" = not signed) - priced like the card. proof "artist": an Artist Proof - no market price, worth what you enter (own_value)
 const colSpecial = r => (r && r.grade ? `<span class="chip" title="Graded slab - valued at the NM raw price">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
@@ -5217,10 +5219,10 @@ const COND_BADGE = {NM: ["#ece6dc", "#1b120a"], LP: ["#c9d6e2", "#1b120a"], MP: 
 const cardImg = i => i.sid ? `https://cards.scryfall.io/normal/front/${i.sid[0]}/${i.sid[1]}/${i.sid}.jpg`
   : i.set && i.number ? `https://api.scryfall.com/cards/${encodeURIComponent(i.set.toLowerCase())}/${encodeURIComponent(i.number)}?format=image&version=normal` : "";
 function colBinderHTML(show, bulk){
-  const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.row && i.row.grade ? String(i.row.grade) : i.condition || "NM").toUpperCase(), [bg, fg] = COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
+  const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.row && i.row.grade ? String(i.row.grade) : i.condition || "NM").toUpperCase(), [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
     return `<button type="button" class="pocket" data-pocket="${k}" title="${esc(i.name)}">
       <span class="pk-card">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
-        ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
+        ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
         ${i.finish && i.finish !== "nonfoil" ? `<span class="pk-foil">${i.finish === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}
         ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
         ${i.row && (i.row.signed || i.row.proof) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
@@ -6076,11 +6078,11 @@ function renderSetDetail(g){
 const setOrder = (a, b) => { const na = parseInt(a.c.collector_number) || 0, nb = parseInt(b.c.collector_number) || 0;
   return na - nb || String(a.c.collector_number).localeCompare(String(b.c.collector_number)) || FINS.indexOf(a.fin) - FINS.indexOf(b.fin); };
 function setPocketHTML(r, i, pr){
-  const c = r.best, [bg, fg] = COND_BADGE[c] || COND_BADGE.NM;
+  const c = r.best, [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM;
   return `<button type="button" class="pocket${r.have ? "" : " missing"}" data-spocket="${i}" title="${esc(r.c.name)}${r.have ? "" : " - you don't have it"}">
     <span class="pk-card"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" loading="lazy" onerror="this.remove()"><span class="pk-fallback">${esc(r.c.name)}</span>
       <span class="pk-num">#${esc(r.c.collector_number)}</span>
-      ${r.have ? `<span class="pk-cond" style="background:${r.upgrade ? "#e07b5a" : bg};color:${fg}">${esc(c || "✓")}${r.have > 1 ? " ×" + r.have : ""}</span>` : ""}
+      ${r.have ? `<span class="pk-cond" style="background:${r.upgrade ? "#e07b5a" : bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c || "✓")}${r.have > 1 ? " ×" + r.have : ""}</span>` : ""}
       ${r.fin !== "nonfoil" ? `<span class="pk-foil">${r.fin === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}</span>
     <span class="pk-row"><span class="pk-name">${esc(r.c.name)}</span><b>${r.price == null ? "–" : money(r.price)}</b></span></button>`;
 }
