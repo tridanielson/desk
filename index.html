@@ -566,7 +566,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 10:59 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:02 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2693,8 +2693,8 @@ function reviewHTML(d, mode){
     <div class="aud-q">${Q("Is it the card you're tracking?", "")}${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
     ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}>${Q("Which one is in the photos?", "")}<div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
-    <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}>${Q("Whose mistake?", "Seller = the listing says one thing, shows another · App = the listing was right, the desk matched it wrong")}${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
-    <div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}>${Q("Which printing is it?", "Optional · it's re-priced as that one and stays if it's still a deal")}<div class="seg var-pick" data-k="variant" id="rvEdPick">${others.map(pickBtn).join("") || '<span class="mut" style="font-size:13px">Loading every printing…</span>'}</div></div>
+    <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}>${Q("Whose mistake?", "")}${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
+    <div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}>${Q("Which printing is it?", "")}<div class="seg var-pick" data-k="variant" id="rvEdPick">${others.map(pickBtn).join("") || '<span class="mut" style="font-size:13px">Loading every printing…</span>'}</div></div>
     <div class="mut" id="rvEdHint" hidden></div><div class="mut" id="rvFaultHint" hidden></div>
     <div id="rvRest"${(isWrong(s.edition) && s.edition !== "edition") || s.edition === "lot" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q">${Q("Condition", "")}<span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying. <a href="#" class="rv-notgraded" data-u="${esc(d.url)}">Not actually graded? Rate its condition instead</a></span></div>`
