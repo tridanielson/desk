@@ -568,7 +568,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:43 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:27 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3214,8 +3214,20 @@ function pickPrinting(d, done){
   const FOREIGN = new Set(["fbb", "fwb", "4bb", "ren", "rin", "bchr"]);
   let PS = null, LANG = null, redraw = () => {};
   $("#qkLang").addEventListener("click", () => { const r = $("#qkLangRow"); r.hidden = !r.hidden; $("#qkLang").classList.toggle("ghost", r.hidden); });
+  let PICK = null;
+  const askLang = (p, fact) => { PICK = {fact};
+    const r = $("#qkLangRow"), m = $("#qkLangMsg"), row = r.querySelector(".qk-langs"); r.hidden = false; $("#qkLang").classList.remove("ghost");
+    m.hidden = false; m.innerHTML = `<b>Which language is this ${esc(p.set.toUpperCase())} #${esc(p.num)}?</b> ${esc(p.sn)} was printed in more than one.`;
+    m.style.fontSize = "14px"; r.prepend(m);
+    row.innerHTML = '<span class="mut loadmsg" style="font-size:12px">Loading its languages…</span>';
+    const chips = codes => { row.innerHTML = codes.map(c => `<button type="button" class="btn small" data-lang="${c}">${esc(langName(c))}</button>`).join("") + `<button type="button" class="btn ghost small" data-lang="OTHER">Other</button>`; };
+    sf("/cards/search?include_multilingual=true&unique=prints&q=" + encodeURIComponent(`!"${name}" set:${p.set} cn:${p.num} lang:any`))
+      .then(j => { const ls = [...new Set((j.data || []).map(c => String(c.lang || "").toUpperCase()).filter(c => c && c !== "EN"))]; chips(ls.length ? ls : p.set === "fbb" || p.set === "fwb" ? ["FR", "DE", "IT"] : ["FR", "DE", "IT", "ES", "JA"]); })
+      .catch(() => chips(p.set === "fbb" || p.set === "fwb" ? ["FR", "DE", "IT"] : ["FR", "DE", "IT", "ES", "JA"]));
+    r.scrollIntoView({block: "nearest", behavior: "smooth"}); };
   $("#qkLangRow").addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if (!b) return;
     const code = b.dataset.lang, label = b.textContent.trim();
+    if (PICK) return done(`${PICK.fact} · ${label}`, false, code);   // the foreign printing you tapped, in this language
     if (PS && PS.some(p => FOREIGN.has(p.set))){ LANG = {code, label};
       $("#qkLangRow").querySelectorAll("[data-lang]").forEach(x => x.classList.toggle("ghost", x !== b));
       const m = $("#qkLangMsg"); m.hidden = false; m.innerHTML = `Early non-English cards are their own printing. <b>Tap the ${esc(label)} one in the photos above</b> (only the foreign printings are shown now).`;
@@ -3244,7 +3256,9 @@ function pickPrinting(d, done){
     el.addEventListener("mouseleave", () => { if (!keep) return; [refImg.src, refLab.textContent, refCap.textContent] = keep; $("#qkItem .qk-ref").classList.remove("cmp"); });
     el.addEventListener("click", e => { const b = e.target.closest(".qk-pr"); if (!b || b.disabled) return; const p = ps[+b.dataset.i];
       const f = fin || (only(p) ? only(p).replace(" only", "") : "finish not stated");   // a version that only exists in foil is foil
-      done(`It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""} · ${f}${LANG ? " · " + LANG.label : ""}`, false, LANG && LANG.code); });
+      const fact = `It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""} · ${f}`;
+      if (FOREIGN.has(p.set) && !LANG) return askLang(p, fact);   // FBB, 4BB, Renaissance...: one printing, several languages - which one?
+      done(fact + (LANG ? " · " + LANG.label : ""), false, LANG && LANG.code); });
   }).catch(() => { const el = $("#qkPrints"); if (el) el.innerHTML = `<p class="mut">Couldn't load the printings - tap Wrong, But Not Sure Which.</p>`; });
 }
 // 📷 Photo Problem: the photos can't answer "which printing?" - each is a fact (hides the deal), never a printing lesson.
