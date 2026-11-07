@@ -320,6 +320,21 @@ select option{background:var(--panel);color:var(--ink)}
 .aiG.ok{border:0;cursor:default;opacity:.8}
 .aud-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.aud-stats.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .rv-stockbox{display:flex;gap:8px;align-items:center;font-size:14px;margin:8px 0 6px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+/* review: photos left, a checklist of questions right (one bullet line each); on a phone one question at a time */
+.rv-b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;align-items:start;margin-top:10px}
+.rv-left .aud-grid{grid-template-columns:1fr;gap:10px}.rv-left .aud-photos{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.rv-right{border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.rv-right>.aud-q,.rv-right .rv-qs .aud-q{display:block;margin:0;padding:12px 14px;border-bottom:1px solid var(--line)}
+.rv-right .aud-q>.rq-l{display:flex;flex-direction:column;gap:2px;min-width:0;margin-bottom:8px;font-size:14px;color:var(--ink)}
+.rv-right .aud-q[hidden],.rv-right [hidden]{display:none!important}.rq-l small{font-size:12px;color:var(--muted);line-height:1.35}.rv-right .rq-sub{padding-top:0}
+.rv-right .rv-stocknote{padding:10px 14px;font-size:13px}.rv-right>textarea,.rv-right .rv-always,.rv-right>details{margin:10px 14px!important;width:calc(100% - 28px);box-sizing:border-box}
+.rv-step-nav{display:none}
+@media (max-width:1000px){.rv-b{grid-template-columns:1fr}}
+@media (max-width:700px){.rv-stepping .aud-q.rv-off{display:none!important}.rv-step-nav{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .rv-step-nav .dots{display:flex;gap:4px}.rv-step-nav .dots i{width:16px;height:5px;border-radius:3px;background:var(--line)}.rv-step-nav .dots i.on{background:var(--accent)}
+  .rv-stepping .aud-q .seg .btn{min-height:44px}.rv-chips{display:flex;gap:5px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line)}
+  .rv-chips button{flex:0 0 auto;width:auto;font-size:11.5px;padding:3px 9px;min-height:0;border-radius:14px;margin:0}
+  .rv-step-nav .dots i{width:10px}}
 .rv-stocknote{font-size:13px;margin:6px 0}
 .set-ico{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#f1ece3;box-shadow:0 0 0 1px rgba(0,0,0,.12);flex:none}
 .set-ico img{width:64%;height:64%;object-fit:contain}
@@ -524,7 +539,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 06:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 08:56 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2607,6 +2622,10 @@ function reviewHTML(d, mode){
     const lo = lf ? "" : String(langOf(d) || ""), byName = (COL_LANGS.find(([c, l]) => lo && lo.toLowerCase().includes(l.toLowerCase())) || [])[0];
     s.lang = lf ? (lf.note || "OTHER") : s.reasons.includes("language") ? "OTHER" : lo ? (byName || "OTHER") : "EN"; }
   const c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
+  // each question: its name and one bullet line saying what the answers mean
+  const Q = (label, hint) => `<span class="rq-l"><b>${label}</b>${hint ? `<small>• ${hint}</small>` : ""}</span>`;
+  s.stockq = s.stock ? "yes" : "no";
+  if (s.eng === undefined){ s.eng = s.lang && s.lang !== "EN" ? "no" : "yes"; s.langpick = s.lang && !["EN", "OTHER"].includes(s.lang) ? s.lang : (s.lang === "OTHER" ? "OTHER" : ""); }
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
   const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition), d) || 1;
@@ -2618,42 +2637,41 @@ function reviewHTML(d, mode){
   return `<div class="rv-head"><b>${esc(d.card)}</b> ${sfBtn(d)} · ${money(d.total)} · condition <b>${esc(listed)}</b> · ${esc(dealWhen(d))}${isEnded(d) ? ' · <span class="flag sus">ended / sold</span>' : ""}
       <div class="mut" style="font-size:12px">eBay item #${esc(itemId(d) || "?")} · <a href="#" class="rv-copy" data-copy="${esc(d.url)}">📋 Copy Details for Claude</a>${blockLink}</div>
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
+    <div class="rv-b"><div class="rv-left">
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
       <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="SlaveAI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</div>${(d.photo_roles || "")[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
-      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You want:</span><br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
+      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You're tracking:</span><br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
-    ${READONLY ? "" : `<label class="rv-check rv-stockbox"><input type="checkbox" id="rvStock"${s.stock ? " checked" : ""}> 📷 <b>Stock photo</b> - not a picture of the actual card being sold</label>`}
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from SlaveAI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 SlaveAI didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     ${photoCheckLine(d)}
-    <div class="rv-stocknote mut"${s.stock ? "" : " hidden"}>Saved as: card <b>Can't Tell</b> · condition <b>Can't Tell</b> · back <b>not recorded</b> · problem <b>Stock Photo</b>. Untick the box if the photos are real.</div>
+    </div><div class="rv-right">
+    ${READONLY ? "" : `<div class="aud-q" id="rvStockRow">${Q("Stock photo?", "Not a picture of the actual card being sold · Yes skips the rest")}${seg("stockq", [["yes", "Yes"], ["no", "No"]])}</div>`}
+    <div class="rv-stocknote mut"${s.stock ? "" : " hidden"}>Saved as: card <b>Can't Tell</b> · condition <b>Can't Tell</b> · back <b>not recorded</b> · problem <b>Stock Photo</b>. Tap No if the photos are real.</div>
     <div class="rv-qs"${s.stock ? " hidden" : ""}>
-    <div class="aud-q"><span>Is It the Card You Want?</span>${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
-    ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}><span>What's Actually in the Photos?</span><div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
+    <div class="aud-q">${Q("Is it the card you're tracking?", "Wrong edition = same card, another set or version · Wrong card = a different card")}${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
+    ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}>${Q("Which one is in the photos?", "")}<div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
-    <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}><span>Whose Mistake?</span>${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
-    <div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}><span>What's Actually in the Photos?</span><div class="seg var-pick" data-k="variant" id="rvEdPick">${others.map(pickBtn).join("") || '<span class="mut" style="font-size:13px">Loading every printing…</span>'}</div></div>
-    <div class="mut" id="rvEdHint" style="font-size:12px;margin-top:2px"${s.edition === "edition" ? "" : " hidden"}>Optional. Pick the printing it really is and the deal is re-priced as that one (NM market price shown) - it stays if it's still a deal. Skip it and the listing is hidden.</div>
-    <div class="mut" id="rvFaultHint" style="font-size:12px;margin-top:2px"${isWrong(s.edition) ? "" : " hidden"}>Seller: the title or details say one thing, the card is another. App: the listing was accurate, but this app picked the wrong card or edition for it.</div>
+    <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}>${Q("Whose mistake?", "Seller = the listing says one thing, shows another · App = the listing was right, the desk matched it wrong")}${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
+    <div class="aud-q" id="rvEdRow"${s.edition === "edition" ? "" : " hidden"}>${Q("Which printing is it?", "Optional · it's re-priced as that one and stays if it's still a deal")}<div class="seg var-pick" data-k="variant" id="rvEdPick">${others.map(pickBtn).join("") || '<span class="mut" style="font-size:13px">Loading every printing…</span>'}</div></div>
+    <div class="mut" id="rvEdHint" hidden></div><div class="mut" id="rvFaultHint" hidden></div>
     <div id="rvRest"${(isWrong(s.edition) && s.edition !== "edition") || s.edition === "lot" ? " hidden" : ""}>
-    ${d._graded ? `<div class="aud-q"><span>Condition</span><span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying. <a href="#" class="rv-notgraded" data-u="${esc(d.url)}">Not actually graded? Rate its condition instead</a></span></div>`
-      : `<div class="aud-q"><span>Condition</span>${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
-      <div class="aud-q"><span>Back of Card</span>${seg("back", [["shown", "Shown"], ["missing", "Not Shown / Can't Tell"]])}</div>
-      <div class="aud-q"><span>Language</span><select id="rvLang" style="max-width:220px">${(() => { const cur = String(s.lang || "EN").toUpperCase(), ls = COL_LANGS.slice();
-        if (cur !== "EN" && cur !== "OTHER" && !ls.some(([c]) => c === cur)) ls.push([cur, cur]);
-        return ls.map(([c, l]) => `<option value="${c}"${c === cur ? " selected" : ""}>${esc(l)}</option>`).join("") + `<option value="OTHER"${cur === "OTHER" ? " selected" : ""}>Not English (other)</option>`; })()}</select></div>
-        <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}><span>Whose Mistake?</span>${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
-    <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}><span>Show Me Where</span><div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
-    <div class="aud-q"><span>Anything Else?</span><div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
-    <div class="mut" style="font-size:12px;margin-top:2px">Optional - anything else wrong with the listing (these hide it). Language is a fact, not a problem: your language filter decides what you see. Signed / graded / where the seller is: use the filters.</div>
+    ${d._graded ? `<div class="aud-q">${Q("Condition", "")}<span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying. <a href="#" class="rv-notgraded" data-u="${esc(d.url)}">Not actually graded? Rate its condition instead</a></span></div>`
+      : `<div class="aud-q">${Q("Condition", `Listed ${esc(listed)} · better = just tap it · worse = mark the damage or say why`)}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+      <div class="aud-q">${Q("Back of the card shown?", "Helps rule out fakes and back damage")}${seg("back", [["shown", "Yes"], ["missing", "No / Can't Tell"]])}</div>
+      <div class="aud-q">${Q("Is it in English?", "A fact, not a problem · your language filter decides what shows on Deals")}${seg("eng", [["yes", "Yes"], ["no", "No"]])}</div>
+      <div class="aud-q rq-sub" id="rvLangRow"${s.eng === "no" ? "" : " hidden"}>${Q("Which language?", "")}${seg("langpick", COL_LANGS.filter(([c]) => c !== "EN").map(([c, l]) => [c, esc(l)]).concat([["OTHER", "Other"]]))}</div>
+        <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}>${Q("Whose mistake?", "")}${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>`}
+    <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}>${Q("Show me where", "Tap the damage on a photo - this is what teaches Loupe and SlaveAI")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
+    <div class="aud-q">${Q("Anything else? <span class=\"mut\" style=\"font-weight:400\">(optional)</span>", "Price doesn't match what's being sold · or something else (say what in the note)")}<div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     </div>
     </div>
 
     <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
     ${S.ini && !READONLY ? `<div class="rv-always" style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="rvAlways" aria-label="Always tell SlaveAI this note" style="width:18px;height:18px;margin:0;padding:0;flex:none;cursor:pointer"><span>📌 Always tell SlaveAI this <span class="mut" style="font-size:12px">- every future check follows this note (remove it in Settings → SlaveAI)</span></span></div>` : ""}
-    ${condGuideHTML()}`;
+    ${condGuideHTML()}</div></div>`;
 }
 // Troubleshooting: everything about a deal in one block to paste to Claude, plus a link that opens it on the desk
 const itemId = d => (String(d.url || "").match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/) || [])[1] || "";
@@ -2682,9 +2700,11 @@ function openDealFromHash(){
 }
 window.addEventListener("hashchange", () => openDealFromHash());
 function wireReview(root, d, done){
-  const sb = root.querySelector("#rvStock");
-  if (sb) sb.addEventListener("change", () => { RV.sel.stock = sb.checked;
-    root.querySelector(".rv-qs").hidden = sb.checked; root.querySelector(".rv-stocknote").hidden = !sb.checked; });
+  const sq = root.querySelector('[data-k="stockq"]');
+  if (sq) sq.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return; const st = b.dataset.v === "yes"; RV.sel.stock = st;
+    root.querySelector(".rv-qs").hidden = st; root.querySelector(".rv-stocknote").hidden = !st; });
+  const en = root.querySelector('[data-k="eng"]');
+  if (en) en.addEventListener("click", e => { const b = e.target.closest("[data-v]"); if (!b) return; const lr = root.querySelector("#rvLangRow"); if (lr) lr.hidden = b.dataset.v !== "no"; });
   // no photos saved with this deal (found before photos were kept): load them from eBay once (1 call, counted against the
   // daily photo limit) and redraw the review with your answers so far kept
   if (!READONLY && !String(d.images || "").trim() && itemId(d) && !d._phTried){
@@ -2726,6 +2746,7 @@ function wireReview(root, d, done){
       if (changed && RV.sel.cfault !== "app"){ RV.sel.cfault = better ? "under" : "seller";
         row.querySelectorAll("[data-v]").forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.cfault)); } } }
   }));
+  rvStepper(root);
   const ai = root.querySelector("#rvAIok");
   if (ai) ai.addEventListener("click", () => {
     const aiC = String(d.ai_condition || "").toUpperCase();
@@ -2734,6 +2755,36 @@ function wireReview(root, d, done){
       good: d.ai_verdict === "ok" ? "up" : d.ai_verdict === "reject" ? "down" : "", reason: d.ai_verdict === "reject" ? cat : "", bought: false};
     saveReview(d, sel, "Agree with SlaveAI: " + (d.ai_reason || ""), done, true);
   });
+}
+// ---- On a phone the checklist becomes one question at a time: progress dots, Back / Next, a tap on an answer moves on,
+// and the answers so far show as chips (tap one to go back to it). Save stays where it always is.
+function rvStepper(root){
+  const box = root.querySelector(".rv-right"); if (!box || !matchMedia("(max-width:700px)").matches) return;
+  box.classList.add("rv-stepping");
+  const nav = document.createElement("div"); nav.className = "rv-step-nav";
+  const chips = document.createElement("div"); chips.className = "rv-chips";
+  box.prepend(chips); box.prepend(nav);
+  const shown = el => { for (let x = el; x && x !== box; x = x.parentElement) if (x.hidden) return false; return true; };
+  const list = () => [...box.querySelectorAll(".aud-q")].filter(shown);
+  const label = q => ((q.querySelector(".rq-l b") || {}).textContent || "").replace(/\(optional\)/, "").trim().replace(/\?$/, "")
+    .replace(/^Is it the card you're tracking$/, "Card").replace(/^Back of the card shown$/, "Back").replace(/^Is it in English$/, "English").replace(/^Which language$/, "Language");
+  const answer = q => [...q.querySelectorAll(".seg [data-v]:not(.ghost)")].map(b => b.textContent.trim()).join(", ");
+  let cur = null;
+  const draw = () => { const L = list(); if (!L.includes(cur)) cur = L[0];
+    L.concat([...box.querySelectorAll(".aud-q")]).forEach(q => q.classList.toggle("rv-off", q !== cur));
+    const i = L.indexOf(cur);
+    nav.innerHTML = `<button type="button" class="btn ghost" data-go="-1"${i ? "" : " disabled"}>Back</button>
+      <span class="mut" style="font-size:12px;display:flex;flex-direction:column;gap:4px;align-items:center">${i + 1} of ${L.length}<span class="dots">${L.map((_, j) => `<i class="${j <= i ? "on" : ""}"></i>`).join("")}</span></span>
+      <button type="button" class="btn" data-go="1"${i < L.length - 1 ? "" : " disabled"}>Next</button>`;
+    chips.innerHTML = L.filter(q => q !== cur && answer(q)).map(q => `<button type="button" class="btn ghost" data-q="${L.indexOf(q)}">${esc(label(q))}: ${esc(answer(q))}</button>`).join("");
+    chips.hidden = !chips.innerHTML; };
+  nav.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (!b || b.disabled) return; const L = list(); cur = L[Math.max(0, Math.min(L.length - 1, L.indexOf(cur) + +b.dataset.go))]; draw(); });
+  chips.addEventListener("click", e => { const b = e.target.closest("[data-q]"); if (!b) return; cur = list()[+b.dataset.q]; draw(); });
+  box.addEventListener("click", e => { const b = e.target.closest(".seg [data-v]"); if (!b || b.closest(".seg").dataset.multi) return;
+    setTimeout(() => { const L = list(), i = L.indexOf(cur);   // after the answer's own handler has shown / hidden follow-up rows
+      if (i >= 0 && b.closest(".aud-q") === cur && !cur.querySelector(".mk-strip")){ const nx = L[i + 1]; if (nx) cur = nx; }
+      draw(); }, 0); });
+  draw();
 }
 // ---- "Show me where": when you change a deal's condition, draw boxes on the listing photos around the damage.
 // The boxes (with a tag each) save with your review in deal_condition.csv and teach SlaveAI what you look for.
@@ -2831,7 +2882,7 @@ function saveReview(d, sel, note, done, agreeAI){
   // stock photo: nothing in the photos is the real card - the same facts Quick Review's 📷 Photo Problem saves
   if (sel.stock) sel = Object.assign(sel, {edition: "", condition: "unclear", back: "skip", reason: "stock", reasons: ["stock"], good: "down", cfault: "", fault: "", variant: "",
     factNote: "photo problem: stock"});
-  const lgPick = !sel.stock && $("#rvLang") ? $("#rvLang").value : "";   // the Language row (a fact, like condition)
+  const lgPick = sel.stock ? "" : sel.eng === "no" ? (sel.langpick || "OTHER") : sel.eng === "yes" ? "EN" : "";   // "Is it in English?" (a fact, like condition)
   if (lgPick && lgPick !== "EN" && !sel.reasons.includes("language")) sel.reasons.push("language");
   if (sel.edition === "lot"){   // Not a Single Card: a lot / sealed / accessory - nothing to rate, the listing is hidden
     sel = Object.assign(sel, {edition: "", condition: "unclear", reason: "lot", good: "down", variant: ""}); sel.reasons = [...new Set(["lot"].concat(sel.reasons))]; }
