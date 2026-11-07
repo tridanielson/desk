@@ -557,7 +557,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 09:35 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 10:56 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2676,10 +2676,10 @@ function reviewHTML(d, mode){
       : `<div class="aud-ai mut" style="font-size:13px">🤖 SlaveAI didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     ${photoCheckLine(d)}
     </div><div class="rv-right">
-    ${READONLY ? "" : `<div class="aud-q" id="rvStockRow">${Q("Stock photo?", "Not a picture of the actual card being sold · Yes skips the rest")}${seg("stockq", [["yes", "Yes"], ["no", "No"]])}</div>`}
+    ${READONLY ? "" : `<div class="aud-q" id="rvStockRow">${Q("Stock photo?", "")}${seg("stockq", [["yes", "Yes"], ["no", "No"]])}</div>`}
     <div class="rv-stocknote mut"${s.stock ? "" : " hidden"}>Saved as: card <b>Can't Tell</b> · condition <b>Can't Tell</b> · back <b>not recorded</b> · problem <b>Stock Photo</b>. Tap No if the photos are real.</div>
     <div class="rv-qs"${s.stock ? " hidden" : ""}>
-    <div class="aud-q">${Q("Is it the card you're tracking?", "Wrong edition = same card, another set or version · Wrong card = a different card")}${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
+    <div class="aud-q">${Q("Is it the card you're tracking?", "")}${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
     ${vars.length > 1 ? `<div class="aud-q" id="rvVarRow"${s.edition === "variant" ? "" : " hidden"}>${Q("Which one is in the photos?", "")}<div class="seg var-pick" data-k="variant">${vars.map(pickBtn).join("")}</div></div>
       <div class="mut" id="rvVarHint" style="font-size:12px;margin-top:2px"${s.edition === "variant" ? "" : " hidden"}>Same card and set, different art. It's re-priced as the one you pick (NM price shown) and stays if it's still a deal.</div>` : ""}
     <div class="aud-q" id="rvFaultRow"${isWrong(s.edition) ? "" : " hidden"}>${Q("Whose mistake?", "Seller = the listing says one thing, shows another · App = the listing was right, the desk matched it wrong")}${seg("fault", [["seller", "The Seller's Listing"], ["app", "The App's Match"]])}</div>
@@ -2687,13 +2687,13 @@ function reviewHTML(d, mode){
     <div class="mut" id="rvEdHint" hidden></div><div class="mut" id="rvFaultHint" hidden></div>
     <div id="rvRest"${(isWrong(s.edition) && s.edition !== "edition") || s.edition === "lot" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q">${Q("Condition", "")}<span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying. <a href="#" class="rv-notgraded" data-u="${esc(d.url)}">Not actually graded? Rate its condition instead</a></span></div>`
-      : `<div class="aud-q">${Q("Condition", `Listed ${esc(listed)} · worse = mark the damage or say why`)}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+      : `<div class="aud-q">${Q("Condition", "")}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
       <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}>${Q("Whose mistake?", "")}${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>
-      <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}>${Q("Show me where", "Tap the damage on a photo - this is what teaches Loupe and SlaveAI")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
+      <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}>${Q("Highlight Defects", "")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
       <div class="aud-q">${Q("Back of the card shown?", "")}${seg("back", [["shown", "Yes"], ["missing", "No / Can't Tell"]])}</div>
       <div class="aud-q">${Q("Is it in English?", "")}${seg("eng", [["yes", "Yes"], ["no", "No"]])}</div>
       <div class="aud-q rq-sub" id="rvLangRow"${s.eng === "no" ? "" : " hidden"}>${Q("Which language?", "")}${seg("langpick", COL_LANGS.filter(([c]) => c !== "EN").map(([c, l]) => [c, esc(l)]).concat([["OTHER", "Other"]]))}</div>`}
-    <div class="aud-q">${Q("Anything else? <span class=\"mut\" style=\"font-weight:400\">(optional)</span>", "Price doesn't match what's being sold · or something else (say what in the note)")}<div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
+    <div class="aud-q">${Q("Anything else? <span class=\"mut\" style=\"font-weight:400\">(optional)</span>", "")}<div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     </div>
     </div>
 
