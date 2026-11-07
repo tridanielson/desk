@@ -279,6 +279,25 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
 .sheet-bg.on{display:block}
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--panel);border-radius:16px 16px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow:auto;transform:translateY(105%);transition:transform .2s ease;box-shadow:0 -6px 30px rgba(0,0,0,.25)}
 .sheet{visibility:hidden}.sheet.on{transform:none;visibility:visible}
+@media (min-width:701px){.sheet{left:50%;right:auto;width:520px;margin-left:-260px;bottom:auto;top:12vh;border-radius:14px;transform:translateY(20px);opacity:0;transition:transform .15s,opacity .15s}.sheet.on{opacity:1}.sheet .grab{display:none}}
+/* Want List: one list of cards, sets and searches */
+.wl-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.wl-pick button{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:left;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+.wl-pick button.on{border:2px solid var(--accent);padding:13px}.wl-pick .wl-ic{font-size:22px}.wl-pick span:last-child{font-size:12px;color:var(--muted);line-height:1.4}
+.wl-form{margin-top:14px}
+.wl-box{padding:0;overflow:hidden}
+.wl-row{display:grid;grid-template-columns:48px minmax(0,1.6fr) minmax(0,1.1fr) minmax(0,1fr) 84px;gap:14px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line)}
+.wl-row:last-child{border-bottom:0}.wl-row.click{cursor:pointer}.wl-row.click:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.wl-headrow{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:8px;padding-bottom:8px}
+.wl-th{width:44px;height:60px;border-radius:5px;background:var(--chip,#eee);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:20px}.wl-th img{width:100%;height:100%;object-fit:cover}
+.wl-th .set-ico{width:28px;height:28px}
+.wl-tag{font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:5px;border:1px solid currentColor;margin-right:6px;vertical-align:2px}
+.wl-tag.card{color:var(--accent)}.wl-tag.set{color:var(--up)}.wl-tag.search{color:#5b7fc9}
+.wl-w,.wl-n{font-size:13px;line-height:1.45}.wl-w{color:var(--muted)}
+.wl-ed{grid-column:1/-1;background:var(--bg);border-radius:10px;padding:12px;margin:2px 0 4px}
+@media (max-width:700px){.wl-pick{grid-template-columns:1fr}.wl-headrow{display:none}
+  .wl-row{grid-template-columns:44px minmax(0,1fr) auto;grid-template-areas:"t m e" "t w w" "t n n";gap:4px 12px;align-items:start}
+  .wl-row>.wl-th{grid-area:t}.wl-row>.wl-m{grid-area:m}.wl-row>.wl-w{grid-area:w}.wl-row>.wl-n{grid-area:n}.wl-row>.wl-e{grid-area:e}.wl-ed{grid-column:1/-1}}
 .sheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
 .sheet .sh-head{display:flex;gap:12px;align-items:center;margin-bottom:14px}
 .sheet .sh-head img{width:56px;border-radius:4px}
@@ -499,10 +518,9 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-group="setup">⚙️ Settings</button>
   </nav>
   <nav id="nav">
-    <button data-tab="mine" data-group="prices" class="on" title="Cards you picked to watch, with your alert levels">Watchlist</button>
+    <button data-tab="mine" data-group="prices" class="on" title="Everything the desk hunts for: cards, sets you're completing, Scryfall searches">Want List</button>
     <button data-tab="all" data-group="prices" title="Every card priced daily: your watchlist plus your auto-track lists">All Prices</button>
     <button data-tab="detail" data-group="prices" title="Price chart and history for one card">Card Chart</button>
-    <button data-tab="rules" data-group="prices" title="Scryfall searches that add groups of cards to All prices">Auto-Track Lists</button>
     <button data-tab="deals" data-group="deals" title="eBay listings priced below fair value">eBay Deals</button>
     <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" data-group="mine" title="Every set you own cards from, and the ones you are completing">Sets</button>
@@ -527,7 +545,7 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
 </header>
 
 <div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT">Prices</div><div class="hero-s" id="heroS">What your cards are worth today, and where they are heading.</div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
-<script>(function(){try{var G={mine:"prices",all:"prices",detail:"prices",rules:"prices",deals:"deals",audit:"deals",col:"mine",sets:"mine",sl:"mine",sealed:"mine",guide:"guide",settings:"setup",connect:"setup"};
+<script>(function(){try{var G={mine:"prices",all:"prices",detail:"prices",deals:"deals",audit:"deals",col:"mine",sets:"mine",sl:"mine",sealed:"mine",guide:"guide",settings:"setup",connect:"setup"};
 var h=(location.hash||"").slice(1),t=G[h]?h:(localStorage.getItem("pd_tab")||"mine"),g=G[t]||"prices";
 document.querySelectorAll("#nav button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" pre";if(b.getAttribute("data-tab")===t)b.className+=" on";else b.className=b.className.replace(/\bon\b/,"");});
 document.querySelectorAll("#navGroups button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" on";});
@@ -539,25 +557,24 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 08:56 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 09:30 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Server Code (Apps Script)</b><div id="srvBody"><p class="mut">Checking…</p></div></div>
     <details class="panel" style="margin-top:14px"><summary><b>What Each Tab Does &amp; Words Used</b></summary>
       <dl class="guide">
-        <dt>Watchlist</dt><dd>Cards you picked one by one, each with its own alerts (target price, % drop, deal %, new 1-year low).</dd>
-        <dt>All Prices</dt><dd>Everything priced every morning: Watchlist cards + all cards from your Auto-track lists. Filter for drops, lows, buylist strength, volatility.</dd>
+        <dt>Want List</dt><dd>Everything the desk hunts for, in one list: <b>cards</b> you picked one by one (each with its own alerts), <b>sets</b> you're completing, and <b>searches</b> - Scryfall searches like "Reserved List $25+" that add whole groups of cards. One + Add button for all three.</dd>
+        <dt>All Prices</dt><dd>Everything priced every morning: every card on your Want List, including the ones your sets and searches bring in. Filter for drops, lows, buylist strength, volatility.</dd>
         <dt>Card Chart</dt><dd>Price history and stats for one card. Opens when you click any card.</dd>
         <dt>eBay Deals</dt><dd>Listings under fair value for anything in All prices. Scanned every 3 hours. One-tap Snipe to EZSniper.</dd>
         <dt>Secret Lair</dt><dd>Every drop with release dates, sale windows, sell-out times and value. <b>My orders</b> shows what you bought, what it's worth, and lets you mark items received (a line that arrives in parts asks how many came).</dd>
         <dt class="owner-only">Sealed</dt><dd class="owner-only">Unopened product you hold - Secret Lairs (added when you mark them received), booster boxes, packs, decks. Worth is TCGplayer's market price, updated every morning. <b>Open</b> a Secret Lair to tick the cards that were inside and add only those to Collection; boxes and packs just get marked opened. <b>Sell</b> records the sale and profit.</dd>
         <dt>Sets</dt><dd>Sets you're completing: progress, cost to finish, and every card you still need. Needed cards get priority in the eBay scan and NEED alerts.</dd>
         <dt>Collection</dt><dd>What you own (including received Secret Lair items), what you paid, what it's worth now, and profit after fees when you sell.</dd>
-        <dt>Auto-Track Lists</dt><dd>Scryfall searches (e.g. "Reserved List $25+") that automatically add whole groups of cards to All prices.</dd>
         <dt>Settings</dt><dd>Alert defaults, deal filters, condition values and selling fees.</dd>
       </dl><b style="display:block;margin-top:12px">Words Used on the Desk</b><dl class="guide">
-        <dt>Watchlist</dt><dd>The specific cards you track one by one, each with its own alert levels.</dd>
+        <dt>Watchlist</dt><dd>The cards on your Want List tagged CARD: the ones you track one by one, each with its own alert levels.</dd>
         <dt>★ Top Pick</dt><dd>A deal that passed every check and matches your Top-pick settings (USA, condition, graded). Top picks get their own phone alert; other deals are grouped into one summary alert.</dd>
         <dt>Need</dt><dd>A card you're missing for a set on the Sets tab. These are checked first and can ring during quiet hours.</dd>
         <dt>Hidden</dt><dd>A deal removed by your ratings, your rules or an automatic check. See them with the "Only hidden &amp; SlaveAI-rejected" view.</dd>
@@ -567,22 +584,47 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- MY CARDS -->
 <section class="tab on" id="tab-mine">
-  <h2>Watchlist</h2>
-  <p class="sub" id="mineSub">The specific cards you chose to watch closely. Each one can have its own alert levels (target price, drop %, deal %). You get a phone alert when one hits. Edit right in the table - changes save automatically. Click a card for its chart.</p>
-  <div class="panel">
-    <div class="row">
-      <div class="ac" id="acBox"><input id="acInput" placeholder="Add a card - start typing a name (e.g. Mox Pearl)" autocomplete="off"><ul id="acList" hidden></ul></div>
+  <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px"><div><h2>Want List</h2>
+    <p class="sub" id="mineSub" style="margin:0">Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.</p></div>
+    <button class="btn" id="wlAdd" type="button">+ Add</button></div>
+  <div class="panel" id="wlAddBox" hidden>
+    <div class="wl-pick">
+      <button type="button" data-wladd="card"><span class="wl-ic">🃏</span><b>A card</b><span>One printing. Type the name, then pick the set and finish from the pictures.</span></button>
+      <button type="button" data-wladd="set"><span class="wl-ic">📚</span><b>A set</b><span>Every card in the set you don't own yet. Same as ☆ Complete This Set on a set's page.</span></button>
+      <button type="button" data-wladd="search"><span class="wl-ic">🔍</span><b>A group of cards</b><span>A Scryfall search, e.g. every Reserved List card over $25.</span></button>
     </div>
-    <div id="printPick"></div>
+    <div class="wl-form" data-wlform="card" hidden>
+      <div class="ac" id="acBox"><input id="acInput" placeholder="Card name - start typing (e.g. Mox Pearl)" autocomplete="off"><ul id="acList" hidden></ul></div>
+      <div id="printPick"></div>
+      <p class="mut" style="font-size:12px;margin:8px 0 0">• After it's added, tap <b>Edit</b> on it to set a target price, drop % or deal %. Blank uses your defaults from Settings.</p>
+    </div>
+    <div class="wl-form" data-wlform="set" hidden>
+      <div class="row"><input id="wlSetQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
+        <select id="wlSetFin"><option value="all">Every Version</option><option value="nonfoil">Non-Foil Only</option><option value="foil">Foil Only</option><option value="etched">Etched Only</option></select>
+        <label><input type="checkbox" id="wlSetNB"> Skip Basic Lands</label></div>
+      <div id="wlSetHits" style="margin-top:8px"></div>
+    </div>
+    <div class="wl-form" data-wlform="search" hidden>
+      <div class="row"><input id="wlRuleName" placeholder="Name it (e.g. Reserved List $25+)" style="flex:1;min-width:180px">
+        <input id="wlRuleQ" placeholder="Scryfall search (e.g. is:reserved usd>=25)" style="flex:2;min-width:220px">
+        <select id="wlRuleFin"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select>
+        <button class="btn" id="wlRuleAdd" type="button">Add to Want List</button></div>
+      <p class="mut" id="wlRuleN" style="font-size:12px;margin:8px 0 0">• Examples: <code>is:reserved usd&gt;=50</code> · <code>set:arn usd&gt;=100</code> · <code>(set:lea or set:leb) t:artifact</code> · <code>set:3ed is:dual</code> · <a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener">How searches work</a></p>
+    </div>
   </div>
-  <div class="panel scroll"><div class="tiles" id="mineTiles"></div><table id="mineTable" class="desk-table"></table></div>
-  <p class="mut" style="font-size:12px">Target = alert when price is at or below. Drop % = alert when this far under the 30-day average. Deal % = how far under fair value an eBay listing must be. Low = alert on new 1-year lows. Blank uses the default from Settings.</p>
+  <div class="panel row" id="wlBar">
+    <span class="seg" id="wlKind" role="group" aria-label="Show"></span>
+    <button type="button" class="btn small ghost" id="wlDeals">Has a deal now</button>
+    <input id="wlQ" placeholder="Find on your list…" style="flex:1;min-width:160px;max-width:280px;margin-left:auto">
+  </div>
+  <div class="panel wl-box"><div class="wl-row wl-headrow"><span></span><span>What</span><span>Watching for</span><span>Right now</span><span></span></div><div id="wlList"></div></div>
+  <p class="mut" style="font-size:12px"><b>Card</b> = one printing. <b>Set</b> = every card in it you don't have yet. <b>Search</b> = every card a Scryfall search finds. All of them are priced every morning (see All Prices) and checked on every eBay scan. "Has a deal" counts deals from the last 7 days that are still up.</p>
 </section>
 
 <!-- ALL -->
 <section class="tab" id="tab-all">
   <h2>All Prices</h2>
-  <p class="sub">Every card the tracker prices each morning: your <b>Watchlist</b> cards plus every card matched by your <b>Auto-track lists</b> (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
+  <p class="sub">Every card the tracker prices each morning: every card on your <b>Want List</b>: the cards you picked plus every card your searches find (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
   <div class="panel row">
     <input id="allSearch" placeholder="Search name or set..." style="flex:1;min-width:200px">
     <select id="allGroup"><option value="">All Groups</option></select>
@@ -601,7 +643,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- DETAIL -->
 <section class="tab" id="tab-detail">
-  <div id="detailBody"><p class="empty">Pick a card from Watchlist or All prices to see its price history.</p></div>
+  <div id="detailBody"><p class="empty">Pick a card from your Want List or All Prices to see its price history.</p></div>
 </section>
 
 <!-- DEALS -->
@@ -765,21 +807,6 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <section class="tab" id="tab-sets">
   <div id="setsBody"><p class="empty loadmsg">Loading…</p></div>
-</section>
-
-<!-- RULES -->
-<section class="tab" id="tab-rules">
-  <h2>Auto-Track Lists</h2>
-  <p class="sub">Instead of adding cards one at a time, each list is a <a href="https://scryfall.com/docs/syntax" target="_blank" rel="noopener">Scryfall search</a>. Every card it matches gets priced daily (shown in All prices) and scanned for eBay deals, using the list's drop % and deal % alerts. Use "Preview" to see what a search matches before saving.</p>
-  <div class="panel scroll"><table id="rulesTable"></table>
-    <div class="row" style="margin-top:12px"><button class="btn ghost small" id="addRule">+ Add List</button></div></div>
-  <div class="panel"><b>Example searches</b>
-    <ul class="mut" style="margin:6px 0 0">
-      <li><code>is:reserved usd>=50</code>: Reserved List cards worth $50+</li>
-      <li><code>set:arn usd>=100</code>: Arabian Nights cards worth $100+</li>
-      <li><code>(set:lea or set:leb) t:artifact</code>: Alpha and Beta artifacts</li>
-      <li><code>set:3ed is:dual</code>: Revised dual lands</li>
-    </ul></div>
 </section>
 
 <!-- SETTINGS -->
@@ -1069,7 +1096,7 @@ async function server(fn, ...args){
 }
 function showLogin(msg){ $("#login").hidden = false; $("#loginMsg").textContent = msg || ""; setTimeout(() => $("#loginPw").focus(), 50); }
 function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBtn").hidden = true; }
-const savedTab = () => { const h = (location.hash || "").slice(1); return (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; };
+const savedTab = () => { const h = (location.hash || "").slice(1), t = (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; return document.getElementById("tab-" + t) || t === "detail" ? t : "mine"; };
 const tabOK = t => !["detail", "connect"].concat(READONLY && ROLE !== "peek" ? ["settings"] : []).concat(ROLE === "peek" ? ["quick", "audit"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
   document.body.classList.add("booting");   // first load: header stays, the page below is blank until your data is in (just the loading card)
@@ -2112,7 +2139,7 @@ DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
 
 // ---------------------------------------------------------------- Rules
 function renderRules_(){
-  const t = $("#rulesTable");
+  const t = $("#rulesTable"); if (!t) return;
   t.innerHTML = `<thead><tr><th class="nosort">Name</th><th class="nosort">Scryfall Search</th><th class="nosort">Finish</th><th class="r nosort">Drop %</th><th class="r nosort">Deal %</th><th class="nosort">Low Alerts</th><th class="r nosort">Cards Now</th><th class="nosort"></th></tr></thead><tbody></tbody>`;
   const tb = t.querySelector("tbody");
   S.rules.forEach((r, i) => {
@@ -2133,10 +2160,10 @@ function renderRules_(){
   if (!S.rules.length) tb.innerHTML = `<tr><td colspan="8" class="empty">No auto lists.</td></tr>`;
 }
 function confirmDelete(btn){ if (btn.dataset.armed) return true; btn.dataset.armed = "1"; btn.textContent = "Click again to delete"; setTimeout(() => { delete btn.dataset.armed; btn.textContent = "Delete"; }, 4000); return false; }
-$("#addRule").addEventListener("click", () => { S.rules.push({label: "New list", query: "is:reserved usd>=100", finish: "nonfoil", drop_pct: "15", deal_pct: "20", alert_low: "no"}); markDirty("rules"); renderRules(); });
+if ($("#addRule")) $("#addRule").addEventListener("click", () => { S.rules.push({label: "New list", query: "is:reserved usd>=100", finish: "nonfoil", drop_pct: "15", deal_pct: "20", alert_low: "no"}); markDirty("rules"); renderRules(); });
 
-function renderMine(){ renderMine_(); if (typeof renderMineTiles === "function") renderMineTiles(); lockIfReadonly(); }
-function renderRules(){ renderRules_(); lockIfReadonly(); }
+function renderMine(){ renderWant(); lockIfReadonly(); }
+function renderRules(){ renderWant(); lockIfReadonly(); }
 function renderSettings(){ renderSettings_(); lockIfReadonly(); }
 // ---------------------------------------------------------------- phone tiles + edit sheet
 function renderAll(){ renderAll_(); renderAllTiles(); }
@@ -2641,7 +2668,8 @@ function reviewHTML(d, mode){
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
       <div>${imgs.length ? `<div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="SlaveAI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</div>${(d.photo_roles || "")[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
-      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You're tracking:</span><br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
+      <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You're tracking:</span>${(() => { const g = String(d.group || ""); const src = !g ? "" : g === "Watchlist" ? "Card" : /^Need: /.test(g) ? "Set " + g.slice(6) : g;
+        return src ? `<br><span class="mut" style="font-size:11.5px">Want List · ${esc(src)}</span>` : ""; })()}<br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI Said:</b> ${vlabel[d.ai_verdict] || esc(d.ai_verdict)} · edition <b>${esc(d.ai_edition || "?")}</b> · condition <b>${esc(aiC || "?")}</b>${d.ai_model ? ` · <span class="mut">${esc(d.ai_model)}</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
       ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from SlaveAI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
@@ -3883,6 +3911,114 @@ $("#shRemove").addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetIdx >= 0) closeSheet(); });
 
+// ---------------------------------------------------------------- Want List: watchlist cards (watchlist.csv), sets you're
+// completing (collection/sets.csv) and Scryfall searches (rules.csv) in one list. Each still saves to its own file.
+const WL = {kind: store.get("pd_wl_kind") || "all", deals: false, q: "", add: "", edit: -1};
+function wlLive(){   // deals still up: last 7 days, not hidden / rejected / gone / bought / ignored
+  const cut = Date.now() - 7 * 864e5, when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at || "") ? d.found_at : (d.found_at || "") + "Z");
+  return S.deals.filter(d => !(d.ai_verdict === "reject" || d.hidden) && !GONE.rows[itemId(d)] && !(FB.loaded && boughtFor(d)) && !isIgnored(d) && when(d) >= cut && +d.discount_pct > 0);
+}
+function wlSetName(g){ const nm = (SETS.cards[goalKey(g)] || [])[0]; if (nm) return nm.set_name; const x = (SETS.allSets || []).find(s => s.code === g.set.toLowerCase()); return x ? x.name : g.set.toUpperCase(); }
+function wlItems(){
+  const live = wlLive(), out = [];
+  S.watch.forEach((w, i) => { const c = watchMatch(w), nm = (w.name || "").toLowerCase(), set = (w.set || "").toUpperCase();
+    const deals = live.filter(d => { const t = String(d.card || "").toLowerCase(); return t.startsWith(nm + " [") && (!set || t.includes("[" + set.toLowerCase() + "]")); });
+    out.push({kind: "card", i, w, c, deals, name: w.name, find: [w.name, w.set, c && c.sn, w.notes].join(" ")}); });
+  if (MYCOL() && COL.loaded) COL.goals.filter(g => g.set).forEach(g => { const sn = wlSetName(g);
+    const deals = live.filter(d => d.need === sn || d.group === "Need: " + sn);
+    out.push({kind: "set", g, deals, name: sn + goalLabel(g), find: sn + " " + g.set}); });
+  S.rules.forEach((r, i) => out.push({kind: "search", i, r, deals: live.filter(d => d.group === r.label), name: r.label, find: r.label + " " + r.query}));
+  return out;
+}
+function renderWant(){
+  const box = $("#wlList"); if (!box) return;
+  if (MYCOL() && !COL.loaded && !COL.loading && !COL.error && typeof loadCOL === "function") loadCOL();   // sets you're completing live with your collection
+  if (MYCOL() && COL.loaded) COL.goals.filter(g => g.set).forEach(g => { const k = goalKey(g); if (!SETS.cards[k] && !SETS.loading[k] && !SETS.err[k]) loadSetCards(g); });
+  const all = wlItems(), n = k => all.filter(x => k === "all" || x.kind === k).length;
+  $("#wlKind").innerHTML = [["all", "All"], ["card", "Cards"], ["set", "Sets"], ["search", "Searches"]].map(([k, l]) => `<button type="button" class="btn small${WL.kind === k ? "" : " ghost"}" data-wlk="${k}">${l} ${n(k)}</button>`).join("");
+  const nd = all.filter(x => x.deals.length).length;
+  $("#wlDeals").textContent = `Has a deal now · ${nd}`; $("#wlDeals").classList.toggle("ghost", !WL.deals);
+  $("#wlAdd").hidden = READONLY;
+  const q = WL.q.trim().toLowerCase();
+  const rows = all.filter(x => (WL.kind === "all" || x.kind === WL.kind) && (!WL.deals || x.deals.length) && (!q || x.find.toLowerCase().includes(q)));
+  const dl = x => x.deals.length ? `<b class="up">${x.deals.length} deal${x.deals.length > 1 ? "s" : ""}</b>` + (x.kind === "card" ? ` · ${money(Math.min(...x.deals.map(d => +d.total || 9e9)))} ${esc(condCode(x.deals[0].condition) || "")}` : "") : "";
+  const def = (S.ini.deals || {}).default_deal_pct || 20;
+  box.innerHTML = rows.map((x, j) => {
+    if (x.kind === "card"){ const w = x.w, c = x.c, tgt = numOrNull(w.target_price);
+      const watch = [tgt != null ? `Alert under <b>${money(tgt)}</b>` : "", w.drop_pct ? `Alert if it drops ${esc(w.drop_pct)}%` : "", w.deal_pct ? `Deal at ${esc(w.deal_pct)}% below fair` : "", /^y/i.test(w.alert_low || "") ? "New 1-year lows" : ""].filter(Boolean);
+      return `<div class="wl-row click" data-wl="${j}"><div class="wl-th">${c && c.img ? `<img src="${esc(c.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</div>
+        <div class="wl-m"><div><span class="wl-tag card">CARD</span><b>${esc(w.name)}</b></div><div class="cset">${esc(c ? c.sn + " · #" + c.num : (w.set ? w.set.toUpperCase() : "any set") + " · tracking starts next run")}${w.finish && w.finish !== "nonfoil" ? " · " + esc(w.finish) : ""}${w.notes ? " · " + esc(w.notes) : ""}</div></div>
+        <div class="wl-w">${watch.join("<br>") || "Your default alerts"}</div>
+        <div class="wl-n">${c && c.p != null ? `<b>${money(c.p)}</b> ${c.c30 != null ? `<span class="${c.c30 < 0 ? "down" : "up"}">${c.c30 > 0 ? "+" : ""}${c.c30.toFixed(0)}% 30d</span>` : ""}` : '<span class="mut">no price yet</span>'}${dl(x) ? "<br>" + dl(x) : ""}</div>
+        <div class="wl-e">${READONLY ? "" : `<button type="button" class="btn ghost small" data-wle="${j}">Edit</button>`}</div></div>`; }
+    if (x.kind === "set"){ const g = x.g, pr = goalProgress(g), k = goalKey(g), pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0, paused = /^paused$/i.test(g.status || "");
+      return `<div class="wl-row click" data-wl="${j}"><div class="wl-th">${setIcon(g.set.toLowerCase())}</div>
+        <div class="wl-m"><div><span class="wl-tag set">SET</span><b>${esc(x.name)}</b>${paused ? ' <span class="badge">PAUSED</span>' : ""}</div><div class="cset">${esc(g.set.toUpperCase())}${pr ? ` · ${pr.total} cards` : ""}${/^(yes|true|1)$/i.test(g.skip_basics || "") ? " · no basics" : ""}${/^nm$/i.test(g.want_cond || "") ? " · only NM counts" : ""}</div></div>
+        <div class="wl-w">Deals on cards you're missing<br>at ${esc(g.deal_pct || def)}% below fair</div>
+        <div class="wl-n">${pr ? `<b>${pr.have} of ${pr.total}</b> (${pct}%)${pr.need.length ? ` · about ${money(pr.cost)} to finish` : " · <b>Complete!</b>"}` : SETS.err[k] ? `<span class="mut">${esc(SETS.err[k])}</span>` : '<span class="mut loadmsg">Loading…</span>'}${dl(x) ? "<br>" + dl(x) : ""}</div>
+        <div class="wl-e"><button type="button" class="btn ghost small" data-wle="${j}">Open</button></div></div>`; }
+    const r = x.r, cnt = S.cards.filter(c => c.g === r.label).length, open = WL.edit === x.i;
+    return `<div class="wl-row click" data-wl="${j}"><div class="wl-th">🔍</div>
+      <div class="wl-m"><div><span class="wl-tag search">SEARCH</span><b>${esc(r.label)}</b></div><div class="cset">Scryfall: <code>${esc(r.query)}</code>${(r.finish || "nonfoil") !== "nonfoil" ? " · " + esc(r.finish) : ""}</div></div>
+      <div class="wl-w">${[r.drop_pct ? `Alert if a card drops ${esc(r.drop_pct)}%` : "", `Deal at ${esc(r.deal_pct || def)}% below fair`, /^y/i.test(r.alert_low || "") ? "New 1-year lows" : ""].filter(Boolean).join("<br>")}</div>
+      <div class="wl-n">${cnt ? `<b>${cnt}</b> card${cnt === 1 ? "" : "s"} priced` : '<span class="mut">cards show after the next morning run</span>'}${dl(x) ? "<br>" + dl(x) : ""}</div>
+      <div class="wl-e">${READONLY ? "" : `<button type="button" class="btn ${open ? "" : "ghost "}small" data-wle="${j}">${open ? "Done" : "Edit"}</button>`}</div>
+      ${open ? `<div class="wl-ed" data-wled="${x.i}"><div class="row">
+        <label class="mut" style="font-size:12px;flex:1;min-width:160px">Name<input data-f="label" value="${esc(r.label)}" style="width:100%"></label>
+        <label class="mut" style="font-size:12px;flex:2;min-width:220px">Scryfall search<input data-f="query" value="${esc(r.query)}" style="width:100%"></label>
+        <label class="mut" style="font-size:12px">Finish<select data-f="finish"><option value="nonfoil">Non-Foil</option><option value="foil">Foil</option><option value="etched">Etched</option></select></label></div>
+        <div class="row" style="margin-top:8px">
+        <label class="mut" style="font-size:12px">Alert if it drops (%)<input class="num" data-f="drop_pct" value="${esc(r.drop_pct)}"></label>
+        <label class="mut" style="font-size:12px">Deal at (% below fair)<input class="num" data-f="deal_pct" value="${esc(r.deal_pct)}"></label>
+        <label class="mut" style="font-size:12px">New 1-year lows<select data-f="alert_low"><option value="no">No</option><option value="yes">Yes</option></select></label>
+        <span style="flex:1"></span><a class="btn ghost small" target="_blank" rel="noopener" href="https://scryfall.com/search?unique=prints&order=usd&q=${encodeURIComponent(r.query)}">Preview on Scryfall</a>
+        <button type="button" class="btn ghost small" data-wldel="${x.i}">Delete</button></div></div>` : ""}</div>`;
+  }).join("") || `<p class="empty">${S.loadedOnce ? (all.length ? "Nothing matches." : "Nothing on your Want List yet. Tap + Add.") : "Loading…"}</p>`;
+  const act = (j, edit) => { const x = rows[j]; if (!x) return;
+    if (x.kind === "card"){ if (edit && !READONLY) return openSheet(x.i); return x.c ? showDetail(x.c.k) : toast("No price data yet - it will appear after the next daily run."); }
+    if (x.kind === "set"){ SETS.open = goalKey(x.g); SETS.q = ""; switchTab("sets"); window.scrollTo(0, 0); return; }
+    if (READONLY) return; WL.edit = WL.edit === x.i ? -1 : x.i; renderWant(); };
+  box.querySelectorAll("[data-wl]").forEach(el => el.addEventListener("click", e => { if (e.target.closest(".wl-ed")) return; const b = e.target.closest("[data-wle]"); act(+el.dataset.wl, !!b || rows[+el.dataset.wl].kind === "search"); }));
+  box.querySelectorAll("[data-wled]").forEach(ed => { const r = S.rules[+ed.dataset.wled];
+    ed.querySelector('[data-f="finish"]').value = r.finish || "nonfoil"; ed.querySelector('[data-f="alert_low"]').value = /^y/i.test(r.alert_low) ? "yes" : "no";
+    ed.querySelectorAll("[data-f]").forEach(el => el.addEventListener("change", () => { let v = el.value.trim(); if (el.classList.contains("num") && v !== ""){ const nn = numOrNull(v); v = nn == null ? "" : String(nn); }
+      r[el.dataset.f] = v; markDirty("rules"); })); });
+  box.querySelectorAll("[data-wldel]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); if (!confirmDelete(b)) return; S.rules.splice(+b.dataset.wldel, 1); WL.edit = -1; markDirty("rules"); renderWant(); }));
+}
+$("#wlKind").addEventListener("click", e => { const b = e.target.closest("[data-wlk]"); if (!b) return; WL.kind = b.dataset.wlk; store.set("pd_wl_kind", WL.kind); renderWant(); });
+$("#wlDeals").addEventListener("click", () => { WL.deals = !WL.deals; renderWant(); });
+$("#wlQ").addEventListener("input", e => { WL.q = e.target.value; renderWant(); });
+$("#wlAdd").addEventListener("click", () => { const bx = $("#wlAddBox"); bx.hidden = !bx.hidden; $("#wlAdd").textContent = bx.hidden ? "+ Add" : "Close"; });
+document.querySelectorAll("[data-wladd]").forEach(b => b.addEventListener("click", () => { WL.add = b.dataset.wladd;
+  document.querySelectorAll("[data-wladd]").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll("[data-wlform]").forEach(f => f.hidden = f.dataset.wlform !== WL.add);
+  if (WL.add === "card") setTimeout(() => $("#acInput").focus(), 30);
+  if (WL.add === "set"){ wlSetHits(""); setTimeout(() => $("#wlSetQ").focus(), 30); }
+  if (WL.add === "search") setTimeout(() => $("#wlRuleName").focus(), 30); }));
+async function wlSetHits(q){
+  const hits = $("#wlSetHits");
+  if (!SETS.allSets){ hits.innerHTML = '<p class="mut loadmsg">Loading sets…</p>'; try{ await loadAllSets(); }catch(e){ hits.innerHTML = `<p class="mut">Couldn't load the set list: ${esc(e.message)}</p>`; return; } }
+  if (MYCOL() && !COL.loaded){ hits.innerHTML = '<p class="mut loadmsg">Loading your sets…</p>'; await loadCOL(); }
+  const t = q.trim().toLowerCase(), have = new Set((COL.goals || []).map(g => g.set.toLowerCase()));
+  const list = (t ? SETS.allSets.filter(x => x.name.toLowerCase().includes(t) || x.code === t) : SETS.allSets.filter(x => (x.released_at || "9") < "1998")).slice(0, t ? 30 : 80);
+  hits.innerHTML = (t ? "" : '<div class="mut" style="font-size:12px;margin-bottom:6px">Vintage sets (type to search everything):</div>') +
+    `<div class="row" style="gap:6px">` + list.map(x => `<button type="button" class="btn ghost small" data-wlset="${esc(x.code)}"${have.has(x.code) ? ' disabled title="Already on your Want List"' : ` title="${x.card_count} cards"`}>${esc(x.name)} <span class="mut">${esc((x.released_at || "").slice(0, 4))}</span></button>`).join("") + "</div>";
+  hits.querySelectorAll("[data-wlset]").forEach(b => b.addEventListener("click", () => {
+    const code = b.dataset.wlset; if (have.has(code)) return;
+    COL.goals.push({set: code, finish: $("#wlSetFin").value, skip_basics: $("#wlSetNB").checked ? "yes" : "no", status: "active", deal_pct: "", notes: ""});
+    markDirty("collection"); $("#wlSetQ").value = ""; wlSetHits(""); renderWant(); toast("Set added. The cards you're missing start getting tracked on the next morning run.", 6000); }));
+}
+$("#wlSetQ").addEventListener("input", e => wlSetHits(e.target.value));
+let wlRuleT;
+$("#wlRuleQ").addEventListener("input", e => { clearTimeout(wlRuleT); const q = e.target.value.trim(), out = $("#wlRuleN"); if (q.length < 3) return;
+  wlRuleT = setTimeout(async () => { try{ const j = await sf("/cards/search?unique=prints&q=" + encodeURIComponent(q + " -is:digital")); if ($("#wlRuleQ").value.trim() === q) out.innerHTML = `• Finds <b>${j.total_cards || 0}</b> printings on Scryfall. <a href="https://scryfall.com/search?unique=prints&order=usd&q=${encodeURIComponent(q)}" target="_blank" rel="noopener">See them</a>`; }
+    catch(err){ if ($("#wlRuleQ").value.trim() === q) out.textContent = "• Scryfall finds nothing for that search (or couldn't be reached)."; } }, 500); });
+$("#wlRuleAdd").addEventListener("click", () => { const label = $("#wlRuleName").value.trim(), query = $("#wlRuleQ").value.trim();
+  if (!label || !query) return toast("Give it a name and a Scryfall search.");
+  if (S.rules.some(r => r.label.toLowerCase() === label.toLowerCase())) return toast("You already have one with that name.");
+  S.rules.push({label, query, finish: $("#wlRuleFin").value, drop_pct: "15", deal_pct: "20", alert_low: "no"}); markDirty("rules");
+  $("#wlRuleName").value = ""; $("#wlRuleQ").value = ""; renderWant(); toast(`Added ${label}. Its cards start being priced on the next morning run.`, 6000); });
+
 // ---------------------------------------------------------------- Secret Lair
 const SL = {orders: null, ordersOpen: false, oAcct: "", oStatus: "", oQ: "", data: null, upcoming: [], upSha: null, loading: false, error: "", detail: null, status: "", q: "", sort: "new", limit: 120, editing: false, openB: new Set(), openG: new Set()};
 const UP_COLS = ["name", "on_sale_date", "on_sale_time", "notes", "link", "image"];
@@ -4809,6 +4945,7 @@ function colSales(){
   }).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
 function renderCOL(){
+  if (document.querySelector("#tab-mine.on") && typeof renderWant === "function") setTimeout(renderWant, 0);   // the Want List's sets come with your collection
   const box = $("#colBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
   if (COL.loading && !COL.loaded){ box.innerHTML = waitHTML(); return; }
@@ -5448,7 +5585,7 @@ async function loadSetCards(g){
   try{ SETS.cards[k] = (await sfAll(`e:${g.set} game:paper include:extras` + (/^(yes|true|1)$/i.test(g.skip_basics || "") ? " -t:basic" : "")))   // every version, extras too
          .sort((a, b) => a.collector_number.localeCompare(b.collector_number, undefined, {numeric: true})); }
   catch(e){ SETS.err[k] = e.message; }
-  SETS.loading[k] = false; renderSETS();
+  SETS.loading[k] = false; renderSETS(); if (document.querySelector("#tab-mine.on")) renderWant();
 }
 function goalProgress(g){
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
@@ -6133,8 +6270,8 @@ async function loadAll(){
   if (ROLE === "peek") $("#acctName").textContent = (d0.name || "") + " · look only";
   if (!READONLY) setTimeout(checkServerCode, 1500);
   if (!READONLY && !store.get("pd_relabel1")) setTimeout(relabelSniper, 8000);
-  if (READONLY){ $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "Cards on the owner's watchlist. Click a card to see its price chart."; }
-  else { $("#nav [data-tab=mine]").textContent = "Watchlist"; $("#mineSub").textContent = "The specific cards you chose to watch closely, each with its own alert levels. You get a phone alert when one hits. Tap or click a card to edit its alerts or see its chart - changes save automatically."; }
+  $("#mineSub").textContent = READONLY ? "Everything the desk hunts for: single cards, sets being completed, and groups of cards from a Scryfall search. Click a card to see its price chart."
+    : "Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.";
   S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
   const groups = [...new Set(S.cards.map(c => c.g))].sort();
   $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
