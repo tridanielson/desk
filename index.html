@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:11 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:13 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5099,7 +5099,7 @@ function colViews(held){
   return [["all", "All", null, `Singles and sealed, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
     ["singles", "Singles", cnt(i => i.kind === "card"), `Your cards, most valuable first. Cards under ${"$" + BULK_EACH} fold into one Bulk line.`],
     ["sealed", "Sealed", cnt(i => i.kind === "sealed"), "Unopened product - manage it on the Sealed tab."],
-    ["recent", "Recently Added", cnt(i => i.kind === "card" && (i.acquired || "") >= recent), "Singles added in the last 30 days - the last one you entered first."]];
+    ["recent", "Recently Added", cnt(i => i.kind === "card" && colNewest(i) >= recent), "Singles added or received in the last 30 days - the newest first."]];
 }
 function colSellable(i){
   if (i.kind !== "card" || i.value_each == null || i.value_each < 20) return false;
@@ -5113,6 +5113,9 @@ function colAll(){
     notes: i.row.notes || "", meta: sdKindLabel(i.kind) + (i.kind === "secret_lair" ? " · " + (i.finish === "foil" ? "Foil" : "Non-Foil") : ""), ordered: false}));
   return cards.concat(sealed);
 }
+// Recently Added: a card you just marked received counts as new (it arrived today, even if you bought it weeks ago) and goes first
+const colGot = i => (String(i.notes || "").match(/received (\d{4}-\d\d-\d\d)/g) || []).map(x => x.slice(9)).sort().pop() || "";
+const colNewest = i => [i.acquired || "", colGot(i)].sort().pop();
 // not received yet: eBay buys still "Ordered" + Secret Lair orders that shipped but aren't marked received
 function renderColWaiting(){
   const box = $("#colWaiting"); if (!box) return;
@@ -5134,10 +5137,10 @@ function renderCOLList(){
   if (!["all", "singles", "sealed", "recent"].includes(COL.view)) COL.view = "all";
   const v = COL.view, copies = COL._copies || {}, recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   const inView = i => v === "all" ? true : v === "singles" ? i.kind === "card" : v === "sell" ? colSellable(i) : v === "extra" ? i.kind === "card" && copies[(i.name + "|" + i.set).toLowerCase()] >= 4
-    : v === "recent" ? i.kind === "card" && (i.acquired || "") >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
+    : v === "recent" ? i.kind === "card" && colNewest(i) >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
     : v === "bulk" ? i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH : true;
   let rows = colAll().filter(i => !i.ordered && inView(i) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
-    .sort(v === "recent" ? (a, b) => (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
+    .sort(v === "recent" ? (a, b) => (colGot(b) || "").localeCompare(colGot(a) || "") || (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
   // All, no search: the cheap cards fold into one Bulk line at the end (tap to open)
   const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
   const bulk = (v === "all" || v === "singles") && !q && !COL.showBulk ? rows.filter(isBulk) : [];
