@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:56 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:00 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5186,14 +5186,16 @@ function renderCOLList(){
   document.querySelectorAll("#colBody [data-edit]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.edit)));
   document.querySelectorAll("#colBody [data-crem]").forEach(b => b.addEventListener("click", () => openColRemove(b.dataset.crem)));
   document.querySelectorAll("#colBody [data-tosealed]").forEach(b => b.addEventListener("click", () => { SD.q = b.dataset.tosealed.slice(0, 40); SD.status = "sealed"; switchTab("sealed"); }));
-  document.querySelectorAll("#colBody [data-recv]").forEach(b => b.addEventListener("click", async () => {
-    const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return;
-    if (/^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "")) return openReceiveCheck(r);
-    r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
-    try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
-    catch(e){ r.status = "ordered"; toast("Couldn't save: " + e.message, 6000); }
-  }));
 }
+// Mark Received on an eBay buy: one listener for the page - the "Not marked received yet" box re-draws when Secret Lair orders
+// finish loading, which used to leave its buttons with no click handler
+document.addEventListener("click", async e => { const b = e.target.closest("#colBody [data-recv]"); if (!b || READONLY) return; e.preventDefault();
+  const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return toast("Couldn't find that card - reload the page and try again.");
+  if (/^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "")) return openReceiveCheck(r);
+  r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
+  try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
+  catch(err){ r.status = "ordered"; toast("Couldn't save: " + err.message, 6000); }
+});
 function colChangeVal(i){
   if (i.value == null) return null;
   if (i.cost_each > 0) return i.value - i.cost_left;
