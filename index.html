@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:24 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:21 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5145,7 +5145,7 @@ function renderCOLList(){
     : v === "recent" ? i.kind === "card" && colNewest(i) >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
     : v === "bulk" ? i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH : true;
   let rows = colAll().filter(i => !i.ordered && inView(i) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
-    .sort(v === "recent" ? (a, b) => (colGot(b) || "").localeCompare(colGot(a) || "") || (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
+    .sort(v === "recent" ? (a, b) => colNewest(b).localeCompare(colNewest(a)) || (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
   // All, no search: the cheap cards fold into one Bulk line at the end (tap to open)
   const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
   const bulk = (v === "all" || v === "singles") && !q && !COL.showBulk ? rows.filter(isBulk) : [];
@@ -5200,7 +5200,7 @@ function renderCOLList(){
 document.addEventListener("click", async e => { const b = e.target.closest("#colBody [data-recv]"); if (!b || READONLY) return; e.preventDefault();
   const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return toast("Couldn't find that card - reload the page and try again.");
   if (/^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "")) return openReceiveCheck(r);
-  r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
+  r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · "); COL.inv.splice(COL.inv.indexOf(r), 1); COL.inv.push(r);   // to the end: Recently Added shows it first
   try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
   catch(err){ r.status = "ordered"; toast("Couldn't save: " + err.message, 6000); }
 });
@@ -5354,7 +5354,7 @@ async function openReceiveCheck(r){
     const slab = d._graded || /\b(PSA|BGS|CGC|SGC|graded|slab)\b/i.test([d.condition, d._c0, d.title, r.notes].join(" "));
     if (withCheck && !slab && sel.cond !== condCode(d._c0 || d.condition || r.condition) && sel.cond !== String(r.condition || "").toUpperCase() && !($("#rcNote").value || "").trim()){
       $("#rcNote").focus(); $("#rcNote").placeholder = "Why is it " + sel.cond + "? (required when it differs from the listing)"; return toast("Say why the condition differs - that's what teaches SlaveAI.", 4500); }
-    r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · ");
+    r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · "); COL.inv.splice(COL.inv.indexOf(r), 1); COL.inv.push(r);
     if (withCheck){
       r.condition = sel.cond;
       const note = ($("#rcNote").value || "").replace(/\s+/g, " ").trim().slice(0, 200);
