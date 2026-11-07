@@ -316,7 +316,7 @@ body.peek #muteBtn,body.peek #runBtn,body.peek #acctBody,body.peek #srvBody,body
 body.peek #reasonEditor,body.peek .rv-btn,body.peek #dRej,body.peek #dWhy,body.peek #dBy,
 body.peek [data-crem],body.peek [data-edit],body.peek [data-pkedit],body.peek [data-pkrem],body.peek .cv-add,body.peek #sdAdd,body.peek [data-sdedit],body.peek [data-sdgive],
 body.peek [data-sdlist],body.peek [data-sdmore],body.peek [data-sdopen],body.peek [data-sdsell],body.peek [data-sdundoid],body.peek #setAdd,body.peek [data-nagot],
-body.peek [data-got],body.peek [data-bought],body.peek [data-srem],body.peek #setStar,body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
+body.peek [data-got],body.peek [data-bought],body.peek [data-srem],body.peek [data-sedit],body.peek #setStar,body.peek [data-gmark],body.peek [data-gunmark],body.peek [data-recv],body.peek .xls-btn,body.nodeals #nav [data-tab=deals],body.readonly:not(.user) .acct-only,body:not(.user) .user-only{display:none!important}
 .viewchip{display:none}body.readonly:not(.user) .viewchip{display:inline-block}
 .login-tabs{display:flex;gap:4px;background:var(--soft);border-radius:8px;padding:3px;margin-bottom:4px}.login-tabs button{flex:1;border:0;background:none;padding:7px;border-radius:6px;font:inherit;color:var(--muted);cursor:pointer}.login-tabs button.on{background:var(--panel);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 #lmUp[hidden],#lmUp2[hidden]{display:none!important}.login-box label{font-weight:600}.login-box .hint{font-size:12px;color:var(--muted);margin:-4px 0 0}
@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:14 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6030,7 +6030,7 @@ function renderSetDetail(g){
   $("#setView").value = SETS.view; $("#setCond").value = cf;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-sedit="${esc(r.c.id)}~${esc(r.fin)}" title="Edit your copy: condition, what you paid, signed, notes…">Edit</button> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   if (binder) $("#setBinder").innerHTML = rows.map((r, i) => setPocketHTML(r, i, pr)).join("") || `<p class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</p>`;
   else $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -6060,6 +6060,7 @@ function renderSetDetail(g){
   box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.got.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
+  box.querySelectorAll("[data-sedit]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.sedit.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (c) openSetEdit(g, c, f); }));
   box.querySelectorAll("[data-srem]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.srem.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (c) openSetRemove(g, c, f); }));
 }
 // binder order: collector number (1, 2, 10, 10a…), then finish
@@ -6090,6 +6091,20 @@ function openSetPocket(g, r, pr){
   if ($("#spRem")) $("#spRem").addEventListener("click", () => { closeModal(); openSetRemove(g, r.c, r.fin); });
 }
 // Sets → Remove: your copies of one card (each Collection row), take one off or remove a row
+// Edit from a set's page: one copy opens its edit form; several copies, pick which one first
+function openSetEdit(g, c, f){
+  const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", code = g.set.toLowerCase();
+  const rows = COL.inv.filter(r => (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
+    (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
+  if (rows.length === 1) return openColEdit(rows[0].id);
+  if (!rows.length) return toast("Couldn't find your copy in Collection.");
+  openModal(`<h3>Edit: ${esc(c.name)}</h3><div class="mut" style="font-size:13px">${esc(g.set.toUpperCase())} #${esc(c.collector_number)} · ${esc(fin)} - which copy?</div>
+    <div class="bdl-list" style="margin-top:10px">${rows.map(r => `<div class="bdl-row"><span>×${esc(r.qty)} · <b>${esc(r.condition || "NM")}</b> · paid ${money(numOrNull(r.cost_each) || 0)} each${r.source ? " · " + esc(r.source) : ""}${r.acquired ? " · " + esc(r.acquired) : ""}</span>
+      <span style="margin-left:auto"><span class="btn ghost small" role="button" data-sed1="${esc(r.id)}">Edit</span></span></div>`).join("")}</div>
+    <div class="acts"><button class="btn ghost" id="seDone" type="button">Cancel</button></div>`);
+  $("#seDone").addEventListener("click", closeModal);
+  document.querySelectorAll("[data-sed1]").forEach(b => b.addEventListener("click", () => openColEdit(b.dataset.sed1)));
+}
 function openSetRemove(g, c, f){
   const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", code = g.set.toLowerCase();
   const mine = () => COL.inv.filter(r => (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
