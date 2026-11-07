@@ -568,7 +568,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:35 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:50 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2652,7 +2652,8 @@ function reviewHTML(d, mode){
   // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
   if (s.stock === undefined) s.stock = !!(d.stock || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
   if (!s.back) s.back = ((AUD.rows[d.url] || {}).back !== "skip" && (AUD.rows[d.url] || {}).back) || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
-  if (s.back === "unclear") s.back = "missing";   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
+  if (s.back === "unclear") s.back = "missing";
+  if (s.back === "missing" && !d._graded){ s.condition = "unclear"; s.cfault = ""; }   // one side only: the condition can't be graded   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
   { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
     if (!s.reasons.length && s.reason) s.reasons = [s.reason]; s.reasons = [...new Set(s.reasons)]; }
   if (s.reasons.includes("lot") && !s.edition){ s.edition = "lot"; }
@@ -2703,10 +2704,10 @@ function reviewHTML(d, mode){
     <div class="mut" id="rvEdHint" hidden></div><div class="mut" id="rvFaultHint" hidden></div>
     <div id="rvRest"${(isWrong(s.edition) && s.edition !== "edition") || s.edition === "lot" ? " hidden" : ""}>
     ${d._graded ? `<div class="aud-q">${Q("Condition", "")}<span class="mut" style="font-size:13px;min-width:0">Graded slab (<b>${esc(d._c0 || d.condition)}</b>) - the grade is the condition, so there's nothing to rate. Check the certificate number on the grader's website before buying. <a href="#" class="rv-notgraded" data-u="${esc(d.url)}">Not actually graded? Rate its condition instead</a></span></div>`
-      : `<div class="aud-q">${Q("Condition", "")}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
+      : `<div class="aud-q">${Q("Back of the card shown?", "")}${seg("back", [["shown", "Yes"], ["missing", "No / Can't Tell"]])}</div>
+      <div class="aud-q" id="rvCondRow">${Q("Condition", "")}${s.back === "missing" ? '<span class="mut rv-noback" style="font-size:12px;display:block;margin:-4px 0 8px">Can\'t grade it - you need to see both sides of the card.</span>' : '<span class="mut rv-noback" style="font-size:12px;display:block;margin:-4px 0 8px" hidden>Can\'t grade it - you need to see both sides of the card.</span>'}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
       <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}>${Q("Whose mistake?", "")}${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>
       <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}>${Q("Highlight Defects", "")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
-      <div class="aud-q">${Q("Back of the card shown?", "")}${seg("back", [["shown", "Yes"], ["missing", "No / Can't Tell"]])}</div>
       <div class="aud-q">${Q("Is it in English?", "")}${seg("eng", [["yes", "Yes"], ["no", "No"]])}</div>
       <div class="aud-q rq-sub" id="rvLangRow"${s.eng === "no" ? "" : " hidden"}>${Q("Which language?", "")}${seg("langpick", COL_LANGS.filter(([c]) => c !== "EN").map(([c, l]) => [c, esc(l)]).concat([["OTHER", "Other"]]))}</div>`}
     <div class="aud-q">${Q("Anything else? <span class=\"mut\" style=\"font-weight:400\">(optional)</span>", "")}<div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
@@ -2782,6 +2783,10 @@ function wireReview(root, d, done){
       const er = root.querySelector("#rvEdRow"); if (er){ er.hidden = b.dataset.v !== "edition"; root.querySelector("#rvEdHint").hidden = b.dataset.v !== "edition"; if (b.dataset.v === "edition") fillEditions(root, d); }
       const vr = root.querySelector("#rvVarRow"); if (vr){ vr.hidden = b.dataset.v !== "variant"; root.querySelector("#rvVarHint").hidden = b.dataset.v !== "variant"; }
       root.querySelector("#rvFaultRow").hidden = !w; root.querySelector("#rvFaultHint").hidden = !w; }
+    if (sg.dataset.k === "back"){ const cr = root.querySelector("#rvCondRow"); if (cr){ const nb = b.dataset.v === "missing", nt = cr.querySelector(".rv-noback"); if (nt) nt.hidden = !nb;
+      if (nb){ RV.sel.condition = "unclear"; RV.sel.cfault = ""; ["#rvCFaultRow", "#rvMarkRow"].forEach(q => { const x = root.querySelector(q); if (x) x.hidden = true; }); }
+      else if (RV.sel.condition === "unclear"){ RV.sel.condition = condCode(d._c0 || d.condition); }   // back's there after all: start from the listed condition
+      cr.querySelectorAll('[data-k="condition"] [data-v]').forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.condition)); } }
     if (sg.dataset.k === "condition"){ const row = root.querySelector("#rvCFaultRow"); if (row){ const changed = COND_LIST.includes(b.dataset.v) && b.dataset.v !== condCode(d._c0 || d.condition);
       // better than listed: nothing to point at and no reason needed - "seller understated it" is the answer
       const better = changed && COND_LIST.indexOf(b.dataset.v) < COND_LIST.indexOf(condCode(d._c0 || d.condition));
@@ -2950,6 +2955,7 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
 function saveReview(d, sel, note, done, agreeAI){
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
   sel = Object.assign({}, sel, {reasons: (sel.reasons || []).slice()});
+  if (sel.back === "missing" && sel.condition === "unclear" && !sel.stock && !/both sides/.test(note)) note = [note, "condition can't be graded - only one side of the card is shown"].filter(Boolean).join(" · ");
   // stock photo: nothing in the photos is the real card - the same facts Quick Review's 📷 Photo Problem saves
   if (sel.stock) sel = Object.assign(sel, {edition: "", condition: "unclear", back: "skip", reason: "stock", reasons: ["stock"], good: "down", cfault: "", fault: "", variant: "",
     factNote: "photo problem: stock"});
