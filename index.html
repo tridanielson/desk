@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:42 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:43 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5576,7 +5576,7 @@ function openColEdit(id, pre){
         <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eSigned" style="width:18px;height:18px;margin:0;flex:none" ${r.signed ? "checked" : ""}> ✍ Signed</label>
         <input id="eSignedBy" placeholder="By whom? (artist, player…)" value="${esc(r.signed && r.signed !== "yes" ? r.signed : "")}" style="flex:1;min-width:150px" ${r.signed ? "" : "hidden"}>
         <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eGraded" style="width:18px;height:18px;margin:0;flex:none" ${r.grade ? "checked" : ""}> 🏅 Graded</label>
-        <span id="eGradeWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap" ${r.grade ? "" : "hidden"}><select id="eGradeCo" aria-label="Grading company">${GRADERS.map(g => `<option${String(r.grade || "").toUpperCase().startsWith(g) ? " selected" : ""}>${g}</option>`).join("")}</select>
+        <span id="eGradeWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><select id="eGradeCo" aria-label="Grading company">${GRADERS.map(g => `<option${String(r.grade || "").toUpperCase().startsWith(g) ? " selected" : ""}>${g}</option>`).join("")}</select>
           <input id="eGradeNum" inputmode="decimal" placeholder="Grade, e.g. 8.5" aria-label="Grade" style="width:110px" value="${esc(String(r.grade || "").replace(/^[A-Z]+\s*/i, ""))}"></span>
         <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eProof" style="width:18px;height:18px;margin:0;flex:none" ${r.proof === "artist" ? "checked" : ""}> Artist Proof</label>
         <span id="eOwnWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap" ${r.proof === "artist" ? "" : "hidden"}><label for="eOwn" style="margin:0;display:inline">Your value each ($)</label><input id="eOwn" inputmode="decimal" value="${esc(r.own_value || "")}" style="width:110px"></span></div>`}
@@ -5602,7 +5602,10 @@ function openColEdit(id, pre){
   if ($("#eNum")) $("#eNum").addEventListener("input", () => { numFor = $("#eName").value.trim().toLowerCase(); });
   $("#eName").addEventListener("change", fixNum); $("#eName").addEventListener("blur", fixNum);
   if (!isSL) colFastAdd(r);
-  if ($("#eGraded")) $("#eGraded").addEventListener("change", e => { $("#eGradeWrap").hidden = !e.target.checked; if (e.target.checked) $("#eGradeNum").focus(); });
+  if ($("#eGraded")){ $("#eGraded").addEventListener("change", e => { if (e.target.checked) $("#eGradeNum").focus(); });
+    // typing a grade (or picking a company) ticks Graded for you
+    $("#eGradeNum").addEventListener("input", e => { if (e.target.value.trim()) $("#eGraded").checked = true; });
+    $("#eGradeCo").addEventListener("change", () => { $("#eGraded").checked = true; }); }
   if ($("#eSigned")){ $("#eSigned").addEventListener("change", e => { $("#eSignedBy").hidden = !e.target.checked; if (e.target.checked) $("#eSignedBy").focus(); });
     $("#eProof").addEventListener("change", e => { $("#eOwnWrap").hidden = !e.target.checked; if (e.target.checked) $("#eOwn").focus(); }); }
   $("#eCancel").addEventListener("click", closeModal);
@@ -5619,7 +5622,7 @@ function openColEdit(id, pre){
         upd.own_value = upd.proof ? $("#eOwn").value.trim().replace(/[$,]/g, "") : ""; }
       if ($("#eGraded")){ const gn = $("#eGradeNum").value.trim().replace(",", ".");
         if ($("#eGraded").checked && gn && !(+gn >= 1 && +gn <= 10)){ $("#eGradeNum").focus(); toast("A grade goes from 1 to 10 (e.g. 8.5)."); return false; }   // catches a slip like 100
-        upd.grade = $("#eGraded").checked ? ($("#eGradeCo").value + (gn ? " " + gn : "")) : "";
+        upd.grade = $("#eGraded").checked || gn ? ($("#eGradeCo").value + (gn ? " " + gn : "")) : "";   // a grade typed in counts even if the box wasn't ticked
  } }
     if (id) Object.assign(r, upd); else colAddRow(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
