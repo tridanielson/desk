@@ -566,7 +566,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:17 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:20 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3026,7 +3026,18 @@ function openReview(d){
 //  - becomes a labelled example for a future custom model (training.py)
 //  - feeds the accuracy scoreboard here (the number to quote when you pitch the tool)
 // Loupe (free photo check, testing): which printing the photos look like - shown on the review screen only, never hides anything
+// Loupe's answers on the sniper's finds (data/sniper_loupe.json): the sniper's deals never pass through the 3-hour scan's log
+const SNL = {map: null};
+function applySniperLoupe(rows){ if (!SNL.map) return; (rows || S.deals).forEach(d => { const x = SNL.map[itemId(d)]; if (x && !d.photo_says && !d.photo_read) Object.assign(d, x); }); }
+function loadSniperLoupe(){
+  if (GUESTVIEW() || !GH.readFiles) return;
+  GH.readFiles(["data/sniper_loupe.json"]).then(f => { try{ SNL.map = JSON.parse((f["data/sniper_loupe.json"] || {}).text || "{}"); }catch(e){ SNL.map = {}; } applySniperLoupe(); }).catch(() => {});
+}
 function photoCheckLine(d){
+  if (!d.photo_read && !/^(same|other|none)$/.test(d.photo_says || "") && String(d.images || "").trim())
+    return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe hasn't looked at this one yet${d.source === "sniper" ? " (found by the sniper) - it checks the sniper's finds on the next 3-hour scan" : " - it checks new deals on each 3-hour scan"}.</div>`;
+  if (!d.photo_read && d.photo_says === "none" && String(d.images || "").trim())
+    return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe looked, but couldn't tell which printing it is from these photos.</div>`;
   if (d.photo_read) return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📖 Loupe read it on the card: <b>${esc(d.photo_read)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}</div>`;
   if (!/^(same|other)$/.test(d.photo_says || "") || !d.photo_pick) return "";
   const m = +d.photo_margin;
@@ -3749,7 +3760,7 @@ function mergeLive(r){
   if (r.deals) parseCSV(r.deals).forEach(n => { const d = known(n);
     if (!d){ by.set(n.url, n); if (itemId(n)) by.set(itemId(n), n); added.push(n); return; }
     ["status", "status_at", "price_now", "ends_at"].forEach(k => { if (n[k] && n[k] !== d[k]){ d[k] = n[k]; delete d._end; } }); });   // sold / ended / price changes
-  if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!known(x)){ by.set(x.url, x); if (itemId(x)) by.set(itemId(x), x); added.push(x); } }); }
+  if (r.sniper && r.sniper.log){ if (S.sniper) S.sniper.log = r.sniper.log; r.sniper.log.forEach(x => { if (!known(x)){ by.set(x.url, x); if (itemId(x)) by.set(itemId(x), x); added.push(x); } }); applySniperLoupe(added); }
   if (r.pricesAt){ if (S._pricesAt && r.pricesAt !== S._pricesAt) PRICES_NEW = true; S._pricesAt = r.pricesAt; }
   if (PRICES_NEW && !busyNow()){ PRICES_NEW = false; quietLoad(); return; }   // fresh prices: quiet full reload of the data (no page reload)
   if (r.dealsAt){ const first = !S._dealsAt; S._dealsAt = r.dealsAt; if (first && !r.deals && !added.length) return; }
@@ -6284,6 +6295,7 @@ async function loadAll(){
   S.sniper = d0.sniper || null;   // every-minute sniper (Apps Script): status + its recent finds
   if (S.sniper && S.sniper.log) S.deals = S.sniper.log.concat(S.deals);
   S.deals = dedupeDeals(S.deals);
+  loadSniperLoupe();
   if (GONE.loaded) applyGone();
   markNewSinceLastVisit();
   READONLY = !d0.canEdit; ROLE = d0.canEdit ? "owner" : (d0.role === "user" ? "user" : d0.role === "peek" ? "peek" : "viewer");
