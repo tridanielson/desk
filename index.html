@@ -568,7 +568,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:34 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:38 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3176,7 +3176,7 @@ function quickHTML(d, q){
     <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><div class="qk-lab">YOU WANT</div><a><div class="phz"><img src="${esc(ref)}" alt=""></div></a><figcaption>${esc((c.s || setOf(d) || "").toUpperCase())}${want ? " #" + esc(want) : ""}${c.p ? " · " + money(+c.p) : ""}</figcaption></figure>` : ""}
       ${imgs.map(([u, i], k) => `<figure class="qk-fig${k === 0 ? " qk-first" : ""}"><div class="qk-lab">${k === 0 ? "IN THE PHOTOS" : "&nbsp;"}</div><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></div></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
     ${photoCheckLine(d)}${d.photo_kind && d.photo_kind !== "card" ? `<div class="mut" style="font-size:12px">🔍 Loupe also thinks the photos are: <b>${esc({stock: "a stock photo", lot: "several cards / a lot", verify: "not clear enough to see the card"}[d.photo_kind] || d.photo_kind)}</b> - tap 📷 Photo Problem if it's right</div>` : ""}
-    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ No, Different Version <kbd>N</kbd></button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell <kbd>S</kbd></button><button class="btn ghost" id="qkStock" type="button" title="Stock photo, several cards sold together, or the card can't be seen">📷 Photo Problem <kbd>P</kbd></button><button class="btn qk-yes" id="qkYes" type="button">✓ Yes, it's ${want ? "#" + esc(want) : "that one"} <kbd>Y</kbd></button></div>
+    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ No, Different Version</button><button class="btn ghost" id="qkSkip" type="button">? Can't Tell</button><button class="btn ghost" id="qkStock" type="button" title="Stock photo, several cards sold together, or the card can't be seen">📷 Photo Problem</button><button class="btn qk-yes" id="qkYes" type="button">✓ Yes, it's ${want ? "#" + esc(want) : "that one"}</button></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
 }
@@ -3240,7 +3240,7 @@ const PHOTO_PROBLEMS = [["stock", "🖼️ Stock Photo", "not the actual card be
 function photoProblem(d, done){
   const box = $("#qkItem .qk-btns"); if (!box) return;
   box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>What's wrong with the photos?</b><span class="mut" style="font-size:12px">or ← Undo</span></div>
-    <div class="qk-probs">${PHOTO_PROBLEMS.map(([k, l, t], i) => `<button type="button" class="btn ghost" data-prob="${k}"><b>${l}</b> <kbd>${i + 1}</kbd><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div>
+    <div class="qk-probs">${PHOTO_PROBLEMS.map(([k, l, t], i) => `<button type="button" class="btn ghost" data-prob="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div>
     <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
   $("#qkPick").scrollIntoView({block: "nearest", behavior: "smooth"});
   $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-prob]"); if (b) done(b.dataset.prob); });
@@ -3423,7 +3423,7 @@ function renderAudit(){
       ${quick ? "" : `<select id="audFilter" style="max-width:100%;min-width:0">${FULL_LISTS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
       ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}`}
       <span class="mut" style="font-size:13px">${q.length ? `${AUD.i + 1} of ${q.length}` : "0 left"}</span>
-      <span class="mut hide-sm" style="font-size:12px;margin-left:auto">${quick ? "Keys: Y = right · N = wrong · S = can't tell · P = photo problem · ← back · → forward" : "Keys: Y = save as shown · ← → = previous / next"}</span></div></div>
+</div></div>
     <div id="audItem">${d ? (AUD.filter === "quick" ? quickHTML(d, q) : audItemHTML(d)) : `<p class="empty">${quick ? "All done for now - new listings arrive with every scan (every 3 hours)." : AUD.filter === "todo" ? "All caught up - every SlaveAI-checked deal is reviewed. New ones appear after each scan." : "Nothing here."}</p>`}</div>`;
   if ($("#audFilter")){ $("#audFilter").value = AUD.filter; $("#audFilter").addEventListener("change", e => { AUD.filter = e.target.value; AUD.i = 0; renderAudit(); }); }
   if ($("#audModel")) $("#audModel").value = AUD.model;
@@ -3448,14 +3448,6 @@ function wireAudItem(d, q){
   $("#audSkip").addEventListener("click", () => go(1));
   $("#audSave").addEventListener("click", () => saveReview(d, RV.sel, $("#rvNote").value, done));
 }
-document.addEventListener("keydown", e => {
-  if (!document.querySelector("#tab-audit.on, #tab-quick.on") || /input|textarea|select/i.test((e.target.tagName || "")) || document.querySelector("#colModal.on")) return;
-  if ($("#qkPick")){ if (e.key === "Escape"){ e.preventDefault(); renderAudit(); } else if (/^[1-3]$/.test(e.key) && $("#qkPick [data-prob]")){ e.preventDefault(); $(`#qkPick [data-prob="${PHOTO_PROBLEMS[+e.key - 1][0]}"]`).click(); } return; }   // picking which printing: mouse / tap
-  if (AUD.filter === "quick" && $("#qkYes")){ const b = {y: "#qkYes", n: "#qkNo", s: "#qkSkip", p: "#qkStock", arrowright: $("#qkFwd") ? "#qkFwd" : "#qkSkip", arrowleft: "#audPrev"}[e.key.toLowerCase()]; if (b){ e.preventDefault(); $(b).click(); } return; }
-  if (e.key === "y" || e.key === "Y"){ const b = $("#audSave"); if (b){ e.preventDefault(); b.click(); } }
-  if (e.key === "ArrowRight"){ const b = $("#audSkip"); if (b){ e.preventDefault(); b.click(); } }
-  if (e.key === "ArrowLeft"){ const b = $("#audPrev"); if (b){ e.preventDefault(); b.click(); } }
-});
 // ---- adjust a deal's condition yourself: fair value and % off recalculate (saved to collection/deal_condition.csv)
 const COND_LIST = ["NM", "LP", "MP", "HP", "DMG"], DC_COLS = ["url", "condition", "card", "at", "listed", "ai", "seller", "title", "note", "fault", "variant", "variant_price", "marks"];
 const DC = {map: {}, sha: null, loaded: false};
