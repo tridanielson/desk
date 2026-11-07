@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:21 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:30 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5145,7 +5145,7 @@ function renderCOLList(){
     : v === "recent" ? i.kind === "card" && colNewest(i) >= recent : v === "listed" ? i.status === "listed" : v === "sealed" ? i.kind === "sealed"
     : v === "bulk" ? i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH : true;
   let rows = colAll().filter(i => !i.ordered && inView(i) && (!q || (i.name + " " + (i.set || "") + " " + (i.set_name || "") + " " + (i.notes || "") + " " + (i.meta || "")).toLowerCase().includes(q)))
-    .sort(v === "recent" ? (a, b) => colNewest(b).localeCompare(colNewest(a)) || (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
+    .sort(v === "recent" ? (a, b) => (b.idx ?? -1) - (a.idx ?? -1) : (a, b) => (b.value || 0) - (a.value || 0));
   // All, no search: the cheap cards fold into one Bulk line at the end (tap to open)
   const isBulk = i => i.kind === "card" && i.value_each != null && i.value_each < BULK_EACH;
   const bulk = (v === "all" || v === "singles") && !q && !COL.showBulk ? rows.filter(isBulk) : [];
@@ -5419,7 +5419,7 @@ const langName = c => ((COL_LANGS.find(x => x[0] === (c || "EN").toUpperCase()) 
 // copies that differ only in where from / paid stay their own rows (so each sale's profit is right) but show as one line
 const colCardKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil",
   (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase(), (r.signed || "").toLowerCase(), r.proof || "", (r.grade || "").toUpperCase()].join("|");
-const colLotKey = r => [colCardKey(r), (r.source || "").trim().toLowerCase(), String(numOrNull(r.cost_each) || ""), r.status || "owned", String(numOrNull(r.list_price) || "")].join("|");
+const colLotKey = r => [colCardKey(r), (r.source || "").trim().toLowerCase(), String(numOrNull(r.cost_each) || ""), r.status || "owned", String(numOrNull(r.list_price) || ""), r.acquired || ""].join("|");   // a copy bought another day keeps its own date (Recently Added)
 const colMergeable = r => (r.kind || "card") === "card" && !r.ref && r.status !== "ordered" && !COL.sales.some(x => x.item_id === r.id);
 // add a row - or add its quantity to the identical row already there (which then counts as just added)
 function colAddRow(row){
