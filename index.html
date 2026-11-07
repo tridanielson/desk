@@ -409,7 +409,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .ph-arr{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:52px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:28px;line-height:1;cursor:pointer;z-index:2}
 .ph-arr.l{left:6px}.ph-arr.r{right:6px}.ph-arr:disabled{opacity:.25;cursor:default}
 .ph-cnt{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;z-index:2}
-.ph-thumbs{display:flex;gap:6px;margin-top:6px;overflow-x:auto}.ph-thumbs button{flex:0 0 auto;width:52px;height:52px;padding:0;border:2px solid transparent;border-radius:6px;overflow:hidden;background:var(--soft);cursor:pointer;opacity:.7}
+.ph-thumbs{display:flex;gap:6px;margin-top:6px;overflow-x:auto;max-width:100%;padding-bottom:4px;scroll-behavior:smooth}.ph-thumbs button{flex:0 0 auto;width:52px;height:52px;padding:0;border:2px solid transparent;border-radius:6px;overflow:hidden;background:var(--soft);cursor:pointer;opacity:.7}
 .ph-thumbs button.on{border-color:var(--accent);opacity:1}.ph-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .phz{position:relative}.aud-ph,.qk-fig a{display:block;overflow:hidden;border-radius:8px}
 #phLens{position:fixed;z-index:60;border-radius:12px;border:2px solid var(--accent);background:var(--panel);box-shadow:0 12px 40px rgba(0,0,0,.45);pointer-events:none;display:none;overflow:hidden}
@@ -470,6 +470,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 #dLearnWrap summary{cursor:pointer}
 .rv textarea{width:100%;margin-top:8px;font:inherit}.rv-head{margin-bottom:8px}
 .aud-grid.small{grid-template-columns:2fr 1fr}.aud-grid.small .aud-ref{max-width:160px}
+.rv-left,.rv-right,.rv-left .aud-grid>div{min-width:0}.rv-left .aud-grid,.rv-left .aud-grid.small{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .btn.rv{white-space:nowrap}.btn.rv.done{font-size:12px}
 .cond-adj{color:var(--gold);font-weight:600}
 .rv .btn:not(.ghost) .mut{color:inherit;opacity:.8}
@@ -566,7 +567,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:26 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:28 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2795,7 +2796,8 @@ function wireReview(root, d, done){
     const go = i => strip.scrollTo({left: Math.max(0, Math.min(n - 1, i)) * strip.clientWidth, behavior: "smooth"});
     const show = () => { const i = at(); car.querySelector(".ph-cnt").textContent = `${i + 1} / ${n}`;
       car.querySelector(".ph-arr.l").disabled = i === 0; car.querySelector(".ph-arr.r").disabled = i === n - 1;
-      if (thumbs) thumbs.querySelectorAll("button").forEach((b, j) => b.classList.toggle("on", j === i)); };
+      if (thumbs){ thumbs.querySelectorAll("button").forEach((b, j) => b.classList.toggle("on", j === i));
+        const b = thumbs.children[i]; if (b){ const l = b.offsetLeft - thumbs.offsetLeft; if (l < thumbs.scrollLeft || l + b.offsetWidth > thumbs.scrollLeft + thumbs.clientWidth) thumbs.scrollLeft = l - thumbs.clientWidth / 2 + b.offsetWidth / 2; } } };
     car.querySelectorAll("[data-phgo]").forEach(b => b.addEventListener("click", e => { e.preventDefault(); e.stopPropagation(); go(at() + +b.dataset.phgo); }));
     if (thumbs) thumbs.addEventListener("click", e => { const b = e.target.closest("[data-phto]"); if (b) go(+b.dataset.phto); });
     strip.addEventListener("scroll", () => requestAnimationFrame(show), {passive: true}); show(); });
