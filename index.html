@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 03:24 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1993,7 +1993,7 @@ function openBought(d, done, title){
       if (!COL.loaded) await loadCOL();
       if (!COL.loaded) throw new Error(COL.error || "Couldn't open your Collection");
       COL.inv.push({id: newId("c-"), name: c.n || d.card.split(" [")[0], set: (c.s || (/\[([A-Z0-9]+)\]/.exec(d.card) || [])[1] || "").toLowerCase(), number: c.num || "",
-        finish: c.f || "nonfoil", condition: gradeOf(d) ? "NM" : $("#bCond").value, grade: gradeOf(d), language: "EN", qty: String(Math.max(1, parseInt($("#bQty").value) || 1)),
+        finish: c.f || "nonfoil", condition: $("#bCond").value, grade: gradeOf(d), language: "EN", qty: String(Math.max(1, parseInt($("#bQty").value) || 1)),
         cost_each: $("#bPaid").value.trim(), acquired: $("#bDate").value, source: "eBay", status: "ordered", list_price: "",
         notes: [$("#bNote").value.trim(), d.url].filter(Boolean).join(" · "), scryfall_id: "", kind: "card", ref: d.url});
       await saveCollectionNow("Bought from an eBay deal (Price Desk)");
@@ -4391,13 +4391,13 @@ function wireSLEditor(){
 
 // ---------------------------------------------------------------- Collection + received marks
 const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value", "grade"];
-// a graded slab: "BGS 8.5" - shown instead of the condition, valued at the NM raw price
+// a graded slab: "BGS 8.5" - shown next to the condition; a grade isn't automatically NM, so it's valued at the condition you pick
 const GRADERS = ["PSA", "BGS", "CGC", "SGC"];
 const isGrade = c => /^(PSA|BGS|CGC|SGC)\b/i.test(c || "");   // a binder badge that's a slab's grade: 🏅 and gold
 const SLAB_BADGE = ["#d9b44a", "#1b120a"];
 const gradeOf = d => { const m = /\b(PSA|BGS|CGC|SGC|Beckett)\s*(?:grade\s*)?(10|[1-9](?:\.5)?)\b/i.exec([d.condition, d.title].join(" ")); return m ? (m[1].toUpperCase() === "BECKETT" ? "BGS" : m[1].toUpperCase()) + " " + m[2] : ""; };
 // signed: who signed it ("" = not signed) - priced like the card. proof "artist": an Artist Proof - no market price, worth what you enter (own_value)
-const colSpecial = r => (r && r.grade ? `<span class="chip" title="Graded slab - valued at the NM raw price">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
+const colSpecial = r => (r && r.grade ? `<span class="chip" title="Graded slab - valued at the raw price for its condition">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
 const SALE_COLS = ["id", "date", "item_id", "name", "qty", "price_each", "shipping_charged", "shipping_cost", "platform", "fees", "notes"];
 const REC_COLS = ["line_id", "qty", "date"];
 const COL = {goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
@@ -5602,7 +5602,7 @@ function openColEdit(id, pre){
   if ($("#eNum")) $("#eNum").addEventListener("input", () => { numFor = $("#eName").value.trim().toLowerCase(); });
   $("#eName").addEventListener("change", fixNum); $("#eName").addEventListener("blur", fixNum);
   if (!isSL) colFastAdd(r);
-  if ($("#eGraded")) $("#eGraded").addEventListener("change", e => { $("#eGradeWrap").hidden = !e.target.checked; if (e.target.checked){ $("#eGradeNum").focus(); const nm = document.querySelector('#eCondBtns [data-c="NM"]'); if (nm) nm.click(); } });   // a slab is valued as NM
+  if ($("#eGraded")) $("#eGraded").addEventListener("change", e => { $("#eGradeWrap").hidden = !e.target.checked; if (e.target.checked) $("#eGradeNum").focus(); });
   if ($("#eSigned")){ $("#eSigned").addEventListener("change", e => { $("#eSignedBy").hidden = !e.target.checked; if (e.target.checked) $("#eSignedBy").focus(); });
     $("#eProof").addEventListener("change", e => { $("#eOwnWrap").hidden = !e.target.checked; if (e.target.checked) $("#eOwn").focus(); }); }
   $("#eCancel").addEventListener("click", closeModal);
@@ -5618,7 +5618,7 @@ function openColEdit(id, pre){
       if ($("#eSigned")){ upd.signed = $("#eSigned").checked ? ($("#eSignedBy").value.trim() || "yes") : ""; upd.proof = $("#eProof").checked ? "artist" : "";
         upd.own_value = upd.proof ? $("#eOwn").value.trim().replace(/[$,]/g, "") : ""; }
       if ($("#eGraded")){ const gn = $("#eGradeNum").value.trim(); upd.grade = $("#eGraded").checked ? ($("#eGradeCo").value + (gn ? " " + gn : "")) : "";
-        if (upd.grade) upd.condition = "NM"; } }
+ } }
     if (id) Object.assign(r, upd); else colAddRow(Object.assign({}, r, upd, {id: newId("c-")}));
     markDirty("collection"); renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS();
     if (more){   // keep the same card filled in for the next copy - usually just a different condition
@@ -5705,10 +5705,11 @@ function goalProgress(g){
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
   const fins = goalFins(g), code = g.set.toLowerCase();
   const left = new Map(colItems().filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));
-  const byNum = {}, byName = {}, conds = {};   // conds: the condition of every copy you hold, per printing+finish
+  const byNum = {}, byName = {}, conds = {}, grades = {};   // conds: the condition of every copy you hold, per printing+finish
   COL.inv.forEach(r => { const n = left.get(r.id), f = r.finish || "nonfoil"; if (!n || (r.set || "").toLowerCase() !== code || !fins.includes(f)) return;
     const ck = r.number ? r.number + "|" + f : "n:" + (r.name || "").toLowerCase() + "|" + f;
-    (conds[ck] = conds[ck] || []).push(...Array(n).fill(r.grade ? String(r.grade).toUpperCase() : (r.condition || "NM").toUpperCase()));   // a slab shows its grade (sorts first)
+    (conds[ck] = conds[ck] || []).push(...Array(n).fill((r.condition || "NM").toUpperCase()));
+    if (r.grade) (grades[ck] = grades[ck] || []).push(String(r.grade).toUpperCase());   // slabs: the badge shows the grade
     if (r.number) byNum[r.number + "|" + f] = (byNum[r.number + "|" + f] || 0) + n; else { const k = (r.name || "").toLowerCase() + "|" + f; byName[k] = (byName[k] || 0) + n; } });
   const pool = Object.assign({}, byName), pkOf = f => f === "foil" ? "usd_foil" : f === "etched" ? "usd_etched" : "usd";
   // every version: one row per card per finish it was actually made in (a foil-only card is never "needed" in non-foil)
@@ -5716,10 +5717,11 @@ function goalProgress(g){
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
     const price = c.prices && c.prices[pkOf(f)] != null ? +c.prices[pkOf(f)] : null;
     const cs = (conds[c.collector_number + "|" + f] || conds["n:" + k] || []).slice().sort((a, b) => COND_LIST5.indexOf(a) - COND_LIST5.indexOf(b));
-    return {c, have, price, fin: f, conds: cs, best: cs[0] || ""}; }));
+    const gr = (grades[c.collector_number + "|" + f] || grades["n:" + k] || [])[0] || "";
+    return {c, have, price, fin: f, conds: cs, best: cs[0] || "", grade: gr}; }));
   // upgrade to NM: a card you only have in worse condition still counts as needed (at its NM price)
   const wantNM = (g.want_cond || "").toUpperCase() === "NM";
-  rows.forEach(r => { r.upgrade = wantNM && r.have > 0 && r.best !== "NM" && !/^(PSA|BGS|CGC|SGC)\b/.test(r.best); });   // a slab counts as NM
+  rows.forEach(r => { r.upgrade = wantNM && r.have > 0 && r.best !== "NM"; });
   const need = rows.filter(r => !r.have || r.upgrade);
   return {rows, need, wantNM, multi: new Set(rows.map(r => r.fin)).size > 1, have: rows.length - need.length, total: rows.length, cost: need.reduce((t, r) => t + (r.price || 0), 0),
           unpriced: need.filter(r => r.price == null).length, owned: rows.filter(r => r.have).reduce((t, r) => t + (r.price || 0), 0)};
@@ -6041,7 +6043,7 @@ function renderSetDetail(g){
   $("#setView").value = SETS.view; $("#setCond").value = cf;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-sedit="${esc(r.c.id)}~${esc(r.fin)}" title="Edit your copy: condition, what you paid, signed, notes…">Edit</button> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""}${r.grade ? ` <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}" title="Graded slab">🏅 ${esc(r.grade)}</span>` : ""} <button class="btn ghost small" data-sedit="${esc(r.c.id)}~${esc(r.fin)}" title="Edit your copy: condition, what you paid, signed, notes…">Edit</button> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   if (binder) $("#setBinder").innerHTML = rows.map((r, i) => setPocketHTML(r, i, pr)).join("") || `<p class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</p>`;
   else $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -6078,7 +6080,7 @@ function renderSetDetail(g){
 const setOrder = (a, b) => { const na = parseInt(a.c.collector_number) || 0, nb = parseInt(b.c.collector_number) || 0;
   return na - nb || String(a.c.collector_number).localeCompare(String(b.c.collector_number)) || FINS.indexOf(a.fin) - FINS.indexOf(b.fin); };
 function setPocketHTML(r, i, pr){
-  const c = r.best, [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM;
+  const c = r.grade || r.best, [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM;
   return `<button type="button" class="pocket${r.have ? "" : " missing"}" data-spocket="${i}" title="${esc(r.c.name)}${r.have ? "" : " - you don't have it"}">
     <span class="pk-card"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" loading="lazy" onerror="this.remove()"><span class="pk-fallback">${esc(r.c.name)}</span>
       <span class="pk-num">#${esc(r.c.collector_number)}</span>
