@@ -566,7 +566,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:15 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:17 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2686,7 +2686,7 @@ function reviewHTML(d, mode){
         const e = ed === "matches" ? `it's the card you're tracking (<b>${tr}</b>)` : ed === "wrong" ? `it's <b>not</b> the card you're tracking (${tr})` : `it can't tell if it's the card you're tracking (${tr})`;
         const cc = aiC && aiC !== "unclear" ? `, in about <b>${esc(aiC)}</b> condition` : ", and can't tell the condition";
         return e + cc + ". " + ({ok: "Its call: fine.", warn: "Its call: check it yourself.", reject: "Its call: skip it."}[d.ai_verdict] || ""); })()}${d.ai_model ? ` <span class="mut" style="font-size:11px">(${esc(d.ai_model)})</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
-      ${s.fromAI ? `<div style="font-size:12px;margin-top:4px">The answers below start from SlaveAI's call. If it's right, just tap Save${mode === "queue" ? " (or press Y)" : ""}; otherwise change what it got wrong.</div>` : ""}</div>`
+</div>`
       : `<div class="aud-ai mut" style="font-size:13px">🤖 SlaveAI didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div>`}
     ${photoCheckLine(d)}
     </div><div class="rv-right">
