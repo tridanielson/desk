@@ -568,7 +568,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:33 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 02:35 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2799,8 +2799,10 @@ function wireReview(root, d, done){
     if (!RV_FOREIGN.has(set) || !lr) return;
     RV.sel.eng = "no"; root.querySelectorAll('[data-k="eng"] [data-v]').forEach(x => x.classList.toggle("ghost", x.dataset.v !== "no"));
     lr.hidden = false; const lab = lr.querySelector(".rq-l b"); if (lab) lab.textContent = `Which language is this ${set.toUpperCase()} card?`;
+    if (ONE_LANG[set]){ RV.sel.langpick = ONE_LANG[set]; lr.querySelectorAll('[data-k="langpick"] [data-v]').forEach(x => { x.classList.toggle("ghost", x.dataset.v !== ONE_LANG[set]); x.hidden = x.dataset.v !== ONE_LANG[set]; });
+      if (lab) lab.textContent = `${set.toUpperCase()} is ${langName(ONE_LANG[set])} only`; return; }
     const seg = lr.querySelector('[data-k="langpick"]'), show = codes => seg.querySelectorAll("[data-v]").forEach(x => x.hidden = !(codes.includes(x.dataset.v) || x.dataset.v === "OTHER"));
-    show(set === "fbb" || set === "fwb" ? ["FR", "DE", "IT"] : ["FR", "DE", "IT", "ES", "JA"]);
+    show(SET_LANGS[set] || ["FR", "DE", "IT", "ES", "JA"]);
     const name = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, "");
     sf("/cards/search?include_multilingual=true&unique=prints&q=" + encodeURIComponent(`!"${name}" set:${set} cn:${v.num} lang:any`))
       .then(j => { const ls = [...new Set((j.data || []).map(c => String(c.lang || "").toUpperCase()).filter(c => c && c !== "EN"))]; if (ls.length) show(ls); }).catch(() => {});
@@ -3050,7 +3052,9 @@ function loadSniperLoupe(){
   if (GUESTVIEW() || !GH.readFiles) return;
   GH.readFiles(["data/sniper_loupe.json"]).then(f => { try{ SNL.map = JSON.parse((f["data/sniper_loupe.json"] || {}).text || "{}"); }catch(e){ SNL.map = {}; } applySniperLoupe(); }).catch(() => {});
 }
-const RV_FOREIGN = new Set(["fbb", "fwb", "4bb", "ren", "rin", "bchr"]);   // early non-English printings that came in several languages
+const RV_FOREIGN = new Set(["fbb", "fwb", "4bb", "ren", "rin", "bchr"]);   // early non-English printings (most came in several languages)
+const ONE_LANG = {bchr: "JA", rin: "IT"};   // Chronicles Foreign Black Border is Japanese only, Rinascimento Italian only - nothing to ask
+const SET_LANGS = {fbb: ["FR", "DE", "IT"], fwb: ["FR", "DE", "IT"], ren: ["FR", "DE"]};   // when Scryfall can't be reached
 function photoCheckLine(d){
   if (!d.photo_read && !/^(same|other|none)$/.test(d.photo_says || "") && String(d.images || "").trim())
     return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe hasn't looked at this one yet${d.source === "sniper" ? " - it checks the sniper's finds on the next 3-hour scan" : " - it checks new deals on each 3-hour scan"}.</div>`;
@@ -3237,8 +3241,8 @@ function pickPrinting(d, done){
     row.innerHTML = '<span class="mut loadmsg" style="font-size:12px">Loading its languages…</span>';
     const chips = codes => { row.innerHTML = codes.map(c => `<button type="button" class="btn small" data-lang="${c}">${esc(langName(c))}</button>`).join("") + `<button type="button" class="btn ghost small" data-lang="OTHER">Other</button>`; };
     sf("/cards/search?include_multilingual=true&unique=prints&q=" + encodeURIComponent(`!"${name}" set:${p.set} cn:${p.num} lang:any`))
-      .then(j => { const ls = [...new Set((j.data || []).map(c => String(c.lang || "").toUpperCase()).filter(c => c && c !== "EN"))]; chips(ls.length ? ls : p.set === "fbb" || p.set === "fwb" ? ["FR", "DE", "IT"] : ["FR", "DE", "IT", "ES", "JA"]); })
-      .catch(() => chips(p.set === "fbb" || p.set === "fwb" ? ["FR", "DE", "IT"] : ["FR", "DE", "IT", "ES", "JA"]));
+      .then(j => { const ls = [...new Set((j.data || []).map(c => String(c.lang || "").toUpperCase()).filter(c => c && c !== "EN"))]; chips(ls.length ? ls : SET_LANGS[p.set] || ["FR", "DE", "IT", "ES", "JA"]); })
+      .catch(() => chips(SET_LANGS[p.set] || ["FR", "DE", "IT", "ES", "JA"]));
     r.scrollIntoView({block: "nearest", behavior: "smooth"}); };
   $("#qkLangRow").addEventListener("click", e => { const b = e.target.closest("[data-lang]"); if (!b) return;
     const code = b.dataset.lang, label = b.textContent.trim();
@@ -3272,6 +3276,7 @@ function pickPrinting(d, done){
     el.addEventListener("click", e => { const b = e.target.closest(".qk-pr"); if (!b || b.disabled) return; const p = ps[+b.dataset.i];
       const f = fin || (only(p) ? only(p).replace(" only", "") : "finish not stated");   // a version that only exists in foil is foil
       const fact = `It's ${p.sn} #${p.num} (${p.yr})${p.tr ? " · " + p.tr : ""} · ${f}`;
+      if (ONE_LANG[p.set]) return done(`${fact} · ${langName(ONE_LANG[p.set])}`, false, ONE_LANG[p.set]);
       if (FOREIGN.has(p.set) && !LANG) return askLang(p, fact);   // FBB, 4BB, Renaissance...: one printing, several languages - which one?
       done(fact + (LANG ? " · " + LANG.label : ""), false, LANG && LANG.code); });
   }).catch(() => { const el = $("#qkPrints"); if (el) el.innerHTML = `<p class="mut">Couldn't load the printings - tap Wrong, But Not Sure Which.</p>`; });
