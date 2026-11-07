@@ -405,7 +405,8 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 /* review photos: one at a time, arrows / swipe / thumbnails to cycle */
 .ph-car{position:relative}.ph-car .aud-photos{display:flex!important;gap:0!important;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:8px}
 .ph-car .aud-photos::-webkit-scrollbar{display:none}.ph-car .aud-ph{flex:0 0 100%;scroll-snap-align:start;background:var(--soft)}
-.ph-car .aud-ph img{max-height:440px;object-fit:contain;border-radius:0}
+.ph-car .aud-ph{text-align:center}.ph-car .phz{display:inline-block;vertical-align:top;max-width:100%}
+.ph-car .aud-ph img{width:auto;max-width:100%;max-height:440px;border-radius:0}
 .ph-arr{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:52px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:28px;line-height:1;cursor:pointer;z-index:2}
 .ph-arr.l{left:6px}.ph-arr.r{right:6px}.ph-arr:disabled{opacity:.25;cursor:default}
 .ph-cnt{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;z-index:2}
@@ -413,7 +414,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .ph-thumbs button.on{border-color:var(--accent);opacity:1}.ph-thumbs img{width:100%;height:100%;object-fit:cover;display:block}
 .phz{position:relative}.aud-ph,.qk-fig a{display:block;overflow:hidden;border-radius:8px}
 #phLens{position:fixed;z-index:60;border-radius:12px;border:2px solid var(--accent);background:var(--panel);box-shadow:0 12px 40px rgba(0,0,0,.45);pointer-events:none;display:none;overflow:hidden}
-#phLens img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 50%}#phLens .phl-hint{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:1px 6px;border-radius:6px}
+#phLens .phl-in{position:relative;width:100%;height:100%;transform-origin:50% 50%}#phLens img{display:block;width:100%;height:100%;object-fit:contain}#phLens .phl-hint{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;background:rgba(0,0,0,.55);padding:1px 6px;border-radius:6px}
 @media (hover:hover) and (pointer:fine){.phz{cursor:zoom-in}}
 .ph-role{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;pointer-events:none}
 .qk-probs{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:8px}.qk-probs .btn{height:auto;padding:10px;text-align:left;white-space:normal}
@@ -567,7 +568,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:28 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:34 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3129,8 +3130,8 @@ function loadPool(){
 // hover a photo with the mouse: the whole photo pops out big beside it; scroll the mouse wheel up over the photo to zoom in
 // on the spot under the pointer (wheel down zooms back out, then scrolls the page as usual). Click still opens the viewer.
 if (matchMedia("(hover:hover) and (pointer:fine)").matches){
-  const lens = document.createElement("div"); lens.id = "phLens"; lens.innerHTML = '<img alt=""><span class="phl-hint">scroll to zoom</span>'; document.body.appendChild(lens);
-  const L = {img: lens.querySelector("img"), on: null, z: 1, fx: .5, fy: .5};
+  const lens = document.createElement("div"); lens.id = "phLens"; lens.innerHTML = '<div class="phl-in"><img alt=""></div><span class="phl-hint">scroll to zoom</span>'; document.body.appendChild(lens);
+  const L = {img: lens.querySelector("img"), box: lens.querySelector(".phl-in"), on: null, z: 1, fx: .5, fy: .5};
   const hide = () => { lens.style.display = "none"; L.on = null; L.z = 1; };
   const place = () => {
     const r = L.on.getBoundingClientRect(), ar = (L.on.naturalWidth || 488) / (L.on.naturalHeight || 680);
@@ -3141,13 +3142,16 @@ if (matchMedia("(hover:hover) and (pointer:fine)").matches){
     lens.style.left = (roomR >= w || roomR >= roomL ? Math.min(innerWidth - w - 8, r.right + 16) : Math.max(8, r.left - 16 - w)) + "px";
     lens.style.top = Math.max(8, Math.min(innerHeight - h - 8, r.top + r.height / 2 - h / 2)) + "px";
   };
-  const draw = () => { L.img.style.transform = `scale(${L.z})`; L.img.style.transformOrigin = `${(L.fx * 100).toFixed(1)}% ${(L.fy * 100).toFixed(1)}%`;
-    lens.querySelector(".phl-hint").textContent = L.z > 1 ? `${L.z.toFixed(1)}x · scroll down to zoom out` : "scroll up to zoom"; };
+  const draw = () => { L.box.style.transform = `scale(${L.z})`; L.box.style.transformOrigin = `${(L.fx * 100).toFixed(1)}% ${(L.fy * 100).toFixed(1)}%`;
+    lens.querySelector(".phl-hint").textContent = L.z > 1 ? `${L.z.toFixed(1)}x · move to look around · scroll to zoom` : "scroll up to zoom"; };
   document.addEventListener("mousemove", e => {
     const img = e.target.closest && e.target.closest(".phz") ? e.target.closest(".phz").querySelector("img") : null;
     if (!img || !img.naturalWidth) return hide();
     const r = img.getBoundingClientRect(); L.fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); L.fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
-    if (L.on !== img){ L.on = img; L.z = 1; const src = img.currentSrc || img.src; L.img.src = src.replace(/\/s-l\d+\./, "/s-l1600.").replace("cards.scryfall.io/small/", "cards.scryfall.io/large/"); L.img.onerror = () => { L.img.onerror = null; L.img.src = src; }; lens.style.display = "block"; place(); }
+    if (L.on !== img){ L.on = img; const src = img.currentSrc || img.src;
+      L.z = /ebayimg\.com/.test(src) ? 2.5 : 1;   // a seller's photo opens zoomed in on the spot under the pointer - move to look around, scroll down for the whole photo
+      L.box.querySelectorAll(".ai-spot").forEach(x => x.remove());   // SlaveAI's boxes come along, bigger
+      img.closest(".phz").querySelectorAll(".ai-spot").forEach(x => { const c = x.cloneNode(true); c.classList.add("big"); L.box.appendChild(c); }); L.img.src = src.replace(/\/s-l\d+\./, "/s-l1600.").replace("cards.scryfall.io/small/", "cards.scryfall.io/large/"); L.img.onerror = () => { L.img.onerror = null; L.img.src = src; }; lens.style.display = "block"; place(); }
     draw();
   }, {passive: true});
   document.addEventListener("wheel", e => {
