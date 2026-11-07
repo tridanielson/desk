@@ -524,7 +524,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 10:18 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 06, 06:08 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4949,7 +4949,7 @@ function openPocket(i){
   if (i.kind === "sealed"){ SD.q = i.name.slice(0, 40); SD.status = "sealed"; switchTab("sealed"); return; }
   const lots = i.lots || [i], img = cardImg(i);
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
-  openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${img ? `<img src="${esc(img)}" alt="" style="width:180px;border-radius:9px">` : ""}
+  openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${img ? `<img src="${esc(img)}" alt="" style="width:180px;height:auto;align-self:flex-start;border-radius:9px">` : ""}
     <div style="flex:1;min-width:220px"><h3 style="margin:0">${esc(i.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(i.set_name || i.set || "")}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish || "")} · ${esc(i.condition || "")}</p>
       <p style="margin:0 0 10px">Have <b>${i.left}</b> · worth <b>${i.value == null ? "–" : money(i.value)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
       ${(m => m ? `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 10px">${stat("Market (NM)", money(m.p))}${stat("CK buylist", money(m.ck))}${stat("30 days", pct(m.c30))}${stat("90 days", pct(m.c90))}${stat("1 year", pct(m.c1y))}</div>
@@ -5782,7 +5782,7 @@ function setPocketHTML(r, i, pr){
 function openSetPocket(g, r, pr){
   if (!r) return;
   const eb = "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${r.c.name} ${r.c.set_name}`) + "&_sop=15";
-  openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" style="width:200px;border-radius:9px">
+  openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap"><img src="${esc(sfImg(r.c.id, "normal"))}" alt="" style="width:200px;height:auto;align-self:flex-start;border-radius:9px">
     <div style="flex:1;min-width:200px"><h3 style="margin:0">${esc(r.c.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(r.c.set_name)} #${esc(r.c.collector_number)}${pr.multi || r.fin !== "nonfoil" ? " · " + esc(finName(r.fin)) : ""} · ${esc(r.c.rarity)}</p>
       <p style="margin:0 0 10px">${r.have ? `You have <b>${r.have}</b>${r.conds.length ? " (" + esc(condSummary(r.conds)) + ")" : ""}${r.upgrade ? ' · <span class="badge" style="background:#3a2a1a;color:#f0a868">UPGRADE to NM</span>' : ""}` : "<b>You don't have this one.</b>"}</p>
       <p style="margin:0 0 12px">Near Mint market: <b>${r.price == null ? "–" : money(r.price)}</b></p>
