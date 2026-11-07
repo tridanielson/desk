@@ -566,7 +566,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:20 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 11:25 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2683,7 +2683,7 @@ function reviewHTML(d, mode){
         return src ? `<br><span class="mut" style="font-size:11.5px">Want List · ${esc(src)}</span>` : ""; })()}<br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI thinks</b> ${(() => { const tr = esc((c.sn || setOf(d) || "?") + (c.num ? " #" + c.num : "")), ed = d.ai_edition;
-        const e = ed === "matches" ? `it's the card you're tracking (<b>${tr}</b>)` : ed === "wrong" ? `it's <b>not</b> the card you're tracking (${tr})` : `it can't tell if it's the card you're tracking (${tr})`;
+        const e = ed === "matches" ? `it's <b>${tr}</b>` : ed === "wrong" ? `it's <b>not</b> ${tr}` : `it can't tell if it's ${tr}`;
         const cc = aiC && aiC !== "unclear" ? `, in about <b>${esc(aiC)}</b> condition` : ", and can't tell the condition";
         return e + cc + ". " + ({ok: "Its call: fine.", warn: "Its call: check it yourself.", reject: "Its call: skip it."}[d.ai_verdict] || ""); })()}${d.ai_model ? ` <span class="mut" style="font-size:11px">(${esc(d.ai_model)})</span>` : ""}<div class="mut">${esc(d.ai_reason || "")}</div>${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}
 </div>`
@@ -3035,7 +3035,7 @@ function loadSniperLoupe(){
 }
 function photoCheckLine(d){
   if (!d.photo_read && !/^(same|other|none)$/.test(d.photo_says || "") && String(d.images || "").trim())
-    return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe hasn't looked at this one yet${d.source === "sniper" ? " (found by the sniper) - it checks the sniper's finds on the next 3-hour scan" : " - it checks new deals on each 3-hour scan"}.</div>`;
+    return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe hasn't looked at this one yet${d.source === "sniper" ? " - it checks the sniper's finds on the next 3-hour scan" : " - it checks new deals on each 3-hour scan"}.</div>`;
   if (!d.photo_read && d.photo_says === "none" && String(d.images || "").trim())
     return `<div class="mut" style="font-size:12px;margin:6px 0 2px">🔍 Loupe looked, but couldn't tell which printing it is from these photos.</div>`;
   if (d.photo_read) return `<div class="mut" style="font-size:12px;margin:6px 0 2px">📖 Loupe read it on the card: <b>${esc(d.photo_read)}</b> - ${d.photo_says === "same" ? "the printing it's priced as" : '<b class="down">not the printing it\'s priced as</b>'}</div>`;
