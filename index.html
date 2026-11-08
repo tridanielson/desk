@@ -578,7 +578,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 03:30 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 04:22 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1280,7 +1280,7 @@ async function saveAll(){
         rows => rows.forEach(r => { if (r.item_id && !SN.rows[r.item_id]) SN.rows[r.item_id] = r; }), "Snipes set (Price Desk)"); }
     if (S.dirty.has("audit")){ S.dirty.delete("audit");
       AUD.sha = await putMerged("collection/ai_audit.csv", AUD.sha, () => toCSV(AUD_COLS, Object.values(AUD.rows).sort((a, b) => (a.at || "").localeCompare(b.at || ""))),
-        rows => rows.forEach(r => { if (r.url && !AUD.rows[r.url]) AUD.rows[r.url] = r; }), "SlaveAI audit (Price Desk)"); }
+        rows => rows.forEach(r => { if (r.url && !AUD.rows[r.url] && !audOf({url: r.url})) AUD.rows[r.url] = r; }), "SlaveAI audit (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
     p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
@@ -1783,7 +1783,7 @@ const LANG_WORDS = [["Japanese", /\b(japanese|japan|jpn|jp)\b/i], ["German", /\b
   ["Foreign (FBB)", /\b(fbb|foreign black border)\b/i], ["Foreign (FWB)", /\b(fwb|foreign white border)\b/i]];
 function langOf(d){
   if (d._lang !== undefined) return d._lang;
-  const lfact = FB.loaded && FB.rows.find(r => r.url === d.url && r.verdict === "fact" && r.reason === "language");
+  const lfact = FB.loaded && fbRows(d).find(r => r.verdict === "fact" && r.reason === "language");
   if (lfact) return d._lang = lfact.note ? langName(lfact.note) : "Foreign (you marked it)";
   const l = String(d.language || "").trim();
   if (l) return d._lang = /^english$/i.test(l) ? "" : l;
@@ -1933,7 +1933,7 @@ function qualityHTML(d){
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
   if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
-  { const bk = (AUD.rows[d.url] || {}).back, n = String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length;
+  { const bk = (audOf(d) || {}).back, n = String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length;
     if (bk === "missing" || bk === "unclear") h += `<span class="flag" title="You checked the photos: the back of the card isn't shown (or can't be made out) - the condition was judged from the front only.">no back photo</span> `;
     else if (!bk && backSays(d) === "no") h += `<span class="flag" title="${d.ai_back === "no" ? "SlaveAI" : "Loupe"} looked at every photo and none shows the back of the card - the condition is from the front only.">no back photo</span> `;
     else if (!bk && n === 1 && backSays(d) !== "yes") h += `<span class="flag" title="This listing has a single photo, so the back of the card probably isn't shown - the condition is from the front only.">1 photo · probably no back</span> `; }
@@ -1962,8 +1962,21 @@ async function loadFB(){
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on, #tab-quick.on")) renderAudit(); if (document.querySelector("#tab-train.on")) renderTrain(); }
   catch(e){} FB.loading = false;
 }
-const fbFor = d => FB.rows.filter(r => r.url === d.url).slice(-1)[0];
-function boughtFor(d){ return FB.rows.some(r => r.url === d.url && r.verdict === "bought"); }
+// One eBay listing can come back under different links (the sniper's link vs the 3-hour scan's, each with its own search
+// words in it). Your reviews follow the eBay item number, so a listing you reviewed never comes back as new.
+function audOf(d){
+  const r = AUD.rows[d.url]; if (r) return r;
+  const n = Object.keys(AUD.rows).length;
+  if (AUD._bn !== n){ AUD._bn = n; AUD._by = {}; for (const k in AUD.rows){ const id = itemId({url: k}); if (id && (!AUD._by[id] || (AUD.rows[k].at || "") > (AUD._by[id].at || ""))) AUD._by[id] = AUD.rows[k]; } }
+  const id = itemId(d); return id ? AUD._by[id] : undefined;
+}
+function fbRows(d){   // your review / fact rows for this listing, under any of its links
+  if (!FB.rows) return [];
+  if (FB._bn !== FB.rows.length){ FB._bn = FB.rows.length; FB._by = {}; FB.rows.forEach(r => { const id = itemId(r); if (id) (FB._by[id] = FB._by[id] || []).push(r); }); }
+  const id = itemId(d); return id ? (FB._by[id] || []) : FB.rows.filter(r => r.url === d.url);
+}
+const fbFor = d => fbRows(d).slice(-1)[0];
+function boughtFor(d){ return fbRows(d).some(r => r.verdict === "bought"); }
 function fbHTML(d){
   if (READONLY || !FB.loaded) return "";
   if (boughtFor(d)) return `<span class="badge b-on" title="You bought this - it's in Collection as Ordered">🛒 BOUGHT</span>`;
@@ -2499,10 +2512,10 @@ document.addEventListener("click", e => { const a = e.target.closest(".guide-toc
 // Right card/edition? · Condition (+ why) · Good deal? (+ reason) · Bought? · Note -> one Save feeds every system:
 //   collection/deal_feedback.csv (hides it, blocks sellers, comments become rules), collection/deal_condition.csv (re-prices
 //   it, teaches SlaveAI your grading), collection/ai_audit.csv (SlaveAI accuracy + examples), and the training data.
-const fbLast = d => FB.rows.filter(r => r.url === d.url && ["good", "bad", "note"].includes(r.verdict)).slice(-1)[0];
+const fbLast = d => fbRows(d).filter(r => ["good", "bad", "note"].includes(r.verdict)).slice(-1)[0];
 const reviewedByMe = d => !READONLY && FB.loaded && !!reviewedState(d);   // you've looked at it: the "⚠ check" warnings are done
 function reviewedState(d){
-  const f = fbLast(d), a = AUD.rows[d.url], c = DC.map[d.url];
+  const f = fbLast(d), a = audOf(d), c = DC.map[d.url];
   if (!f && !a && !c) return null;
   return {good: f ? f.verdict : (a && a.verdict === "ok" ? "good" : a && a.verdict === "reject" ? "bad" : ""), cond: c ? c.c : "", wrongEd: (a && a.edition === "wrong") || (f && f.verdict === "bad" && isWrong(f.reason)), fault: (f && f.fault) || (a && a.fault) || ""};
 }
@@ -2619,8 +2632,8 @@ function aiEd(d){
   return d.ai_verdict === "reject" && isWrong(d.ai_category || "") ? "wrong" : "";
 }
 function reviewStart(d){
-  const f = fbLast(d), a = AUD.rows[d.url] || {}, c = DC.map[d.url];
-  if (!f && !AUD.rows[d.url] && !c && d.ai_verdict){   // not reviewed yet: start from SlaveAI's answers - just fix what it got wrong
+  const f = fbLast(d), a = audOf(d) || {}, c = DC.map[d.url];
+  if (!f && !audOf(d) && !c && d.ai_verdict){   // not reviewed yet: start from SlaveAI's answers - just fix what it got wrong
     const aiC = String(d.ai_condition || "").toUpperCase(), cat = d.ai_category || "other";
     return {edition: aiEd(d) === "wrong" ? (isWrong(cat) ? cat : "edition") : (aiEd(d) === "matches" ? "matches" : ""),
       condition: d._graded ? "unclear" : (COND_LIST.includes(aiC) ? aiC : condCode(d._c0 || d.condition)),
@@ -2667,13 +2680,13 @@ function reviewHTML(d, mode){
   const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
   // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
   if (s.stock === undefined) s.stock = !!(d.stock || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
-  if (!s.back) s.back = ((AUD.rows[d.url] || {}).back !== "skip" && (AUD.rows[d.url] || {}).back) || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
+  if (!s.back) s.back = ((audOf(d) || {}).back !== "skip" && (audOf(d) || {}).back) || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";
   if (s.back === "missing" && !d._graded){ s.condition = "unclear"; s.cfault = ""; }   // one side only: the condition can't be graded   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
-  { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? FB.rows.filter(r => r.url === d.url && r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
+  { const lf = fbLast(d); s.reasons = lf && lf.verdict === "bad" ? fbRows(d).filter(r => r.verdict === "bad" && r.at === lf.at && r.reason && !isWrong(r.reason) && r.reason !== "condition").map(r => r.reason) : (s.reason ? [s.reason] : []);
     if (!s.reasons.length && s.reason) s.reasons = [s.reason]; s.reasons = [...new Set(s.reasons)]; }
   if (s.reasons.includes("lot") && !s.edition){ s.edition = "lot"; }
-  if (s.lang === undefined){ const lf = FB.rows.find(r => r.url === d.url && r.verdict === "fact" && r.reason === "language");
+  if (s.lang === undefined){ const lf = fbRows(d).find(r => r.verdict === "fact" && r.reason === "language");
     const lo = lf ? "" : String(langOf(d) || ""), byName = (COL_LANGS.find(([c, l]) => lo && lo.toLowerCase().includes(l.toLowerCase())) || [])[0];
     s.lang = lf ? (lf.note || "OTHER") : s.reasons.includes("language") ? "OTHER" : lo ? (byName || "OTHER") : "EN"; }
   const c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
@@ -2730,14 +2743,14 @@ function reviewHTML(d, mode){
     </div>
     </div>
 
-    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (AUD.rows[d.url] || {}).note || "")}</textarea>
+    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (audOf(d) || {}).note || "")}</textarea>
     ${S.ini && !READONLY ? `<div class="rv-always" style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="rvAlways" aria-label="Always tell SlaveAI this note" style="width:18px;height:18px;margin:0;padding:0;flex:none;cursor:pointer"><span>📌 Always tell SlaveAI this <span class="mut" style="font-size:12px">- every future check follows this note (remove it in Settings → SlaveAI)</span></span></div>` : ""}
     ${condGuideHTML()}</div></div>`;
 }
 // Troubleshooting: everything about a deal in one block to paste to Claude, plus a link that opens it on the desk
 const itemId = d => (String(d.url || "").match(/\/itm\/(?:[^\/?#]+\/)?(\d{9,})/) || [])[1] || "";
 function dealDetails(d){
-  const e = DC.map[d.url] || {}, f = (FB.rows || []).filter(r => r.url === d.url).slice(-3), a = AUD.rows[d.url];
+  const e = DC.map[d.url] || {}, f = fbRows(d).slice(-3), a = audOf(d);
   return [`Deal: ${d.card} - eBay item ${itemId(d)}`, `Desk link: https://desk.havothcards.com/#deal=${itemId(d)}`, `Listing: ${ebayLink(d)}`, `Title: ${d.title}`,
     `Found: ${d.found_at} by ${d.source === "sniper" ? "the sniper" : "the 3-hour scan"}${d.first_found && d.first_found !== d.found_at ? ` (first found ${d.first_found}${d.first_by ? " by the sniper" : ""})` : ""} · ${d.type}${d.ends_in ? " · ends " + d.ends_in : ""}${d.ends_at ? " · ends at " + d.ends_at + " (exact)" : ""}`,
     snipeOf(d) ? `My snipe: set ${snipeOf(d).at} UTC, max $${snipeOf(d).max_bid}` : "",
@@ -2982,7 +2995,7 @@ function saveReview(d, sel, note, done, agreeAI){
     sel = Object.assign(sel, {edition: "", condition: "unclear", reason: "lot", good: "down", variant: ""}); sel.reasons = [...new Set(["lot"].concat(sel.reasons))]; }
   const langFact = sel.reasons.includes("language") || sel.reason === "language";   // foreign language: a fact - recorded, then your language filter decides
   if (langFact){ sel.reasons = sel.reasons.filter(r => r !== "language"); if (sel.reason === "language"){ sel.reason = sel.reasons[0] || ""; if (!sel.reason && sel.good === "down" && !isWrong(sel.edition)) sel.good = ""; } }
-  if (langFact && !FB.rows.some(r => r.url === d.url && r.verdict === "fact" && r.reason === "language")){
+  if (langFact && !fbRows(d).some(r => r.verdict === "fact" && r.reason === "language")){
     FB.rows.push({at: new Date().toISOString().slice(0, 16), url: d.url, card: d.card, key: d.key || "", seller: String(d.seller || "").split(" (")[0], verdict: "fact", reason: "language", note: lgPick && lgPick !== "OTHER" ? lgPick : "", title: (d.title || "").slice(0, 150), fault: ""});
     d._lang = undefined; markDirty("feedback"); }
   const always = $("#rvAlways") && $("#rvAlways").checked ? String(($("#rvNote") || {}).value || "").replace(/\s+/g, " ").replace(/\|\|/g, "|").trim() : "";
@@ -3035,13 +3048,15 @@ function saveReview(d, sel, note, done, agreeAI){
   if (DC.loaded && (condChanged || v1 !== v0 || cur !== ((DC.map[d.url] || {}).c || listed))) markDirty("dealcond");
   // 3. audit row (SlaveAI accuracy, SlaveAI examples, training labels) - also for deals SlaveAI didn't check
   if (sel.edition || sel.good || condChanged || COND_LIST.includes(sel.condition) || (sel.back && sel.back !== "shown")){
+    const prevA = audOf(d), iidA = itemId(d);   // the same listing under another link: one review per listing, the newest
+    if (iidA) Object.keys(AUD.rows).forEach(k => { if (k !== d.url && itemId({url: k}) === iidA) delete AUD.rows[k]; });
     AUD.rows[d.url] = {url: d.url, card: d.card, at, ai_verdict: d.ai_verdict || "", ai_edition: d.ai_edition || "", ai_condition: String(d.ai_condition || "").toUpperCase(), ai_model: d.ai_model || "",
       ai_reason: (d.ai_reason || "").slice(0, 600), verdict: sel.good === "up" ? "ok" : sel.good === "down" ? "reject" : "",
       edition: isWrong(sel.edition) ? "wrong" : (sel.edition || ""), condition: sel.condition || "",
       note: [sel.edition === "fake" ? "fake / proxy" : sel.edition === "wrongcard" ? "wrong card" : "", note, sel.factNote || ""].filter(Boolean).join(" - "), listed: String(d._c0 || d.condition || "").replace("?", ""),
       fault: isWrong(sel.edition) ? (sel.fault || "seller") : condChanged ? (sel.cfault || "seller") : "", title: (d.title || "").slice(0, 150), how: done && done.how ? done.how : "targeted",
       back: isWrong(sel.edition) || sel.back === "skip" ? "" : (sel.back || ""),
-      images: d._phLoaded ? d.images : ((AUD.rows[d.url] || {}).images || "")};   // left unpicked = not answered
+      images: d._phLoaded ? d.images : ((prevA || {}).images || "")};   // left unpicked = not answered
     if (AUD.loaded) markDirty("audit");
   }
   const bought = sel.bought || ($("#rvBought") && $("#rvBought").checked);
@@ -3214,7 +3229,7 @@ function quickHTML(d, q){
   return `<div class="panel aud qk" id="qkItem">
     <div class="qk-head"><div class="qk-q">Is this the card you want: <b class="up">${esc((c.s || setOf(d) || "").toUpperCase())}${want ? " #" + esc(want) : ""} ${esc(name0)}</b><span id="qkRefTr"></span>${c.p ? ` - <b>${money(+c.p)}</b>` : ""}?</div>
       <span class="mut" style="font-size:12px">${d._pool ? '<span class="badge" title="Not a deal - a listing the scan saw for this card, here for practice">practice</span> · ' : ""}${esc(c.sn || setOf(d) || "")} · <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open the listing on eBay ↗</a></span>
-      ${AUD.rows[d.url] ? `<div class="mut" style="font-size:12px">You answered: <b>${AUD.rows[d.url].edition === "wrong" ? "✗ Wrong Printing" : AUD.rows[d.url].edition === "matches" ? "✓ Right Printing" : AUD.rows[d.url].verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${AUD.rows[d.url].note ? ` - ${esc(AUD.rows[d.url].note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
+      ${audOf(d) ? `<div class="mut" style="font-size:12px">You answered: <b>${audOf(d).edition === "wrong" ? "✗ Wrong Printing" : audOf(d).edition === "matches" ? "✓ Right Printing" : audOf(d).verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${audOf(d).note ? ` - ${esc(audOf(d).note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
     <div class="qk-grid">${ref ? `<figure class="qk-fig qk-ref"><div class="qk-lab">YOU WANT</div><a><div class="phz"><img src="${esc(ref)}" alt=""></div></a><figcaption>${esc((c.s || setOf(d) || "").toUpperCase())}${want ? " #" + esc(want) : ""}${c.p ? " · " + money(+c.p) : ""}</figcaption></figure>` : ""}
       ${imgs.map(([u, i], k) => `<figure class="qk-fig${k === 0 ? " qk-first" : ""}"><div class="qk-lab">${k === 0 ? "IN THE PHOTOS" : "&nbsp;"}</div><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt=""></div></a><figcaption>Listing photo ${i + 1}${ro[i] === "B" ? " (back)" : ""}</figcaption></figure>`).join("")}</div>
     ${photoCheckLine(d)}${d.photo_kind && d.photo_kind !== "card" ? `<div class="mut" style="font-size:12px">🔍 Loupe also thinks the photos are: <b>${esc({stock: "a stock photo", lot: "several cards / a lot", verify: "not clear enough to see the card"}[d.photo_kind] || d.photo_kind)}</b> - tap 📷 Photo Problem if it's right</div>` : ""}
@@ -3339,24 +3354,24 @@ function wireQuick(d, q){
 function quickPool(){   // pool listings that aren't already deals and you haven't answered: Loupe's unsure ones first, then the ones it hasn't looked at
   loadPool();
   const have = new Set(S.deals.map(d => itemId(d))), U = d => /^(same|other)$/.test(d.photo_says || "") ? matcherUnsure(d) + 1 : 0;
-  return QP.items.filter(d => !AUD.rows[d.url] && !have.has(itemId(d)) && !d._tv && quickOK(d))
+  return QP.items.filter(d => !audOf(d) && !have.has(itemId(d)) && !d._tv && quickOK(d))
     .sort((a, b) => loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
 }
 function audQueue(){
   const f = AUD.filter, m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
   return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (!sq || [d.seller, d.card, d.title].join(" ").toLowerCase().includes(sq)) && (
-    f === "todo" ? aiChecked(d) && !AUD.rows[d.url] :
-    f === "reject" ? d.ai_verdict === "reject" && !AUD.rows[d.url] :
-    f === "warn" ? d.ai_verdict === "warn" && !AUD.rows[d.url] :
-    f === "done" ? !!AUD.rows[d.url] :
-    f === "random" ? aiChecked(d) && !AUD.rows[d.url] :
-    f === "nocheck" ? !aiChecked(d) && !AUD.rows[d.url] :
-    f === "matcher" ? matcherUnsure(d) > 0 && !AUD.rows[d.url] :
-    f === "quick" ? quickOK(d) && !AUD.rows[d.url] : aiChecked(d)))
+    f === "todo" ? aiChecked(d) && !audOf(d) :
+    f === "reject" ? d.ai_verdict === "reject" && !audOf(d) :
+    f === "warn" ? d.ai_verdict === "warn" && !audOf(d) :
+    f === "done" ? !!audOf(d) :
+    f === "random" ? aiChecked(d) && !audOf(d) :
+    f === "nocheck" ? !aiChecked(d) && !audOf(d) :
+    f === "matcher" ? matcherUnsure(d) > 0 && !audOf(d) :
+    f === "quick" ? quickOK(d) && !audOf(d) : aiChecked(d)))
     .concat(f === "quick" ? quickPool() : [])
     .sort(f === "quick" ? (a, b) => (!!a._pool - !!b._pool) || (a._pool ? 0 : loupeSure(a) - loupeSure(b) || matcherUnsure(b) - matcherUnsure(a) || (+a.photo_margin || 0) - (+b.photo_margin || 0) || (b.found_at || "").localeCompare(a.found_at || ""))
       : f === "random" ? (a, b) => audRank(a) - audRank(b) : f === "matcher" ? (a, b) => matcherUnsure(b) - matcherUnsure(a) || (b.found_at || "").localeCompare(a.found_at || "")
-      : f === "done" ? (a, b) => String((AUD.rows[b.url] || {}).at || "").localeCompare(String((AUD.rows[a.url] || {}).at || ""))   // the one you reviewed last first
+      : f === "done" ? (a, b) => String((audOf(b) || {}).at || "").localeCompare(String((audOf(a) || {}).at || ""))   // the one you reviewed last first
       : f === "nocheck" ? (a, b) => (!String(a.images || "").trim() - !String(b.images || "").trim()) || (b.found_at || "").localeCompare(a.found_at || "")   // ones with photos saved first (no eBay call needed)
       : (a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
 }
@@ -3516,7 +3531,7 @@ function renderAudit(){
 const FULL_LISTS = [["random", "Random Sample (Keeps the Scores Honest)"], ["reject", "SlaveAI Rejected (Not Reviewed)"], ["warn", "SlaveAI Said \"Check It\" (Not Reviewed)"],
   ["todo", "Newest SlaveAI-Checked, Not Reviewed"], ["nocheck", "Not Checked by SlaveAI"], ["done", "Already Reviewed (last one first)"]];
 function audItemHTML(d){
-  const a = AUD.rows[d.url];
+  const a = audOf(d);
   return `<div class="panel aud rv" id="rvQueue">${reviewHTML(d, "queue")}
     <div class="aud-bar"><button class="btn ghost" id="audPrev" type="button">← Prev</button>
       <span class="aud-pos">${AUD._n ? `${AUD.i + 1} of ${AUD._n}` : ""}${a && a.at ? `<small>reviewed ${esc(whenAZ(a.at + "+00:00"))} · saving replaces it</small>` : ""}</span>
