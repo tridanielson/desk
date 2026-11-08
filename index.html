@@ -573,7 +573,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 05:35 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 06:07 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2452,6 +2452,12 @@ const GUIDE_CMP = [
            "<b>Card-specific tells:</b> <b>Hurricane</b> has a <b>blue</b> frame (green on Revised) · <b>Serendib Efreet</b> has the right picture but still credits the wrong artist (Jesper Myrfors) · <b>Onulet</b> credits Anson Maddocks (Kerstin Kaman on Revised) · <b>Demonic Tutor</b> and <b>Unholy Strength</b> lost the pentacle · some names drop the apostrophe (\"Aladdins Lamp\").",
            "<b>Most common:</b> basic lands (still rare); non-land cards are scarce. A \"Summer Magic\" listing priced like Revised is almost always plain Revised - zoom in on the artist line.",
            "Expensive ones: insist on a sharp close-up of the artist line, compare against a known Summer card on Scryfall, and prefer graded copies - with only one real tell on most cards, a doctored date is the risk."]},
+  {title: "Fourth Edition vs Alternate Fourth Edition (USPCC - very rare)", a: ["Wrath of God", "4ed", "Fourth Edition"], b: ["Wrath of God", "4ed", "Alternate 4th (looks the same)"],
+   tells: ["<b>What it is:</b> a small run of 4th Edition printed in the US by the United States Playing Card Company instead of Wizards' usual printer in Belgium. Pulled from general stock and only known from starter decks. Maybe 1 in 100 to 1 in 500 4th Edition cards - worth a big premium.",
+           "<b>UV light:</b> regular 4th glows under a black light; Alternate 4th <b>stays dark</b>. The quickest check.",
+           "<b>Magnifier:</b> regular 4th shows a neat four-color dot pattern (rosettes); Alternate 4th shows a <b>random speckle</b> (stochastic printing).",
+           "<b>Card back:</b> in the word \"Magic\", the upper right of the <b>A</b> is noticeably <b>darker</b> on Alternate 4th.",
+           "Graders (CGC) check the print pattern under a microscope - for an expensive one, buy graded. On My Cards, mark it as Special printing → Alternate 4th Edition and enter its value."]},
   {title: "Arabian Nights / Antiquities / Legends / The Dark vs Chronicles", a: ["Erhnam Djinn", "arn", "Arabian Nights"], b: ["Erhnam Djinn", "chr", "Chronicles"],
    tells: ["<b>Border:</b> the originals are black-bordered; the Chronicles reprints are white-bordered.",
            "<b>Set symbol:</b> each original has its own (Arabian Nights scimitar, Antiquities anvil, Legends column, The Dark crescent moon); Chronicles has a different one.",
@@ -4392,7 +4398,10 @@ function wireSLEditor(){
 }
 
 // ---------------------------------------------------------------- Collection + received marks
-const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value", "grade"];
+const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value", "grade", "variant"];
+// special printings Scryfall doesn't list on their own (no market price - worth what you enter, like an Artist Proof)
+const VARIANTS = [["alt4e", "Alternate 4th Edition (USPCC)", "ALT 4E"]];
+const variantOf = v => VARIANTS.find(x => x[0] === v);
 // a graded slab: "BGS 8.5" - shown next to the condition; a grade isn't automatically NM, so it's valued at the condition you pick
 const GRADERS = ["PSA", "BGS", "CGC", "SGC"];
 const isGrade = c => /^(PSA|BGS|CGC|SGC)\b/i.test(c || "");   // a binder badge that's a slab's grade: 🏅 and gold
@@ -4406,7 +4415,7 @@ const GRADE_GUIDE = [["NM", "Near Mint", "PSA 7–10 · BGS / CGC 7–10", "Mini
 const gradeGuideHTML = () => GRADE_GUIDE.map(([c, n, g]) => `<div class="gg-row" data-gg="${c}"><span class="badge" style="background:${(COND_BADGE[c] || COND_BADGE.NM)[0]};color:${(COND_BADGE[c] || COND_BADGE.NM)[1]}">${c}</span><span>${g}</span></div>`).join("");
 const gradeOf = d => { const m = /\b(PSA|BGS|CGC|SGC|Beckett)\s*(?:grade\s*)?(10|[1-9](?:\.5)?)\b/i.exec([d.condition, d.title].join(" ")); return m ? (m[1].toUpperCase() === "BECKETT" ? "BGS" : m[1].toUpperCase()) + " " + m[2] : ""; };
 // signed: who signed it ("" = not signed) - priced like the card. proof "artist": an Artist Proof - no market price, worth what you enter (own_value)
-const colSpecial = r => (r && r.grade ? `<span class="chip" title="Graded slab - valued at the raw price for its condition">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
+const colSpecial = r => (r && variantOf(r.variant) ? `<span class="chip" title="${esc(variantOf(r.variant)[1])} - valued at what you entered">${esc(variantOf(r.variant)[2])}</span> ` : "") + (r && r.grade ? `<span class="chip" title="Graded slab - valued at the raw price for its condition">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
 const SALE_COLS = ["id", "date", "item_id", "name", "qty", "price_each", "shipping_charged", "shipping_cost", "platform", "fees", "notes"];
 const REC_COLS = ["line_id", "qty", "date"];
 const COL = {goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
@@ -5174,7 +5183,7 @@ function renderCOLList(){
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
-  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}${i.row && (i.row.signed || i.row.proof || i.row.grade) ? " " + colSpecial(i.row) : ""}`;
+  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}${i.row && (i.row.signed || i.row.proof || i.row.grade || i.row.variant) ? " " + colSpecial(i.row) : ""}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort" title="Market price change over the last 30 days - tap it for the price history">30d</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -5234,7 +5243,7 @@ function colBinderHTML(show, bulk){
         ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
         ${i.finish && i.finish !== "nonfoil" ? `<span class="pk-foil">${i.finish === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}
         ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
-        ${i.row && (i.row.signed || i.row.proof) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
+        ${i.row && (i.row.signed || i.row.proof || variantOf(i.row.variant)) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${variantOf(i.row.variant) ? " " + variantOf(i.row.variant)[2] : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
       <span class="pk-row"><span class="pk-name">${esc(i.name)}</span><b>${i.value == null ? "–" : (i.approx ? "≈" : "") + money(i.value)}</b></span>
       <span class="pk-sub">${i.kind === "sealed" ? "Sealed" : esc((i.set || "").toUpperCase()) + (i.number ? " #" + esc(i.number) : "")}${i.left > 1 && i.value_each != null ? " · " + money(i.value_each) + " each" : ""}</span></button>`; };
   return show.map(pocket).join("") + (bulk.length ? `<button type="button" class="pocket" data-showbulk="1"><span class="pk-card pk-bulk"><b>${bulk.reduce((t, i) => t + i.left, 0)}</b><small>cards under $${BULK_EACH}</small><u>Open Bulk</u></span>
@@ -5427,7 +5436,7 @@ const langName = c => ((COL_LANGS.find(x => x[0] === (c || "EN").toUpperCase()) 
 // ---- the same card twice: one row when EVERYTHING matches (printing, finish, condition, language, where from, paid, status);
 // copies that differ only in where from / paid stay their own rows (so each sale's profit is right) but show as one line
 const colCardKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil",
-  (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase(), (r.signed || "").toLowerCase(), r.proof || "", (r.grade || "").toUpperCase()].join("|");
+  (r.condition || "NM").toUpperCase(), (r.language || "EN").toUpperCase(), (r.signed || "").toLowerCase(), r.proof || "", (r.grade || "").toUpperCase(), r.variant || ""].join("|");
 const colLotKey = r => [colCardKey(r), (r.source || "").trim().toLowerCase(), String(numOrNull(r.cost_each) || ""), r.status || "owned", String(numOrNull(r.list_price) || ""), r.acquired || ""].join("|");   // a copy bought another day keeps its own date (Recently Added)
 const colMergeable = r => (r.kind || "card") === "card" && !r.ref && r.status !== "ordered" && !COL.sales.some(x => x.item_id === r.id);
 // add a row - or add its quantity to the identical row already there (which then counts as just added)
@@ -5588,8 +5597,9 @@ function openColEdit(id, pre){
         <span id="eGradeWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap"><select id="eGradeCo" aria-label="Grading company">${GRADERS.map(g => `<option${String(r.grade || "").toUpperCase().startsWith(g) ? " selected" : ""}>${g}</option>`).join("")}</select>
           <input id="eGradeNum" inputmode="decimal" placeholder="Grade, e.g. 8.5" aria-label="Grade" style="width:110px" value="${esc(String(r.grade || "").replace(/^[A-Z]+\s*/i, ""))}"></span>
         <div id="eGradeGuide" class="grade-guide" style="flex-basis:100%" ${r.grade ? "" : "hidden"}>${gradeGuideHTML()}</div>
+        <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap">Special printing <select id="eVariant"><option value="">None</option>${VARIANTS.map(([v, l]) => `<option value="${v}"${r.variant === v ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
         <label style="display:flex;align-items:center;gap:6px;margin:0;white-space:nowrap"><input type="checkbox" id="eProof" style="width:18px;height:18px;margin:0;flex:none" ${r.proof === "artist" ? "checked" : ""}> Artist Proof</label>
-        <span id="eOwnWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap" ${r.proof === "artist" ? "" : "hidden"}><label for="eOwn" style="margin:0;display:inline">Your value each ($)</label><input id="eOwn" inputmode="decimal" value="${esc(r.own_value || "")}" style="width:110px"></span></div>`}
+        <span id="eOwnWrap" style="display:flex;align-items:center;gap:6px;white-space:nowrap" ${r.proof === "artist" || r.variant ? "" : "hidden"}><label for="eOwn" style="margin:0;display:inline">Your value each ($)</label><input id="eOwn" inputmode="decimal" value="${esc(r.own_value || "")}" style="width:110px"></span></div>`}
       <div><label for="eQty">Quantity</label><input id="eQty" type="number" min="0" value="${esc(r.qty)}"></div>
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
@@ -5622,7 +5632,9 @@ function openColEdit(id, pre){
     $("#eGradeCo").addEventListener("change", () => { $("#eGraded").checked = true; gg(); });
     $("#eGraded").addEventListener("change", gg); gg(); }
   if ($("#eSigned")){ $("#eSigned").addEventListener("change", e => { $("#eSignedBy").hidden = !e.target.checked; if (e.target.checked) $("#eSignedBy").focus(); });
-    $("#eProof").addEventListener("change", e => { $("#eOwnWrap").hidden = !e.target.checked; if (e.target.checked) $("#eOwn").focus(); }); }
+    const ownShow = () => { const on = $("#eProof").checked || !!$("#eVariant").value; $("#eOwnWrap").hidden = !on; return on; };
+    $("#eProof").addEventListener("change", e => { if (ownShow() && e.target.checked) $("#eOwn").focus(); });
+    $("#eVariant").addEventListener("change", e => { if (ownShow() && e.target.value) $("#eOwn").focus(); }); }
   $("#eCancel").addEventListener("click", closeModal);
   if (id) $("#eDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to delete"; return; }
     COL.inv = COL.inv.filter(x => x.id !== id); COL.sales = COL.sales.filter(x => x.item_id !== id); if (r.ref) COL.rec = COL.rec.filter(x => x.line_id !== r.ref);
@@ -5634,7 +5646,8 @@ function openColEdit(id, pre){
     if (!isSL){ upd.set = $("#eSet").value.trim().toLowerCase(); upd.number = $("#eNum").value.trim(); if ($("#eCond")) upd.condition = $("#eCond").value; if ($("#eLang")) upd.language = $("#eLang").value;
       if (upd.set !== r.set || upd.number !== r.number || upd.name !== r.name) upd.scryfall_id = "";
       if ($("#eSigned")){ upd.signed = $("#eSigned").checked ? ($("#eSignedBy").value.trim() || "yes") : ""; upd.proof = $("#eProof").checked ? "artist" : "";
-        upd.own_value = upd.proof ? $("#eOwn").value.trim().replace(/[$,]/g, "") : ""; }
+        upd.variant = $("#eVariant") ? $("#eVariant").value : "";
+        upd.own_value = upd.proof || upd.variant ? $("#eOwn").value.trim().replace(/[$,]/g, "") : ""; }
       if ($("#eGraded")){ const gn = $("#eGradeNum").value.trim().replace(",", ".");
         if ($("#eGraded").checked && gn && !(+gn >= 1 && +gn <= 10)){ $("#eGradeNum").focus(); toast("A grade goes from 1 to 10 (e.g. 8.5)."); return false; }   // catches a slip like 100
         upd.grade = $("#eGraded").checked || gn ? ($("#eGradeCo").value + (gn ? " " + gn : "")) : "";   // a grade typed in counts even if the box wasn't ticked
@@ -6135,7 +6148,7 @@ function setCopies(g, c, f){
   return COL.inv.filter(r => (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin && r.status !== "sold" &&
     (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
 }
-const copyLine = r => `×${esc(r.qty)} · <b>${esc(r.condition || "NM")}</b>${r.grade ? ` · <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}">🏅 ${esc(r.grade)}</span>` : ""}${(r.language || "EN").toUpperCase() !== "EN" ? " · " + esc(langName(r.language)) : ""}${r.signed ? " · ✍ Signed" : ""}${r.status === "ordered" ? " · on the way" : ""} · paid ${numOrNull(r.cost_each) ? money(numOrNull(r.cost_each)) : "–"}${r.acquired ? " · " + esc(r.acquired) : ""}`;
+const copyLine = r => `×${esc(r.qty)} · <b>${esc(r.condition || "NM")}</b>${r.grade ? ` · <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}">🏅 ${esc(r.grade)}</span>` : ""}${(r.language || "EN").toUpperCase() !== "EN" ? " · " + esc(langName(r.language)) : ""}${variantOf(r.variant) ? ` · <b>${esc(variantOf(r.variant)[2])}</b>` : ""}${r.signed ? " · ✍ Signed" : ""}${r.status === "ordered" ? " · on the way" : ""} · paid ${numOrNull(r.cost_each) ? money(numOrNull(r.cost_each)) : "–"}${r.acquired ? " · " + esc(r.acquired) : ""}`;
 // Edit from a set's page: one copy opens its edit form; several copies, pick which one first
 function openSetEdit(g, c, f){
   const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", rows = setCopies(g, c, f);
