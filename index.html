@@ -578,7 +578,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 07:43 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 04:11 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2881,10 +2881,14 @@ function rvStepper(root){
     const i = L.indexOf(cur);
     nav.innerHTML = `<button type="button" class="btn ghost" data-go="-1"${i ? "" : " disabled"}>Back</button>
       <span class="mut" style="font-size:12px;display:flex;flex-direction:column;gap:4px;align-items:center">${i + 1} of ${L.length}<span class="dots">${L.map((_, j) => `<i class="${j <= i ? "on" : ""}"></i>`).join("")}</span></span>
-      <button type="button" class="btn" data-go="1"${i < L.length - 1 ? "" : " disabled"}>Next</button>`;
+      ${i < L.length - 1 ? '<button type="button" class="btn" data-go="1">Next</button>' : `<button type="button" class="btn" data-go="save">${saveBtn() && saveBtn().id === "audSave" ? "Save &amp; Next" : "Save"} ✓</button>`}`;
     chips.innerHTML = L.filter(q => q !== cur && answer(q)).map(q => `<button type="button" class="btn ghost" data-q="${L.indexOf(q)}">${esc(label(q))}: ${esc(answer(q))}</button>`).join("");
     chips.hidden = !chips.innerHTML; };
-  nav.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (!b || b.disabled) return; const L = list(); cur = L[Math.max(0, Math.min(L.length - 1, L.indexOf(cur) + +b.dataset.go))]; draw(); });
+  // the last question: Next becomes Save (the review screen's own Save, or Save & Next in Full Review)
+  const saveBtn = () => (root.closest("#audItem") && document.querySelector("#audSave")) || document.querySelector("#rvSave") || document.querySelector("#audSave");
+  nav.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (!b || b.disabled) return;
+    if (b.dataset.go === "save"){ const sb = saveBtn(); if (sb) sb.click(); return; }
+    const L = list(); cur = L[Math.max(0, Math.min(L.length - 1, L.indexOf(cur) + +b.dataset.go))]; draw(); });
   chips.addEventListener("click", e => { const b = e.target.closest("[data-q]"); if (!b) return; cur = list()[+b.dataset.q]; draw(); });
   box.addEventListener("click", e => { const b = e.target.closest(".seg [data-v]"); if (!b || b.closest(".seg").dataset.multi) return;
     setTimeout(() => { const L = list(), i = L.indexOf(cur);   // after the answer's own handler has shown / hidden follow-up rows
