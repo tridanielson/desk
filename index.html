@@ -573,7 +573,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 06:07 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 02:58 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3350,6 +3350,7 @@ function audQueue(){
     .concat(f === "quick" ? quickPool() : [])
     .sort(f === "quick" ? (a, b) => (!!a._pool - !!b._pool) || (a._pool ? 0 : loupeSure(a) - loupeSure(b) || matcherUnsure(b) - matcherUnsure(a) || (+a.photo_margin || 0) - (+b.photo_margin || 0) || (b.found_at || "").localeCompare(a.found_at || ""))
       : f === "random" ? (a, b) => audRank(a) - audRank(b) : f === "matcher" ? (a, b) => matcherUnsure(b) - matcherUnsure(a) || (b.found_at || "").localeCompare(a.found_at || "")
+      : f === "done" ? (a, b) => String((AUD.rows[b.url] || {}).at || "").localeCompare(String((AUD.rows[a.url] || {}).at || ""))   // the one you reviewed last first
       : f === "nocheck" ? (a, b) => (!String(a.images || "").trim() - !String(b.images || "").trim()) || (b.found_at || "").localeCompare(a.found_at || "")   // ones with photos saved first (no eBay call needed)
       : (a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
 }
@@ -3501,7 +3502,7 @@ function renderAudit(){
   if (d) (AUD.filter === "quick" ? wireQuick : wireAudItem)(d, q);
 }
 const FULL_LISTS = [["random", "Random Sample (Keeps the Scores Honest)"], ["reject", "SlaveAI Rejected (Not Reviewed)"], ["warn", "SlaveAI Said \"Check It\" (Not Reviewed)"],
-  ["todo", "Newest SlaveAI-Checked, Not Reviewed"], ["nocheck", "Not Checked by SlaveAI"], ["done", "Already Reviewed"]];
+  ["todo", "Newest SlaveAI-Checked, Not Reviewed"], ["nocheck", "Not Checked by SlaveAI"], ["done", "Already Reviewed (last one first)"]];
 function audItemHTML(d){
   const a = AUD.rows[d.url];
   return `<div class="panel aud rv" id="rvQueue">${reviewHTML(d, "queue")}
