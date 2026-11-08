@@ -578,7 +578,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 03:09 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 03:17 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3342,8 +3342,8 @@ function quickPool(){   // pool listings that aren't already deals and you haven
     .sort((a, b) => loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
 }
 function audQueue(){
-  const f = AUD.filter, m = AUD.model;
-  return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (
+  const f = AUD.filter, m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
+  return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (!sq || [d.seller, d.card, d.title].join(" ").toLowerCase().includes(sq)) && (
     f === "todo" ? aiChecked(d) && !AUD.rows[d.url] :
     f === "reject" ? d.ai_verdict === "reject" && !AUD.rows[d.url] :
     f === "warn" ? d.ai_verdict === "warn" && !AUD.rows[d.url] :
@@ -3494,14 +3494,19 @@ function renderAudit(){
   audRemember(d);
   AUD._n = q.length;
   const doneMsg = quick ? ["All caught up", "Nothing left for Quick Review. New listings arrive with every scan, every 3 hours."]
+    : AUD.q ? ["No matches", `Nothing in this list matches "${esc(AUD.q)}". Try another list above, or clear the search.`]
     : AUD.filter === "todo" ? ["All caught up", "Every deal SlaveAI checked has been reviewed. New ones show up after each scan, every 3 hours."]
     : ["Nothing to review here", "No deals in this list right now. Pick another list above, or check back after the next scan."];
   box.innerHTML = `${quick && !q.length ? "" : `<div class="panel"><div class="row">
       ${quick ? "" : `<select id="audFilter" style="max-width:100%;min-width:0">${FULL_LISTS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>
-      ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}`}
+      ${models.length ? `<select id="audModel"><option value="">All Models</option>${models.map(m => `<option>${esc(m)}</option>`).join("")}</select>` : ""}
+      <input id="audQ" type="search" placeholder="Search seller, card or title…" value="${esc(AUD.q || "")}" style="flex:1;min-width:180px" autocomplete="off">`}
       ${q.length ? `<span class="mut" style="font-size:13px">${AUD.i + 1} of ${q.length}</span>` : ""}
 </div></div>`}
     <div id="audItem">${d ? (AUD.filter === "quick" ? quickHTML(d, q) : audItemHTML(d)) : `<div class="rv-done"><div class="rv-done-ic">✓</div><b>${doneMsg[0]}</b><span>${doneMsg[1]}</span></div>`}</div>`;
+  if ($("#audQ")){ const qi = $("#audQ");   // search by seller / card / title - the list re-draws as you type, so keep the cursor in the box
+    qi.addEventListener("input", () => { AUD.q = qi.value; AUD.i = 0; AUD._qPos = qi.selectionStart; renderAudit(); });
+    if (AUD._qPos != null){ qi.focus(); qi.setSelectionRange(AUD._qPos, AUD._qPos); AUD._qPos = null; } }
   if ($("#audFilter")){ $("#audFilter").value = AUD.filter; $("#audFilter").addEventListener("change", e => { AUD.filter = e.target.value; AUD.i = 0; renderAudit(); }); }
   if ($("#audModel")) $("#audModel").value = AUD.model;
   if ($("#audModel")) $("#audModel").addEventListener("change", e => { AUD.model = e.target.value; AUD.i = 0; renderAudit(); });
