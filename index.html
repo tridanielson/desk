@@ -578,7 +578,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 03:17 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 03:30 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2744,6 +2744,7 @@ function dealDetails(d){
     offerOf(d) ? `My offer: $${offerOf(d).amount} sent ${offerOf(d).at} UTC${offerOf(d).result ? " · " + offerOf(d).result : " · waiting (" + offerLeft(offerOf(d)) + ")"}` : "",
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - counts as raw " + gradeCondOf(d._c0 || d.condition) + ", no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
+    `Phone alert: ${d.alert || (d.source === "sniper" ? "none recorded (alerts are recorded from Nov 8 on)" : "-")}`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `SlaveAI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
