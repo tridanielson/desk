@@ -571,7 +571,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 04:57 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 07, 05:09 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5710,11 +5710,12 @@ function goalProgress(g){
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
   const fins = goalFins(g), code = g.set.toLowerCase();
   const left = new Map(colItems().filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));
-  const byNum = {}, byName = {}, conds = {}, grades = {};   // conds: the condition of every copy you hold, per printing+finish
+  const byNum = {}, byName = {}, conds = {}, grades = {}, raws = {};   // conds: the condition of every copy you hold, per printing+finish
   COL.inv.forEach(r => { const n = left.get(r.id), f = r.finish || "nonfoil"; if (!n || (r.set || "").toLowerCase() !== code || !fins.includes(f)) return;
     const ck = r.number ? r.number + "|" + f : "n:" + (r.name || "").toLowerCase() + "|" + f;
     (conds[ck] = conds[ck] || []).push(...Array(n).fill((r.condition || "NM").toUpperCase()));
-    if (r.grade) (grades[ck] = grades[ck] || []).push(...Array(n).fill(String(r.grade).toUpperCase()));   // slabs: the badge shows the grade
+    if (r.grade) (grades[ck] = grades[ck] || []).push(...Array(n).fill(String(r.grade).toUpperCase()));
+    else (raws[ck] = raws[ck] || []).push(...Array(n).fill((r.condition || "NM").toUpperCase()));   // slabs: the badge shows the grade
     if (r.number) byNum[r.number + "|" + f] = (byNum[r.number + "|" + f] || 0) + n; else { const k = (r.name || "").toLowerCase() + "|" + f; byName[k] = (byName[k] || 0) + n; } });
   const pool = Object.assign({}, byName), pkOf = f => f === "foil" ? "usd_foil" : f === "etched" ? "usd_etched" : "usd";
   // every version: one row per card per finish it was actually made in (a foil-only card is never "needed" in non-foil)
@@ -5722,8 +5723,8 @@ function goalProgress(g){
     if (!have && pool[k] > 0){ have = 1; pool[k]--; }
     const price = c.prices && c.prices[pkOf(f)] != null ? +c.prices[pkOf(f)] : null;
     const cs = (conds[c.collector_number + "|" + f] || conds["n:" + k] || []).slice().sort((a, b) => COND_LIST5.indexOf(a) - COND_LIST5.indexOf(b));
-    const gr = (grades[c.collector_number + "|" + f] || grades["n:" + k] || [])[0] || "";
-    return {c, have, price, fin: f, conds: cs, best: cs[0] || "", grade: gr}; }));
+    const grs = grades[c.collector_number + "|" + f] || grades["n:" + k] || [], rw = (raws[c.collector_number + "|" + f] || raws["n:" + k] || []).slice().sort((a, b) => COND_LIST5.indexOf(a) - COND_LIST5.indexOf(b));
+    return {c, have, price, fin: f, conds: cs, best: cs[0] || "", grade: grs[0] || "", gradeN: grs.length, rawN: rw.length, rawBest: rw[0] || ""}; }));
   // upgrade to NM: a card you only have in worse condition still counts as needed (at its NM price)
   const wantNM = (g.want_cond || "").toUpperCase() === "NM";
   rows.forEach(r => { r.upgrade = wantNM && r.have > 0 && r.best !== "NM"; });
@@ -6048,7 +6049,9 @@ function renderSetDetail(g){
   $("#setView").value = SETS.view; $("#setCond").value = cf;
   const tr = r => tracked.get(r.c.set + "|" + r.c.collector_number + "|" + r.fin);
   const trend = r => { const t = tr(r); return t && t.c30 != null ? `<span class="${t.c30 < 0 ? "down" : "up"}" style="font-size:12px">${t.c30 > 0 ? "+" : ""}${t.c30.toFixed(0)}% 30d</span>` : ""; };
-  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""}${r.grade ? ` <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}" title="Graded slab">🏅 ${esc(r.grade)}</span>` : ""} <button class="btn ghost small" data-sedit="${esc(r.c.id)}~${esc(r.fin)}" title="Edit your copy: condition, what you paid, signed, notes…">Edit</button> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
+  const act = r => r.have ? `${r.upgrade ? '<span class="badge" style="background:#3a2a1a;color:#f0a868" title="You have it, but not in NM yet">UPGRADE</span> ' : ""}<span class="badge b-on" title="${esc(condSummary(r.conds))}">HAVE${r.have > 1 ? " ×" + r.have : ""}</span>${r.grade ? (r.rawN ? ` <span class="badge" style="background:${(COND_BADGE[r.rawBest] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.rawBest] || COND_BADGE.NM)[1]}" title="Not graded">${esc(r.rawBest)}${r.have > 1 ? " ×" + r.rawN : ""}</span>` : "")
+      + ` <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}" title="Graded slab${r.gradeN > 1 ? "s" : ""}">🏅 ${esc(r.grade)}${r.have > 1 ? " ×" + r.gradeN : ""}</span>`
+      : r.best ? ` <span class="badge" style="background:${(COND_BADGE[r.best] || COND_BADGE.NM)[0]};color:${(COND_BADGE[r.best] || COND_BADGE.NM)[1]}" title="Best copy: ${esc(r.best)} · ${esc(condSummary(r.conds))}">${r.conds.length > 1 && r.conds[r.conds.length - 1] !== r.best ? "best " : ""}${esc(r.best)}</span>` : ""} <button class="btn ghost small" data-sedit="${esc(r.c.id)}~${esc(r.fin)}" title="Edit your copy: condition, what you paid, signed, notes…">Edit</button> <button class="btn ghost small" data-got="${esc(r.c.id)}~${esc(r.fin)}" title="Add more copies (any condition)">+ Add</button> <button class="btn ghost small" data-srem="${esc(r.c.id)}~${esc(r.fin)}" title="Take copies out of your Collection">Remove</button>` :
     `<button class="btn small" data-got="${esc(r.c.id)}~${esc(r.fin)}">Got It</button> <a class="btn ghost small" href="${deal(r.c)}" target="_blank" rel="noopener">eBay</a>`;
   if (binder) $("#setBinder").innerHTML = rows.map((r, i) => setPocketHTML(r, i, pr)).join("") || `<p class="empty">${SETS.view === "need" ? "Nothing left to get - this set is complete!" : "No cards."}</p>`;
   else $("#setTable").innerHTML = `<thead><tr><th class="nosort"></th><th class="nosort">Card</th><th class="nosort hide-sm">#</th><th class="nosort hide-sm">Rarity</th><th class="r nosort">Price (NM)</th><th class="r nosort hide-sm">Trend</th><th class="nosort"></th></tr></thead><tbody>` +
