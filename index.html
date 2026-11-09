@@ -270,6 +270,7 @@ button,a,.tile{-webkit-tap-highlight-color:transparent}
 .t-main{flex:1;min-width:0}
 .t-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t-sub{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#dealsTiles .t-sub{white-space:normal;overflow:visible;line-height:1.45}   /* deals: price, fair value and auction time wrap instead of being cut off */
 .t-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .t-right{text-align:right;flex:none;font-variant-numeric:tabular-nums}
 .t-price{font-weight:600}
@@ -578,7 +579,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 04:11 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 07:31 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
