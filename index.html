@@ -581,7 +581,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 09, 06:40 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 03:47 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -945,7 +945,12 @@ const rawServer = (fn, ...args) => new Promise((resolve, reject) => {
 });
 const GH = {
   branch: "main", repo: "",
-  load(){ return server("loadAll"); },
+  async load(){   // prices come squeezed (gzip) when the browser can unsqueeze them - 8 MB becomes under 1 MB
+    const can = typeof DecompressionStream === "function", d = await server("loadAll", can ? {gz: 1} : undefined);
+    for (const k of (d && d.gz) || []){ if (typeof d[k] !== "string") continue;
+      const bin = atob(d[k]), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+      d[k] = await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
+    return d; },
   putFile(path, text, sha, message){ return server("saveFile", path, text, sha, message); },
   runWorkflow(mode){ return server("runWorkflow", mode || "both"); },
   loadSL(){ return server("loadSecretLair"); },
@@ -1140,6 +1145,7 @@ async function startApp(){
     // one loading screen, not two: stay on it until the page you're on has its data too (collection, Secret Lair...)
     for (let i = 0; i < 120; i++){ await new Promise(r => setTimeout(r, 250)); if (!BUSY.n && !COL.loading && !SL.loading) break; }
     document.body.classList.remove("booting");
+    try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y && !/^#deal=/.test(location.hash)) requestAnimationFrame(() => setTimeout(() => scrollTo(0, y), 50)); }catch(e){}   // back to where you were, not the top
     openDealFromHash();
   }catch(e){
     if (/Please sign in/.test(e.message)) return;
@@ -3808,7 +3814,7 @@ function renderNear(){
   document.addEventListener("touchmove", e => { if (y0 == null) return; pulled = e.touches[0].clientY - y0;
     if (pulled > 10){ ptr.style.transform = `translate(-50%, ${Math.min(pulled, 110) - 50}px)`; ptr.textContent = pulled > 70 ? "↻ Release to refresh" : "↓ Pull to refresh"; } }, {passive: true});
   document.addEventListener("touchend", async () => { if (y0 == null) return; const go = pulled > 70; y0 = null; ptr.style.transform = "translate(-50%,-60px)";
-    if (!go) return; ptr.textContent = "Refreshing…"; ptr.style.transform = "translate(-50%,40px)"; try{ await flushSaves(); }catch(e){} location.reload(); });
+    if (!go) return; ptr.textContent = "Refreshing…"; ptr.style.transform = "translate(-50%,40px)"; try{ await flushSaves(); }catch(e){} try{ sessionStorage.setItem("pd_scroll", String(scrollY)); }catch(e){} location.reload(); });
 })();
 async function checkPageVersion(){
   if (document.hidden || !/^https?:/.test(location.protocol) || /script\.google/.test(location.host)) return;
@@ -3844,7 +3850,7 @@ document.addEventListener("visibilitychange", () => {
   HIDDEN_AT = 0; });
 window.addEventListener("pageshow", e => { if (e.persisted && S.loadedOnce && !busyNow()) quietLoad(); });
 setInterval(softReload, 15000); document.addEventListener("visibilitychange", () => { if (document.hidden) softReload(); });
-try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y) window.addEventListener("load", () => setTimeout(() => scrollTo(0, y), 600)); }catch(e){}
+// (the spot you were at before a reload is put back once your data is in - see startApp)
 // ---- new deals show up on their own: about once a minute (while the page is open and visible) ask for the sniper's latest
 // finds, plus the 3-hour scan's list when a newer scan has finished. No reload, nothing you're doing gets reset.
 const LIVE = {busy: false, off: false, last: 0}; let PRICES_NEW = false;
