@@ -484,6 +484,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 #dLearnWrap summary{cursor:pointer}
 .rv textarea{width:100%;margin-top:8px;font:inherit}.rv-head{margin-bottom:8px}
 .aud-grid.small{grid-template-columns:2fr 1fr}.aud-grid.small .aud-ref{max-width:160px}
+.rv-says{margin:10px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.5}.rv-says-h{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}.rv-says-d{margin-top:4px;font-style:italic;color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
 .rv-left,.rv-right,.rv-left .aud-grid>div{min-width:0}.rv-left .aud-grid,.rv-left .aud-grid.small{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}
 .btn.rv{white-space:nowrap}.btn.rv.done{font-size:12px}
 .cond-adj{color:var(--gold);font-weight:600}
@@ -581,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 12:52 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 01:09 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2690,6 +2691,18 @@ function reviewStart(d){
 }
 // is the back of the card in the photos? SlaveAI's answer when it looked, else Loupe's (it sorts every photo front / back)
 // SlaveAI only sees some photos of a long listing (4-6), so its "no back" means nothing when there are more than that
+// What the seller says about the card (the listing's own Set / Card Condition / description), saved when the deal was found -
+// so "whose mistake?" can be answered without opening eBay.
+function sellerSaysHTML(d, url){
+  let o = null; try{ o = d.seller_says ? JSON.parse(d.seller_says) : null; }catch(e){}
+  const listed = String(d._c0 || d.condition || "").replace("?", "");
+  const row = (k, v) => v ? `<div><span class="mut">${k}:</span> <b>${esc(v)}</b></div>` : "";
+  if (!o) return `<div class="rv-says"><div class="rv-says-h">Seller says</div><div class="mut" style="font-size:12.5px">Only the title above was saved for this deal (found before Nov 10). <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to see the seller's condition and details.</div></div>`;
+  return `<div class="rv-says"><div class="rv-says-h">Seller says</div>
+    ${row("Set", o.set)}${row("Edition", o.edition)}${row("Condition", o.cond || "not stated")}${row("Graded", o.grade)}${row("Language", o.lang)}
+    ${o.desc ? `<div class="rv-says-d">“${esc(o.desc)}${o.desc.length >= 155 ? "…" : ""}”</div>` : ""}
+    ${listed && !o.cond ? `<div class="mut" style="font-size:12px">The desk valued it as ${esc(listed)}${/\?/.test(d.condition || "") ? " (a guess - the seller didn't say)" : ""}.</div>` : ""}</div>`;
+}
 const backSays = d => d.ai_back === "yes" || (d.ai_back === "no" && String(d.images || "").split(/\s+/).filter(Boolean).length <= 4) ? d.ai_back : (d.photo_back === "yes" || d.photo_back === "no" ? d.photo_back : "");
 // blocking a seller is a preference, not a fact about the card: its own link, saved as "block" / "unblock" (never a thumbs down)
 function sellerBlocked(name){
@@ -2757,6 +2770,7 @@ function reviewHTML(d, mode){
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You're tracking:</span>${(() => { const g = String(d.group || ""); const src = !g ? "" : g === "Watchlist" ? "Card" : /^Need: /.test(g) ? "Set " + g.slice(6) : g;
         return src ? `<br><span class="mut" style="font-size:11.5px">Want List · ${esc(src)}</span>` : ""; })()}<br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
+    ${sellerSaysHTML(d, url)}
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI thinks</b> ${(() => { const tr = esc((c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, "")) + " - " + (c.sn || setOf(d) || "?") + (c.num ? " #" + c.num : "")), ed = d.ai_edition;
         const e = ed === "matches" ? `it's <b>${tr}</b>` : ed === "wrong" ? `it's <b>not</b> ${tr}` : `it can't tell if it's ${tr}`;
         const cc = aiC && aiC !== "unclear" ? `, in about <b>${esc(aiC)}</b> condition` : ", and can't tell the condition";
@@ -2801,6 +2815,7 @@ function dealDetails(d){
     `Price + ship now: ${money(+d.total)}${d._t0 && +d.total !== d._t0 ? " (found at " + money(d._t0) + ")" : ""}${d.price ? " · price " + d.price + " + ship " + (d.ship || "?") : ""}${d.price_now ? " · price now " + d.price_now : ""}`,
     `Condition: listed ${d._c0 || d.condition}${e.c ? " · you said " + e.c : ""}${e.v ? " · you said it's " + e.v : ""} · fair ${money(+d.fair)} (${d._graded ? "graded slab - counts as raw " + gradeCondOf(d._c0 || d.condition) + ", no graded price data" : `NM x ${isVintageDeal(d) ? "vintage" : "standard"} ${condCode(d.condition)} ${Math.round(condMult(condCode(d.condition), d) * 100)}%`}; found at ${money(d._f0)}) · ${Math.round(+d.discount_pct)}% off`,
     `Phone alert: ${d.alert || (d.source === "sniper" ? "none recorded (alerts are recorded from Nov 8 on)" : "-")}`,
+    `Seller says: ${(() => { try{ const o = JSON.parse(d.seller_says || "null"); return o ? Object.entries(o).map(([k, v]) => k + ": " + v).join(" · ") : "not saved"; }catch(e){ return "not saved"; } })()}`,
     `Status: ${d.status || "?"}${d.status_at ? " (checked " + d.status_at + ")" : ""} · ${d.hidden ? "HIDDEN: " + d.hidden + (d.hidden_detail ? " - " + d.hidden_detail : "") : "shown"}${isMustBuy(d) ? " · MUST BUY" : ""}${d.preferred ? " · top pick" : ""}`,
     `SlaveAI: ${d.ai_verdict ? d.ai_verdict + " / edition " + (d.ai_edition || "?") + " / condition " + (d.ai_condition || "?") + " - " + (d.ai_reason || "") : "not checked"}`,
     `Seller: ${d.seller || "?"}${d.cond_note ? " · note: " + d.cond_note : ""}`,
@@ -2831,7 +2846,7 @@ function wireReview(root, d, done){
     rawServer("listingPhotos", AUTH.token, itemId(d), +((S.ini.review || {}).photo_fetches_per_day) || 25).then(r => {
       if (!document.body.contains(root)) return;
       if ((r.images || []).length){
-        d.images = r.images.join(" "); d._keepSel = true; d._phLoaded = true;   // saved with your review: Loupe sorts them next scan
+        d.images = r.images.join(" "); d._keepSel = true; d._phLoaded = true; if (r.seller_says && !d.seller_says) d.seller_says = r.seller_says;   // saved with your review: Loupe sorts them next scan
         const note = (root.querySelector("#rvNote") || {}).value || "";
         if (root.id === "rvQueue"){ renderAudit(); }   // Full Review: redraw the whole item (its Prev / Skip / Save buttons live in the same box)
         else { root.innerHTML = reviewHTML(d, "modal"); wireReview(root, d, done); }
@@ -2967,7 +2982,7 @@ async function markPhotos(root, d){
       try{ const r = await rawServer("listingPhotos", AUTH.token, itemId(d), +((S.ini.review || {}).photo_fetches_per_day) || 25);
         MK.imgs = r.images || [];
         if (r.capped){ box.innerHTML = `<span class="mut" style="font-size:13px">Today's photo limit (${r.cap}) is used up - change it in Settings → SlaveAI. Type the why in the note instead.</span>`; return; }
-        if (MK.imgs.length) d.images = MK.imgs.join(" ");
+        if (MK.imgs.length) d.images = MK.imgs.join(" "); if (r.seller_says && !d.seller_says) d.seller_says = r.seller_says;
       }catch(e){ MK.imgs = []; box.innerHTML = `<span class="mut" style="font-size:13px">${/UPDATE|Unknown/.test(e.message) ? "Photos need the latest server code - it updates itself in a minute." : "Couldn't load the photos: " + esc(e.message)}</span>`; return; }
     }
   }
