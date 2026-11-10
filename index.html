@@ -406,8 +406,10 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 /* review photos: one at a time, arrows / swipe / thumbnails to cycle */
 .ph-car{position:relative}.ph-car .aud-photos{display:flex!important;gap:0!important;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:8px}
 .ph-car .aud-photos::-webkit-scrollbar{display:none}.ph-car .aud-ph{flex:0 0 100%;scroll-snap-align:start;background:var(--soft)}
-.ph-car .aud-ph{text-align:center}.ph-car .phz{display:inline-block;vertical-align:top;max-width:100%}
-.ph-car .aud-ph img{width:auto;max-width:100%;max-height:440px;border-radius:0}
+/* every photo sits in the same-size frame, so the arrows and counter don't jump as you swipe */
+.ph-car{--phh:440px}.ph-car .aud-ph{height:var(--phh);display:flex!important;align-items:center;justify-content:center}.ph-car .phz{display:inline-block;max-width:100%;max-height:100%}
+.ph-car .aud-ph img{width:auto;max-width:100%;max-height:var(--phh);border-radius:0;display:block}
+@media (max-width:700px){.ph-car{--phh:360px}}
 .ph-arr{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:52px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:28px;line-height:1;cursor:pointer;z-index:2}
 .ph-arr.l{left:6px}.ph-arr.r{right:6px}.ph-arr:disabled{opacity:.25;cursor:default}
 .ph-cnt{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;z-index:2}
@@ -579,7 +581,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 08, 07:31 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 09, 06:29 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
