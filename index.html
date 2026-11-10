@@ -581,7 +581,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 04:00 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 06:33 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1210,8 +1210,35 @@ function lockIfReadonly(){
 }
 // Auto-save: every change is saved to GitHub ~2 seconds after you stop editing ("Saving… / Saved ✓" at the top)
 const AUTOSAVE = {t: null, busy: false, again: false, last: {}};
+// Reviews you've made that haven't reached GitHub yet are kept on this device too, so a failed save + a refresh
+// (or the page reloading itself) never loses them - they're put back and saved the next time the page loads.
+const OUTBOX = {aud: null, fb: null};
+const fbKey = r => [r.at, r.url, r.verdict, r.reason, r.note].join("|");
+function outboxMark(){   // what the server already has, as of the last load or successful save
+  if (AUD.loaded){ OUTBOX.aud = {}; for (const k in AUD.rows) OUTBOX.aud[k] = JSON.stringify(AUD.rows[k]); }
+  if (FB.loaded) OUTBOX.fb = new Set(FB.rows.map(fbKey));
+}
+function outboxWrite(){
+  if (!OUTBOX.aud || !OUTBOX.fb) return;
+  const aud = Object.keys(AUD.rows).filter(k => OUTBOX.aud[k] !== JSON.stringify(AUD.rows[k])).map(k => AUD.rows[k]),
+    fb = FB.rows.filter(r => !OUTBOX.fb.has(fbKey(r)));
+  try{ if (aud.length || fb.length) localStorage.setItem("pd_outbox", JSON.stringify({aud, fb, at: Date.now()})); else localStorage.removeItem("pd_outbox"); }catch(e){}
+}
+function outboxRestore(){   // after the review files load: put back anything that never made it, and save it
+  let o = null; try{ o = JSON.parse(localStorage.getItem("pd_outbox") || "null"); }catch(e){}
+  outboxMark();
+  if (!o || Date.now() - (o.at || 0) > 14 * 86400e3) return;
+  let na = 0, nf = 0;
+  (o.aud || []).forEach(r => { if (!r || !r.url) return; const cur = audOf(r); if (!cur || (r.at || "") > (cur.at || "")){ AUD.rows[r.url] = r; na++; } });
+  const have = new Set(FB.rows.map(fbKey)); (o.fb || []).forEach(r => { if (r && !have.has(fbKey(r))){ FB.rows.push(r); nf++; } });
+  if (nf) FB.rows.sort((a, b) => (a.at || "").localeCompare(b.at || ""));
+  if (na) markDirty("audit"); if (nf) markDirty("feedback");
+  if (na || nf) toast(`Saving ${na || nf} review${(na || nf) === 1 ? "" : "s"} that didn't save last time…`, 5000);
+  else try{ localStorage.removeItem("pd_outbox"); }catch(e){}
+}
 function markDirty(file){
   if (file) S.dirty.add(file);
+  if (file === "audit" || file === "feedback") outboxWrite();
   const p = $("#pending");
   if (!S.dirty.size){ if (!AUTOSAVE.busy && p.dataset.state !== "error") p.hidden = true; return; }
   p.hidden = false; p.dataset.state = "pending"; p.textContent = "Saving…";
@@ -1292,7 +1319,8 @@ async function saveAll(){
         rows => rows.forEach(r => { if (r.url && !AUD.rows[r.url] && !audOf({url: r.url})) AUD.rows[r.url] = r; }), "SlaveAI audit (Price Desk)"); }
     if (S.dirty.has("upcoming")){ S.dirty.delete("upcoming");
       SL.upSha = await putIfChanged("upcoming.csv", toCSV(UP_COLS, SL.upcoming.filter(r => (r.name || "").trim())), SL.upSha, "Update upcoming Secret Lairs (Price Desk)"); }
-    AUTOSAVE.tries = 0; p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
+    AUTOSAVE.tries = 0; if (!S.dirty.has("audit") && !S.dirty.has("feedback")){ outboxMark(); outboxWrite(); }
+    p.dataset.state = "saved"; p.textContent = "Saved ✓"; setTimeout(() => { if (p.dataset.state === "saved") p.hidden = true; }, 2500);
     if (["feedback", "audit", "dealcond"].some(f => done.has(f) && want.has(f))) autoLearn();
   }catch(e){
     const failed = [...done].filter(f => want.has(f)).pop();   // the file that was saving when it failed
@@ -1972,7 +2000,7 @@ const fbReasons = () => RS.list.map(r => [r.key, `${r.icon} ${r.key === "seller"
 const FB = {rows: [], sha: null, loaded: false, loading: false};
 async function loadFB(){
   if (GUESTVIEW() || FB.loaded || FB.loading) return; FB.loading = true;
-  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv", "collection/offers.csv"]); loadIGN(f["collection/ignored.csv"]); loadOFR(f["collection/offers.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true;
+  try{ const f = await GH.readFiles(["collection/deal_feedback.csv", "collection/reasons.csv", "collection/deal_condition.csv", "collection/ai_audit.csv", "collection/elsewhere.csv", "collection/snipes.csv", "collection/gone.csv", "collection/ignored.csv", "collection/offers.csv"]); loadIGN(f["collection/ignored.csv"]); loadOFR(f["collection/offers.csv"]); loadDC(f["collection/deal_condition.csv"]); loadAUD(f["collection/ai_audit.csv"]); loadEW(f["collection/elsewhere.csv"]); loadSN(f["collection/snipes.csv"]); loadGONE(f["collection/gone.csv"]); const x = f["collection/deal_feedback.csv"]; FB.rows = x.text ? parseCSV(x.text) : []; FB.sha = x.sha; FB.loaded = true; outboxRestore();
     const rr = f["collection/reasons.csv"]; if (rr && rr.text){ const l = parseCSV(rr.text).filter(r => r.key); if (l.length) RS.list = l; } RS.sha = rr ? rr.sha : null; buildWhyFilter(); renderReasonEditor(); renderDeals(); renderEW(); if (document.querySelector("#tab-audit.on, #tab-quick.on")) renderAudit(); if (document.querySelector("#tab-train.on")) renderTrain(); }
   catch(e){} FB.loading = false;
 }
@@ -6493,7 +6521,9 @@ async function loadAll(){
   if (!READONLY && !store.get("pd_relabel1")) setTimeout(relabelSniper, 8000);
   $("#mineSub").textContent = READONLY ? "Everything the desk hunts for: single cards, sets being completed, and groups of cards from a Scryfall search. Click a card to see its price chart."
     : "Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.";
-  S.dirty.clear(); $("#pending").hidden = true; $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
+  ["watchlist", "rules", "settings"].forEach(f => S.dirty.delete(f));   // just reloaded these; anything else still waiting to save (reviews…) keeps saving
+  if (!S.dirty.size) $("#pending").hidden = true; else markDirty();
+  $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
   const groups = [...new Set(S.cards.map(c => c.g))].sort();
   $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
