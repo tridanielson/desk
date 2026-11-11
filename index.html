@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 07:23 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 11, 06:41 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2689,6 +2689,18 @@ function reviewStart(d){
     fault: (f && f.fault) || a.fault || "", cfault: c && c.c ? (c.fault || "seller") : ""};
 }
 // is the back of the card in the photos? SlaveAI's answer when it looked, else Loupe's (it sorts every photo front / back)
+// What the seller says about the card (the listing's own Set / Card Condition / description), saved when the deal was found -
+// so "whose mistake?" can be answered without opening eBay.
+function sellerSaysHTML(d, url){
+  let o = null; try{ o = d.seller_says ? JSON.parse(d.seller_says) : null; }catch(e){}
+  const listed = String(d._c0 || d.condition || "").replace("?", "");
+  const row = (k, v) => v ? `<div><span class="mut">${k}:</span> <b>${esc(v)}</b></div>` : "";
+  if (!o) return `<div class="rv-says"><div class="rv-says-h">Seller says</div><div class="mut" style="font-size:12.5px">Only the title above was saved for this deal (found before Nov 10). <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to see the seller's condition and details.</div></div>`;
+  return `<div class="rv-says"><div class="rv-says-h">Seller says</div>
+    ${row("Set", o.set)}${row("Edition", o.edition)}${row("Condition", o.cond || "not stated")}${row("Graded", o.grade)}${row("Language", o.lang)}
+    ${o.desc ? `<div class="rv-says-d">“${esc(o.desc)}${o.desc.length >= 155 ? "…" : ""}”</div>` : ""}
+    ${listed && !o.cond ? `<div class="mut" style="font-size:12px">The desk valued it as ${esc(listed)}${/\?/.test(d.condition || "") ? " (a guess - the seller didn't say)" : ""}.</div>` : ""}</div>`;
+}
 // Back of the card shown? Loupe answers first (53 of 53 right against your reviews; it sorts up to 10 photos, the pool's first 4),
 // SlaveAI only when Loupe didn't look. Either one's "no" only counts if it saw every photo - the back may be in one it didn't see.
 const backSays = d => { const n = String(d.images || "").split(/\s+/).filter(Boolean).length;
