@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 01:09 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 06:53 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1886,7 +1886,7 @@ function sfLinkFor(d){
 const SF_ICON = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm0 2.2a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2ZM9.6 12H6.4v-1h.8V7.6h-.8v-1h2.4V11h.8v1Z"/></svg>';
 // picture of the exact printing a deal is priced against (bigger Scryfall image; falls back to Scryfall's name + set lookup)
 function sfImgFor(d){
-  const c = audCard(d.card); if (c && c.img) return c.img.replace("/small/", "/normal/");
+  const c = dealCard(d); if (c && c.img) return c.img.replace("/small/", "/normal/");
   const m = /^(.*) \[([A-Z0-9]+)\]/.exec(d.card || "");
   return m ? `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(m[1])}&set=${m[2].toLowerCase()}&format=image&version=normal` : "";
 }
@@ -2035,8 +2035,7 @@ async function saveCollectionNow(msg){
   S.dirty.delete("collection");
 }
 function openBought(d, done, title){
-  if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c]));
-  const c = S._cardByLabel.get(d.card) || {};
+  const c = dealCard(d) || {};
   const cond = (d.condition || "").replace("?", "").toUpperCase();
   openModal(`<h3>${title || (done ? "🏆 I Won This Snipe" : "🛒 I Bought This")}</h3><div class="mut" style="font-size:13px">${esc(d.card)} · ${esc((d.title || "").slice(0, 90))}</div>
     <div class="grid">
@@ -2729,7 +2728,7 @@ const AI_WORRY = {price: "too cheap?", verify: "can't confirm", condition: "more
   wrongcard: "different card?", language: "foreign?", fake: "fake?", lot: "not one card?", seller: "seller"};
 function aiWorry(d){ return AI_WORRY[d.ai_category] || "see notes"; }
 function reviewHTML(d, mode){
-  const c = audCard(d.card) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
+  const c = dealCard(d) || {}, ref = c.img ? c.img.replace("/small/", "/normal/") : sfImgFor(d);
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
   const imgs = allImgs.slice(0, Math.max(24, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
@@ -2768,7 +2767,7 @@ function reviewHTML(d, mode){
         <div class="ph-thumbs">${imgs.map((u, i) => `<button type="button" data-phto="${i}"${i ? "" : ' class="on"'}><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l140."))}" alt="" loading="lazy"></button>`).join("")}</div>` : "</div>"}`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
       <div><div style="font-size:13px;margin-bottom:6px;line-height:1.4"><span class="mut">You're tracking:</span>${(() => { const g = String(d.group || ""); const src = !g ? "" : g === "Watchlist" ? "Card" : /^Need: /.test(g) ? "Set " + g.slice(6) : g;
-        return src ? `<br><span class="mut" style="font-size:11.5px">Want List · ${esc(src)}</span>` : ""; })()}<br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
+        return src ? `<br><span class="mut" style="font-size:11.5px">Want List · ${esc(src)}</span>` : ""; })()}<br><b class="up">${esc(c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""))}</b><br><b class="up">${esc(c.sn || setOf(d) || "?")}${c.num ? " #" + esc(c.num) : ""}</b>${d._artHow ? `<br><span class="mut" style="font-size:11.5px">${{title: "Art: the number in the title", loupe: "Art: the one Loupe sees in the photos", guess: "Art: Loupe couldn't tell which - check it"}[d._artHow]}</span>` : ""}${d._graded || /^(PSA|BGS|CGC|SGC|ACE|TAG|BECKETT)\b/i.test(d.condition || "") ? `<br><b class="up">${esc(d.condition)}</b>` : condCode(d._c0 || d.condition || "") ? `<br><b class="up">${esc(condCode(d._c0 || d.condition))}</b>` : ""}</div>${ref ? `<a href="${esc(sfLinkFor(d) || "#")}" target="_blank" rel="noopener"><img class="aud-ref" src="${esc(ref)}" alt="" onerror="this.remove()"></a>` : ""}</div>
     </div>
     ${sellerSaysHTML(d, url)}
     ${d.ai_verdict ? `<div class="aud-ai"><b>SlaveAI thinks</b> ${(() => { const tr = esc((c.n || String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, "")) + " - " + (c.sn || setOf(d) || "?") + (c.num ? " #" + c.num : "")), ed = d.ai_edition;
@@ -3085,8 +3084,12 @@ function saveReview(d, sel, note, done, agreeAI){
   const aiC0 = String(d.ai_condition || "").toUpperCase();
   if (condChanged && !note && sel.condition === aiC0) note = "Agreed with SlaveAI: " + (d.ai_reason || "");
   const picked = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
-  const autoNote = !!(picked && !note);
+  let autoNote = !!(picked && !note);
   if (picked && !note) note = `It's ${picked.sn || picked.s} #${picked.num}${picked.yr ? " (" + picked.yr + ")" : ""}`;   // the picture you tapped says it all
+  if (!picked && sel.edition === "matches" && !note){   // a card with several arts in the set: "Yes" names the exact art, so Loupe learns the art too
+    const dc = dealCard(d), pp = dc && d._artHow ? (printing(dc.k) || dc) : null;
+    if (pp && pp.num){ note = `It's ${pp.sn || pp.s} #${pp.num}${pp.yr ? " (" + pp.yr + ")" : ""}`; autoNote = true; }
+  }
   if (condChanged && !note && MK.marks.length) note = "Marked on the photos: " + markSummary(MK.marks);   // the boxes are the why
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches SlaveAI.", 4500); }
   if (sel.good === "down" && !sel.reason) sel.reason = condChanged ? "condition" : "other";
@@ -3206,6 +3209,22 @@ function loadAUD(x){
   try{ (x && x.text ? parseCSV(x.text) : []).forEach(r => { if (r.url) AUD.rows[r.url] = r; }); }catch(e){}
   AUD.sha = x ? x.sha : null; AUD.loaded = true;
 }
+// Cards with several arts in one set (Alpha / Beta basic lands, ...) are tracked once per art under the SAME label
+// ("Plains [LEB]" = #288, #289 and #290). Which one is this listing? The collector number in the title, else the art Loupe
+// picked from the photos - never a blind guess. d._artHow says how it was decided ("title" / "loupe" / "guess").
+function dealCard(d){
+  const lab = c => `${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`;
+  if (!S._cardsByLabel){ S._cardsByLabel = new Map(); S.cards.forEach(c => { const k = lab(c); if (!S._cardsByLabel.has(k)) S._cardsByLabel.set(k, []); S._cardsByLabel.get(k).push(c); }); }
+  const cs = S._cardsByLabel.get(d.card) || [];
+  if (cs.length <= 1){ d._artHow = ""; return cs[0]; }
+  const nums = new Set(cs.map(c => String(c.num || "").replace(/^0+/, "").toLowerCase()));
+  const tn = [...String(d.title || "").matchAll(/(?:#|\bno\.?\s*)0*(\d{1,4}[a-z]?)\b|\b0*(\d{2,4})\s*\/\s*\d{2,4}\b/gi)].map(m => (m[1] || m[2]).toLowerCase()).filter(n => nums.has(n));
+  const by = n => cs.find(c => String(c.num || "").replace(/^0+/, "").toLowerCase() === n);
+  if (new Set(tn).size === 1){ d._artHow = "title"; return by(tn[0]); }
+  const m = /^([A-Za-z0-9]+) #(\S+)/.exec(d.photo_pick || "");
+  if (m && m[1].toUpperCase() === String(cs[0].s).toUpperCase() && by(m[2].replace(/^0+/, "").toLowerCase())){ d._artHow = "loupe"; return by(m[2].replace(/^0+/, "").toLowerCase()); }
+  d._artHow = "guess"; return cs[0];
+}
 const audCard = label => { if (!S._cardByLabel) S._cardByLabel = new Map(S.cards.map(c => [`${c.n} [${c.s}]${c.f && c.f !== "nonfoil" ? ` (${c.f})` : ""}`, c])); return S._cardByLabel.get(label); };
 const aiChecked = d => !!d.ai_verdict;
 // random order (fixed for this visit) so the honest score isn't skewed toward the ones that look wrong
@@ -3233,7 +3252,9 @@ function matcherUnsure(d){
 const qkHash = u => { let h = 0; for (const ch of String(u)) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); };
 const loupeSure = d => !!d.photo_read || (+d.photo_margin >= 0.06 && !(d.ai_edition && /^(matches|wrong)$/.test(d.ai_edition) && (d.ai_edition === "matches") !== (d.photo_says === "same")));
 const quickWorth = d => /^(same|other)$/.test(d.photo_says || "") && (!loupeSure(d) || qkHash(d.url) % 10 === 0);
-const quickOK = d => d.photo_says !== "one" && d.photo_says !== "none" && /i\.ebayimg\.com/.test(d.images || "") && quickWorth(d)
+// photo_bx: the border Loupe read rules the tracked printing out (black border can't be Revised) - nothing to ask you.
+// Never set between printings that share a border (Revised vs Unlimited), so those still come to you.
+const quickOK = d => d.photo_bx !== "1" && d.photo_says !== "one" && d.photo_says !== "none" && /i\.ebayimg\.com/.test(d.images || "") && quickWorth(d)
   && !(d.hidden_by === "auto" && /version|variant|different card/i.test(d.hidden || ""));   // the title already says which version it is - nothing for you to answer   // ended listings too: the photos and the answer don't expire
 // the practice pool (data/loupe_pool.json): every listing a scan saw for your cards, deal or not - loaded when Quick mode opens
 const QP = {items: [], loaded: false, loading: false};
@@ -3242,7 +3263,7 @@ function loadPool(){
   GH.readFiles(["data/loupe_pool.json"]).then(f => { try{ const j = JSON.parse(f["data/loupe_pool.json"].text || "{}");
       QP.items = (j.items || []).map(p => ({url: p.url, card: p.card, title: p.title, images: p.img, total: String(p.total || ""), condition: p.cond || "", seller: p.seller || "",
         found_at: p.seen || "", photo_says: p.says || "", photo_pick: p.pick || "", photo_margin: p.margin === "" || p.margin == null ? "" : String(p.margin), photo_roles: p.roles || "",
-        photo_back: p.back || "", photo_second: p.second || "", photo_kind: p.kind || "", photo_read: p.read || "", _tv: p.tv || "", _pool: true})); }catch(e){ QP.items = []; }
+        photo_back: p.back || "", photo_second: p.second || "", photo_kind: p.kind || "", photo_read: p.read || "", photo_bx: p.bx || "", _tv: p.tv || "", _pool: true})); }catch(e){ QP.items = []; }
     QP.loaded = true; QP.loading = false; if (document.querySelector("#tab-quick.on")) renderAudit(); })
     .catch(() => { QP.loading = false; QP.loaded = true; });
 }
@@ -6515,7 +6536,7 @@ async function loadAll(){
   $("#updated").textContent = "Loading…"; $("#connStatus").textContent = "Loading from GitHub…";
   const d0 = await GH.load(); GH.branch = d0.branch; GH.repo = d0.repo;
   const d = d0.dashboard ? JSON.parse(d0.dashboard) : {cards: [], updated: ""};
-  S.cards = d.cards || []; S._sfByLabel = null; S._floorBy = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
+  S.cards = d.cards || []; S._sfByLabel = null; S._cardsByLabel = null; S._cardByLabel = null; S._floorBy = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
   S.watch = d0.watch.text ? parseCSV(d0.watch.text) : []; S.watchSha = d0.watch.sha;
   S.rules = d0.rules.text ? parseCSV(d0.rules.text) : []; S.rulesSha = d0.rules.sha;
   S.ini = parseINI(d0.ini.text); S.iniSha = d0.ini.sha;
