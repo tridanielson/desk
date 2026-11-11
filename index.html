@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 06:53 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 06:59 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2751,7 +2751,7 @@ function reviewHTML(d, mode){
   if (s.eng === undefined){ s.eng = s.lang && s.lang !== "EN" ? "no" : "yes"; s.langpick = s.lang && !["EN", "OTHER"].includes(s.lang) ? s.lang : (s.lang === "OTHER" ? "OTHER" : ""); }
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
-  const f0 = d._f0 || +d.fair, cm = condMult(condCode(d._c0 || d.condition), d) || 1;
+  const f0 = (d._f0 * (d._artX || 1)) || +d.fair, cm = condMult(condCode(d._c0 || d.condition), d) || 1;
   const nm = (String(d.card || "").match(/^(.*) \[([A-Z0-9]+)\]$/) || []), vars = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s === nm[2] && (c.f || "nonfoil") === "nonfoil") : [];
   const others = nm[1] ? (S.cards || []).filter(c => c.n === nm[1] && c.s !== nm[2] && (c.f || "nonfoil") === "nonfoil").sort((a, b) => (+a.p || 0) - (+b.p || 0)).slice(0, 16) : [];
   const pickBtn = v => `<button type="button" class="btn small${s.variant === v.k ? "" : " ghost"}" data-v="${esc(v.k)}" title="${esc(v.n)} ${esc(v.sn || v.s)} #${esc(v.num)}">${v.img ? `<img src="${esc(v.img)}" alt="" loading="lazy">` : ""}<span>${v.s !== nm[2] ? esc(v.s) + " " : ""}#${esc(v.num)} · ${v.p ? money(+v.p) : "no price"}</span></button>`;
@@ -3077,7 +3077,7 @@ function saveReview(d, sel, note, done, agreeAI){
   if (condBetter){ if (!note) note = `Better than listed (${listed} → ${sel.condition})`; if (sel.cfault !== "app") sel.cfault = "under"; }   // the grade is the lesson - no reason to write, nothing to mark
   if (!isWrong(sel.edition) && !agreeAI){   // no thumbs question any more: the facts decide
     const cm0 = condMult(condCode(d._c0 || d.condition), d) || 1, vv = (sel.edition === "variant" || sel.edition === "edition") && sel.variant ? printing(sel.variant) : null;
-    const f1 = (vv && +vv.p ? +vv.p : (d._f0 || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition), d);
+    const f1 = (vv && +vv.p ? +vv.p : ((d._f0 * (d._artX || 1)) || +d.fair) / cm0) * condMult(COND_LIST.includes(sel.condition) ? sel.condition : condCode(d._c0 || d.condition), d);
     const disc1 = f1 > 0 ? (f1 - (+d.total || 0)) / f1 * 100 : 0, need = +((S.ini.deals || {}).default_deal_pct) || 20;
     sel.good = sel.reason ? "down" : (sel.edition === "unclear" || sel.condition === "unclear" || ((condChanged || vv) && disc1 < need)) ? "" : "up";
   }
@@ -3714,7 +3714,7 @@ async function fillEditions(root, d){
 }
 function fairAt(d, cond, vc){
   const card = vc || floorCard(d), foil = /\((foil|etched)\)/i.test(d.card || ""), cp = card ? +(foil && card.pf ? card.pf : card.p) : 0;
-  const nm = cp ? cp : (d._f0 || +d.fair) / (condMult(condCode(d._c0 || d.condition), d) || 1);
+  const nm = cp ? cp : ((d._f0 * (d._artX || 1)) || +d.fair) / (condMult(condCode(d._c0 || d.condition), d) || 1);
   return {v: nm * condMult(cond, d), src: isVintageDeal(d) ? "vintage" : "standard"};
 }
 function vinTag(d){   // which condition table priced this deal - tap for the math
@@ -3734,7 +3734,13 @@ function applyCond(d){
   d.total = tot ? tot.toFixed(2) : d.total; d._priceMoved = repriced ? (pn < p0 ? "down" : "up") : "";
   const e = DC.map[d.url] || {}, o = e.c, vc = e.v && S.byKey ? printing(e.v, e) : null;
   d._var = vc ? vc : null;
-  let fair = d._f0; d._fsrc = d.fair_src || "";
+  let fair = d._f0; d._fsrc = d.fair_src || ""; d._artAdj = false;
+  // several arts in the set (Beta Plains #288-#290): the scan prices every listing as the cheapest art - once the title or
+  // Loupe says which art it is, price it as that one
+  let artX = 1;
+  if (!vc && d._f0 && S.cards && S.cards.length){ const dc = dealCard(d);
+    if (dc && (d._artHow === "title" || d._artHow === "loupe")){ const lo = Math.min(...(S._cardsByLabel.get(d.card) || []).map(c => +c.p || Infinity));
+      if (+dc.p && lo < Infinity && Math.abs(+dc.p - lo) > 0.5){ artX = +dc.p / lo; d._artAdj = true; } } }
   if ((o || vc) && d._f0){
     const cNow = o || condCode(d._c0), f = d._graded ? fairAt(d, gradeCondOf(d._c0), vc) : fairAt(d, cNow, vc);   // a different art/version: that printing's price
     fair = f.v; d._fsrc = f.src;
@@ -3743,8 +3749,9 @@ function applyCond(d){
     const card = floorCard(d), f = card && +card.p ? card.p * condMult(gradeCondOf(d._c0), d) : d._f0;
     d.condition = d._c0; d._adj = false; if (Math.abs(f - d._f0) > 0.5){ fair = f; d._regrade = true; } }
   else { d.condition = d._c0; d._adj = false; }
+  fair *= artX; d._artX = artX;
   d.fair = Math.round(fair * 100) / 100;
-  d.discount_pct = d._adj || repriced || d._regrade ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
+  d.discount_pct = d._adj || repriced || d._regrade || d._artAdj ? (fair > 0 ? Math.round((1 - tot / fair) * 1000) / 10 : 0) : d._p0;
   const ck = +d.ck_buylist, cm = condMult(condCode(d.condition), d) || 1;
   d.below_buylist = d._adj || repriced ? (ck ? (tot > 0 && tot <= ck * cm ? "True" : "") : d._b0) : d._b0;
 }
