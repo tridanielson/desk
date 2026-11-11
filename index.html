@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 07:08 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 07:14 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3243,7 +3243,13 @@ function matcherUnsure(d){
 // so "confident" keeps being checked against you.
 const qkHash = u => { let h = 0; for (const ch of String(u)) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); };
 const loupeSure = d => !!d.photo_read || (+d.photo_margin >= 0.06 && !(d.ai_edition && /^(matches|wrong)$/.test(d.ai_edition) && (d.ai_edition === "matches") !== (d.photo_says === "same")));
-const quickWorth = d => /^(same|other)$/.test(d.photo_says || "") && (!loupeSure(d) || qkHash(d.url) % 10 === 0);
+// Loupe's weak spot: "not your printing" when it is. Its "other" calls on listings whose title names your set are its likely
+// mistakes - those come first in Quick Review (even the ones it's sure of), so each answer is a correction.
+const titleNamesSet = d => { const c = dealCard(d) || {}, t = " " + String(d.title || "").toLowerCase() + " ";
+  const w = String(c.sn || "").replace(/\b(limited|edition|core set|magic)\b/gi, " ").trim().toLowerCase();
+  return (c.s && new RegExp(`[^a-z0-9]${String(c.s).toLowerCase()}[^a-z0-9]`).test(t)) || (w.length >= 4 && t.includes(" " + w.split(/\s+/)[0]) ); };
+const likelyMiss = d => d.photo_says === "other" && !d.photo_read && titleNamesSet(d);
+const quickWorth = d => /^(same|other)$/.test(d.photo_says || "") && (!loupeSure(d) || likelyMiss(d) || qkHash(d.url) % 10 === 0);
 // photo_bx: the border Loupe read rules the tracked printing out (black border can't be Revised) - nothing to ask you.
 // Never set between printings that share a border (Revised vs Unlimited), so those still come to you.
 const quickOK = d => d.photo_bx !== "1" && d.photo_says !== "one" && d.photo_says !== "none" && /i\.ebayimg\.com/.test(d.images || "") && quickWorth(d)
@@ -3430,7 +3436,7 @@ function quickPool(){   // pool listings that aren't already deals and you haven
   loadPool();
   const have = new Set(S.deals.map(d => itemId(d))), U = d => /^(same|other)$/.test(d.photo_says || "") ? matcherUnsure(d) + 1 : 0;
   return QP.items.filter(d => !audOf(d) && !have.has(itemId(d)) && !d._tv && quickOK(d))
-    .sort((a, b) => loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
+    .sort((a, b) => likelyMiss(b) - likelyMiss(a) || loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
 }
 function audQueue(){
   const f = AUD.filter, m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
@@ -3444,7 +3450,7 @@ function audQueue(){
     f === "matcher" ? matcherUnsure(d) > 0 && !audOf(d) :
     f === "quick" ? quickOK(d) && !audOf(d) : aiChecked(d)))
     .concat(f === "quick" ? quickPool() : [])
-    .sort(f === "quick" ? (a, b) => (!!a._pool - !!b._pool) || (a._pool ? 0 : loupeSure(a) - loupeSure(b) || matcherUnsure(b) - matcherUnsure(a) || (+a.photo_margin || 0) - (+b.photo_margin || 0) || (b.found_at || "").localeCompare(a.found_at || ""))
+    .sort(f === "quick" ? (a, b) => (!!a._pool - !!b._pool) || (a._pool ? 0 : likelyMiss(b) - likelyMiss(a) || loupeSure(a) - loupeSure(b) || matcherUnsure(b) - matcherUnsure(a) || (+a.photo_margin || 0) - (+b.photo_margin || 0) || (b.found_at || "").localeCompare(a.found_at || ""))
       : f === "random" ? (a, b) => audRank(a) - audRank(b) : f === "matcher" ? (a, b) => matcherUnsure(b) - matcherUnsure(a) || (b.found_at || "").localeCompare(a.found_at || "")
       : f === "done" ? (a, b) => String((audOf(b) || {}).at || "").localeCompare(String((audOf(a) || {}).at || ""))   // the one you reviewed last first
       : f === "nocheck" ? (a, b) => (!String(a.images || "").trim() - !String(b.images || "").trim()) || (b.found_at || "").localeCompare(a.found_at || "")   // ones with photos saved first (no eBay call needed)
