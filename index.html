@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 07:14 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 10, 07:23 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3536,6 +3536,8 @@ function renderTrain(){
   const kinds = K.counts ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📷 Photo problems Loupe is learning from: ${kc.stock || 0} stock photos · ${kc.lot || 0} lots · ${kc.verify || 0} can't-see${K.adopted ? ` - <b>spotting them on its own</b> (${Object.entries(K.recall || {}).map(([k, v]) => k + " " + v + "%").join(", ")})` : ` - ${esc(K.why || "")}`}</p>` : "";
   const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `<div class="stats aud-stats">
       ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Of the listings where the true printing is known (your answers, slabs, titles), how often Loupe's pick matched")}
+      ${sc.same && sc.same.n ? tile(`${sc.same.pct}% <span class="mut" style="font-size:13px">of ${sc.same.n}</span>`, "When it IS your printing", "Listings that really are the printing you track: how often Loupe agreed (its weak spot - it says 'not yours' too often)") : ""}
+      ${sc.other && sc.other.n ? tile(`${sc.other.pct}% <span class="mut" style="font-size:13px">of ${sc.other.n}</span>`, "When it's NOT your printing", "Listings that really are another printing: how often Loupe caught it") : ""}
       ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Times it read the set code and number printed on the card (newer cards only), and how often that was right") : ""}
       ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Only listings where the exact printing is known (\"It's Revised #147\")")}
       ${tile(bk.n ? `${bk.pct}% <span class="mut" style="font-size:13px">of ${bk.n}</span>` : "–", "Back shown", "Its \"is the back in the photos?\" against your Back of Card answers")}
