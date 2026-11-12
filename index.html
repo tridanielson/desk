@@ -587,7 +587,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 03:51 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 03:52 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3347,7 +3347,7 @@ function quickHTML(d, q){
   qkPrintsOf(name0).then(ps => { const p = ps.find(x => x.set === setc && x.num === want), el = $("#qkRefTr");   // its treatment, filled in when known
     if (p && el && p.tr) el.textContent = ` (${p.tr})`; }).catch(() => {});
   return `<div class="panel aud qk" id="qkItem">
-    <div class="qk-head"><span class="mut" style="font-size:12.5px">${d._pool ? '<span class="badge" title="Not a deal - a listing the scan saw for this card, here for practice">practice</span>' : '<span class="badge b-on">deal</span>'}</span><a class="mut" style="font-size:12.5px" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a>
+    <div class="qk-head"><span></span><a class="mut" style="font-size:12.5px" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a>
       ${audOf(d) ? `<div class="mut" style="font-size:12px">You answered: <b>${audOf(d).edition === "wrong" ? "✗ Wrong Printing" : audOf(d).edition === "matches" ? "✓ Right Printing" : audOf(d).verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${audOf(d).note ? ` - ${esc(audOf(d).note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
     <div class="qk-a"><div class="qk-a-ph">${all.length ? `<div class="ph-car"><div class="aud-photos">${ord.map(([u, i]) => `<a class="aud-ph" href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></div>${ro[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>
         ${ord.length > 1 ? `<button type="button" class="ph-arr l" data-phgo="-1" aria-label="Previous photo">‹</button><button type="button" class="ph-arr r" data-phgo="1" aria-label="Next photo">›</button><span class="ph-cnt">1 / ${ord.length}</span></div>
