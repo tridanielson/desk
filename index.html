@@ -582,7 +582,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:09 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:13 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -1376,6 +1376,8 @@ const SETTINGS = [
     ["must_buy_saving", "MUST BUY: Save at Least ($)", "num", 30, "Only deals this far under fair value (in dollars) count as MUST BUY - they ring loudly."],
     ["must_buy_pct", "MUST BUY: And at Least This % Off", "num", 35, "Both must be true. Cards with a cheaper look-alike (Unlimited vs Revised, etc.) also need SlaveAI to confirm the edition from the photos."],
     ["must_buy_auction_minutes", "MUST BUY Auctions: Ending Within (Minutes)", "num", 60, "Auctions only count near the end - before that the bid will still rise."],
+    ["alert_home_only", "Phone Alerts: My Country Only", "bool", true, "Only listings shipping from your country ring your phone - shipping from abroad often isn't quoted and import fees are on top. They still show on the desk."],
+    ["home_country", "My Country", "country", "US", "Where a listing ships from counts - not where the seller is."],
     ["must_buy_rings_overnight", "MUST BUY Rings During Quiet Hours", "bool", true, "The 🔔 mute button still silences everything."],
     ["other_deals", "All Other Deals", "otherdeals", "off", "Off = Price Desk only, no phone alert. Summary = one quiet list per scan. Each = an alert for every top pick (the old way - lots of notifications)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
@@ -1448,7 +1450,7 @@ const SETTINGS_LAYOUT = [
     {title: "Sellers", f: [["deals", "min_seller_feedback_pct"], ["deals", "min_seller_feedback_score"]]},
     {title: "Listing Filters", f: [["filters", "exclude_words"], ["filters", "exclude_languages"], ["filters", "exclude_games"], ["deals", "ebay_game_filter"], ["deals", "check_full_listing"]]}]},
   {group: "Phone Alerts", note: "What buzzes your phone, and when.", panels: [
-    {title: "MUST BUY Deals", f: [["alerts", "must_buy_saving"], ["alerts", "must_buy_pct"], ["alerts", "must_buy_auction_minutes"], ["alerts", "must_buy_rings_overnight"], ["alerts", "other_deals"], ["deals", "max_alerts_per_run"]]},
+    {title: "MUST BUY Deals", f: [["alerts", "must_buy_saving"], ["alerts", "must_buy_pct"], ["alerts", "must_buy_auction_minutes"], ["alerts", "alert_home_only"], ["alerts", "home_country"], ["alerts", "must_buy_rings_overnight"], ["alerts", "other_deals"], ["deals", "max_alerts_per_run"]]},
     {title: "★ Top Picks", note: "Deals matching all of these get a ★ on the Deals tab (and their own alert if All Other Deals is set to 'An Alert for Every Top Pick').", f: [["preferences", "prefer_usa"], ["preferences", "prefer_min_condition"], ["preferences", "prefer_graded"], ["preferences", "prefer_min_grade"]]},
     {title: "Quiet Hours", f: [["alerts", "quiet_hours"], ["alerts", "quiet_start"], ["alerts", "quiet_end"], ["alerts", "quiet_mode"], ["alerts", "urgent_override"], ["alerts", "timezone"]]},
     {title: "Price Alerts (Watchlist)", f: [["prices", "default_drop_pct"], ["prices", "max_alert_lines"]]}]},
@@ -1531,6 +1533,7 @@ function renderSettings_(){
       else if (type === "otherdeals") input = `<select id="${id}"><option value="off">Off - Price Desk Only</option><option value="summary">One Quiet Summary per Scan</option><option value="each">An Alert for Every Top Pick</option></select>`;
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
+      else if (type === "country") input = `<select id="${id}">${[["US","United States"],["CA","Canada"],["GB","United Kingdom"],["AU","Australia"],["JP","Japan"],["DE","Germany"],["FR","France"],["IT","Italy"],["ES","Spain"],["NL","Netherlands"],["IE","Ireland"],["NZ","New Zealand"]].map(([c, n]) => `<option value="${c}">${n}</option>`).join("")}</select>`;
       else if (type === "list") input = `<textarea id="${id}" rows="3"></textarea>`;
       else if (type === "note") input = `<textarea id="${id}" rows="4" placeholder="One lesson per line"></textarea>`;
       else input = `<input id="${id}" type="number" step="any">`;
@@ -6390,6 +6393,7 @@ const LOOKALIKE_SETS = ["2ED", "LEA", "LEB", "ARN", "ATQ", "LEG", "DRK", "3ED", 
 function isMustBuy(d){
   const A = S.ini.alerts || {}, save = (+d.fair || 0) - (+d.total || 0), pct = +d.discount_pct || 0;
   if (d.ai_verdict === "reject" || d.hidden) return false;
+  if (!/^(no|false|0)$/i.test(String(A.alert_home_only ?? "yes")) && d.location && d.location.toUpperCase() !== String(A.home_country || "US").toUpperCase()) return false;
   if (save < (+A.must_buy_saving || 30) || pct < (+A.must_buy_pct || 35)) return false;
   if (/current bid/i.test(d.type || "")){ const m = String(d.ends_in || "").match(/([\d.]+)\s*([dhm])/); const left = m ? +m[1] * ({d: 1440, h: 60, m: 1})[m[2]] : null;
     if (left == null || left > (+A.must_buy_auction_minutes || 60)) return false; }
