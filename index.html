@@ -430,6 +430,9 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .qk-a{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}.qk-a-ph,.qk-a-info{min-width:0}
 .qk-card{display:flex;gap:12px;align-items:center}.qk-refimg img{width:74px;border-radius:5px;display:block}.qk-name{font-size:18px;font-weight:600;line-height:1.25}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
+.qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
+.qk-cmp{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.qk-cmp img{width:120px;height:167px;object-fit:contain;border-radius:6px;flex:none;background:var(--soft)}.qk-cmp #qkCmpCap{min-height:167px}.qk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+#qkSide .qk-prints{max-height:520px;overflow:auto}
 @media (max-width:800px){.qk-a{grid-template-columns:1fr;gap:12px}}
 .qk-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;max-width:1160px}
 .qk-fig{margin:0}.qk-fig img{width:100%;aspect-ratio:488/680;object-fit:contain;background:var(--soft);border-radius:8px;display:block}.qk-fig figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:2px}
@@ -587,7 +590,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 03:52 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 04:08 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3348,18 +3351,21 @@ function quickHTML(d, q){
     if (p && el && p.tr) el.textContent = ` (${p.tr})`; }).catch(() => {});
   return `<div class="panel aud qk" id="qkItem">
     <div class="qk-head"><span></span><a class="mut" style="font-size:12.5px" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a>
-      ${audOf(d) ? `<div class="mut" style="font-size:12px">You answered: <b>${audOf(d).edition === "wrong" ? "✗ Wrong Printing" : audOf(d).edition === "matches" ? "✓ Right Printing" : audOf(d).verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${audOf(d).note ? ` - ${esc(audOf(d).note)}` : ""} - tap another answer to change it, or Can't Tell to keep it.</div>` : ""}</div>
+      ${audOf(d) ? `<div class="mut" style="font-size:12px">You answered: <b>${audOf(d).edition === "wrong" ? "✗ Wrong Printing" : audOf(d).edition === "matches" ? "✓ Right Printing" : audOf(d).verdict === "reject" ? "📷 Photo Problem" : "saved"}</b>${audOf(d).note ? ` - ${esc(audOf(d).note)}` : ""} - tap another answer to change it, or Skip - Not Sure to keep it.</div>` : ""}</div>
     <div class="qk-a"><div class="qk-a-ph">${all.length ? `<div class="ph-car"><div class="aud-photos">${ord.map(([u, i]) => `<a class="aud-ph" href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></div>${ro[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>
         ${ord.length > 1 ? `<button type="button" class="ph-arr l" data-phgo="-1" aria-label="Previous photo">‹</button><button type="button" class="ph-arr r" data-phgo="1" aria-label="Next photo">›</button><span class="ph-cnt">1 / ${ord.length}</span></div>
         <div class="ph-thumbs">${ord.map(([u], k) => `<button type="button" data-phto="${k}"${k ? "" : ' class="on"'}><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l140."))}" alt="" loading="lazy"></button>`).join("")}</div>` : "</div>"}`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
-      <div class="qk-a-info"><div class="qk-card">${ref ? `<span class="phz qk-refimg"><img src="${esc(ref)}" alt="What it should look like" title="What it should look like"></span>` : ""}
+      <div class="qk-a-info"><div id="qkSide" hidden></div><div id="qkInfo"><div class="qk-card">${ref ? `<span class="phz qk-refimg"><img src="${esc(ref)}" alt="What it should look like" title="What it should look like"></span>` : ""}
         <div><div class="qk-name">${esc(name0)}</div><div>${esc(c.sn || setOf(d) || "")}${want ? " #" + esc(want) : ""}<span id="qkRefTr"></span>${c.p ? ` · <b>${money(+c.p)}</b>` : ""}</div>
         ${d._artHow ? `<div class="mut" style="font-size:12px">${{title: "Art: the number in the title", loupe: "Art: the one Loupe sees in the photos", guess: "Art: Loupe couldn't tell which - check it"}[d._artHow]}</div>` : ""}</div></div>
       ${sellerSaysHTML(d, ebayLink(d))}
     ${photoCheckLine(d)}${d.photo_kind && d.photo_kind !== "card" ? `<div class="mut" style="font-size:12px">🔍 Loupe also thinks the photos are: <b>${esc({stock: "a stock photo", lot: "several cards / a lot", verify: "not clear enough to see the card"}[d.photo_kind] || d.photo_kind)}</b> - tap 📷 Photo Problem if it's right</div>` : ""}
     <div class="qk-q2">Is it ${esc(name0)} - ${esc(c.sn || setOf(d) || "")}${want ? " #" + esc(want) : ""}?</div>
-    <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ No</button><button class="btn ghost" id="qkCant" type="button" title="Stock photo, several cards, can't see the card - or the photos are fine and you just can't tell">? Can't Answer</button><button class="btn qk-yes" id="qkYes" type="button">✓ Yes</button></div></div></div>
+    <div class="qk-ans"><button class="btn qk-yes" id="qkYes" type="button">✓ Yes, That's It</button>
+      <button class="btn ghost" id="qkNo" type="button">↔ Different Printing / Art</button><button class="btn ghost" id="qkCard" type="button">🃏 A Different Card</button>
+      <button class="btn ghost" id="qkLangB" type="button">🌐 Another Language</button><button class="btn ghost" id="qkCant" type="button">📷 Can't See The Card</button>
+      <button class="btn ghost qk-skip" id="qkSkip" type="button" title="The photos are fine - you just can't tell which printing. Saved, so it won't come back.">Skip - Not Sure</button></div></div></div></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
 }
@@ -3377,19 +3383,27 @@ async function qkPrintsOf(name){
     const price = [pr.usd ? money2(pr.usd) : "", pr.usd_foil ? money2(pr.usd_foil) + " foil" : "", pr.usd_etched ? money2(pr.usd_etched) + " etched" : ""].filter(Boolean).join(" · ");
     return {set: c.set, sn: c.set_name, num: c.collector_number, yr: (c.released_at || "").slice(0, 4), img: ((f.image_uris || {}).small) || "", tr, fin: c.finishes || [], price}; });
 }
-function pickPrinting(d, done){
-  const box = $("#qkItem .qk-btns"); if (!box) return;
+// the answer panels open in the right column, next to the listing photos (the card info steps aside; ← Back brings it back)
+function qkSideOpen(html){
+  const side = $("#qkSide"), info = $("#qkInfo"); if (!side || !info) return null;
+  info.hidden = true; side.hidden = false; side.innerHTML = html;
+  const b = side.querySelector("#qkPickCancel"); if (b) b.addEventListener("click", qkSideClose);
+  side.scrollIntoView({block: "nearest", behavior: "smooth"}); return side;
+}
+function qkSideClose(){ const side = $("#qkSide"), info = $("#qkInfo"); if (side){ side.hidden = true; side.innerHTML = ""; } if (info) info.hidden = false; }
+function pickPrinting(d, done, langFirst){
   const name = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, ""), set = ((/\[([A-Z0-9]+)\]/.exec(d.card || "") || [])[1] || "").toLowerCase();
-  const want = String((dealCard(d) || {}).num || "");
-  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>What's actually in the photos?</b><span class="mut" style="font-size:12px">tap the version in the photos - foil comes from the listing's title</span></div>
-    <input id="qkFind" type="search" placeholder="Find a version: set code, set name, number, year or treatment (e.g. pal01, Arena, 1)" autocomplete="off" style="width:100%;margin:6px 0 8px" hidden>
-    <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div>
-    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkLang">🌐 Another Language</button><button type="button" class="btn ghost" id="qkWrongCard">A Different Card</button><button type="button" class="btn ghost" id="qkNotSure">Wrong, But Not Sure Which</button><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div>
+  const dc = dealCard(d) || {}, want = String(dc.num || ""), ref0 = dc.img ? dc.img.replace("/small/", "/normal/") : sfImgFor(d);
+  const cap0 = `${esc(dc.sn || setOf(d) || "")}${want ? " #" + esc(want) : ""} <span class="mut">(what it's priced as)</span>`;
+  if (!qkSideOpen(`<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:15px">Which One Is In The Photos?</b><button type="button" class="btn ghost small" id="qkPickCancel">← Back</button></div>
+    <div class="qk-cmp">${ref0 ? `<img id="qkCmpImg" src="${esc(ref0)}" alt="">` : ""}<div id="qkCmpCap" style="font-size:12.5px">${cap0}<div class="mut" style="font-size:12px;margin-top:4px">Hover a picture to compare it here with the photo. Tap it to answer - foil comes from the listing's title.</div></div></div>
+    <div class="qk-chips"><button type="button" class="btn ghost small" id="qkLang">🌐 Another Language</button><button type="button" class="btn ghost small" id="qkWrongCard">🃏 A Different Card</button><button type="button" class="btn ghost small" id="qkNotSure">Wrong, But Not Sure Which</button></div>
     <div id="qkLangRow" hidden><div class="qk-langs">${COL_LANGS.filter(([c]) => c !== "EN").concat([["OTHER", "Other"]]).map(([c, l]) => `<button type="button" class="btn ghost small" data-lang="${c}">${esc(l)}</button>`).join("")}</div>
-      <p class="mut" id="qkLangMsg" style="font-size:12px;margin:6px 0 0" hidden></p></div></div>`;
+      <p class="mut" id="qkLangMsg" style="font-size:12px;margin:6px 0 0" hidden></p></div>
+    <input id="qkFind" type="search" placeholder="Find: set code, set name, number, year or treatment" autocomplete="off" style="width:100%;margin:6px 0 8px" hidden>
+    <div class="qk-prints" id="qkPrints"><p class="mut loadmsg">Loading its printings…</p></div></div>`)) return;
   // foil comes from the listing's own words - a photo (or you) often can't tell; never guessed
   const ttl = String(d.title || ""), fin = /non[\s-]*foil/i.test(ttl) ? "non-foil" : /\bfoil\b|\betched\b/i.test(ttl) ? (/\betched\b/i.test(ttl) ? "etched foil" : "foil") : "";
-  $("#qkPick").scrollIntoView({block: "start", behavior: "smooth"});
   $("#qkNotSure").addEventListener("click", () => done(""));
   $("#qkWrongCard").addEventListener("click", () => done("", true));
   // 🌐 another language: early foreign cards (Foreign Black / White Border, Renaissance, Rinascimento...) are their own printing -
@@ -3413,10 +3427,10 @@ function pickPrinting(d, done){
     if (PICK) return done(`${PICK.fact} · ${label}`, false, code);   // the foreign printing you tapped, in this language
     if (PS && PS.some(p => FOREIGN.has(p.set))){ LANG = {code, label};
       $("#qkLangRow").querySelectorAll("[data-lang]").forEach(x => x.classList.toggle("ghost", x !== b));
-      const m = $("#qkLangMsg"); m.hidden = false; m.innerHTML = `Early non-English cards are their own printing. <b>Tap the ${esc(label)} one in the photos above</b> (only the foreign printings are shown now).`;
+      const m = $("#qkLangMsg"); m.hidden = false; m.innerHTML = `Early non-English cards are their own printing. <b>Tap the ${esc(label)} one below</b> (only the foreign printings are shown now).`;
       redraw(); $("#qkPrints").scrollIntoView({block: "nearest", behavior: "smooth"}); return; }
     done(`same printing, in ${label}`, false, code, true); });
-  $("#qkPickCancel").addEventListener("click", () => renderAudit());
+  if (langFirst) setTimeout(() => $("#qkLang") && $("#qkLang").click(), 0);
   qkPrintsOf(name).then(ps => {
     const el = $("#qkPrints"); if (!el) return; PS = ps;
     ps = ps.slice().sort((a, b) => (b.set === set) - (a.set === set));   // same set first; the one it's priced as stays in view (greyed) to compare
@@ -3430,8 +3444,8 @@ function pickPrinting(d, done){
     };
     if (ps.length > 12){ find.hidden = false; find.addEventListener("input", draw); }
     redraw = draw; draw();
-    // hover a version: it takes the card's picture spot next to the photos (covers nothing); leave and it goes back
-    const refImg = $("#qkItem .qk-refimg img"), refCap = $("#qkItem .qk-card .qk-name + div");
+    // hover a version: it shows in the compare spot at the top, right next to the listing photo; leave and it goes back
+    const refImg = $("#qkCmpImg"), refCap = $("#qkCmpCap");
     const keep = refImg && refCap ? [refImg.src, refCap.innerHTML] : null;
     el.addEventListener("mouseover", e => { const b = e.target.closest(".qk-pr"); if (!b || !keep) return; const p = ps[+b.dataset.i];
       if (!p.img) return; refImg.src = p.img.replace("/small/", "/normal/"); refCap.innerHTML = `${priced(p) ? "" : '<b class="down">Comparing:</b> '}${esc(p.sn || p.set.toUpperCase())} #${esc(p.num)}${p.tr ? " · " + esc(p.tr) : ""}${p.price ? " · " + esc(p.price) : ""}`; });
@@ -3446,16 +3460,11 @@ function pickPrinting(d, done){
 }
 // 📷 Photo Problem: the photos can't answer "which printing?" - each is a fact (hides the deal), never a printing lesson.
 // Several-card listings are kept with their photos and title: the start of teaching Loupe to read a whole lot and price it.
-const PHOTO_PROBLEMS = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards", "more than one card sold together"], ["verify", "🌫️ Can't See the Card", "too blurry, too far away, or only the back"],
-  ["fine", "🤷 Photos Are Fine", "I just can't tell which printing it is"]];
+const PHOTO_PROBLEMS = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards", "more than one card sold together"], ["verify", "🌫️ Too Blurry Or Only The Back", "too blurry, too far away, or only the back"]];
 function photoProblem(d, done){
-  const box = $("#qkItem .qk-btns"); if (!box) return;
-  box.outerHTML = `<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between"><b>Why can't you answer?</b><span class="mut" style="font-size:12px">or ← Undo</span></div>
-    <div class="qk-probs">${PHOTO_PROBLEMS.map(([k, l, t], i) => `<button type="button" class="btn ghost" data-prob="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div>
-    <div class="row" style="margin-top:8px"><button type="button" class="btn ghost" id="qkPickCancel">← Undo</button></div></div>`;
-  $("#qkPick").scrollIntoView({block: "nearest", behavior: "smooth"});
+  if (!qkSideOpen(`<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:15px">Why Can't You See The Card?</b><button type="button" class="btn ghost small" id="qkPickCancel">← Back</button></div>
+    <div class="qk-probs">${PHOTO_PROBLEMS.map(([k, l, t]) => `<button type="button" class="btn ghost" data-prob="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div></div>`)) return;
   $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-prob]"); if (b) done(b.dataset.prob); });
-  $("#qkPickCancel").addEventListener("click", () => renderAudit());
 }
 function wireQuick(d, q){
   wireCarousels($("#qkItem") || document);
@@ -3467,13 +3476,15 @@ function wireQuick(d, q){
   const done = {how: "quick", after: onward};
   const save = ed => saveReview(d, {edition: ed, condition: "unclear", back: "skip", fault: "seller"}, "", done);
   $("#qkYes").addEventListener("click", () => save("matches"));
-  $("#qkNo").addEventListener("click", () => pickPrinting(d, (fact, wrongCard, lang, same) => saveReview(d, Object.assign({edition: same ? "matches" : wrongCard ? "wrongcard" : "edition", condition: "unclear", back: "skip", fault: "seller", factNote: fact},
-    lang ? {eng: "no", langpick: lang} : {}), "", done)));   // same printing in another language: the printing is right, the language is a fact
+  const picked = (fact, wrongCard, lang, same) => saveReview(d, Object.assign({edition: same ? "matches" : wrongCard ? "wrongcard" : "edition", condition: "unclear", back: "skip", fault: "seller", factNote: fact},
+    lang ? {eng: "no", langpick: lang} : {}), "", done);
+  $("#qkNo").addEventListener("click", () => pickPrinting(d, picked));
+  $("#qkLangB").addEventListener("click", () => pickPrinting(d, picked, true));
+  $("#qkCard").addEventListener("click", () => picked("", true));
+  $("#qkSkip").addEventListener("click", () => saveReview(d, {edition: "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't tell from the photos"}, "", done));   // same printing in another language: the printing is right, the language is a fact
   // a stock photo isn't the card being sold: a fact (hidden, like Stock Photo in the full review), never a printing lesson
   // ? Can't Answer: a photo problem (a fact - hides the deal, never a printing lesson) or "the photos are fine, I just can't tell" (saved, so it doesn't come back)
-  $("#qkCant").addEventListener("click", () => photoProblem(d, why => why === "fine"
-    ? saveReview(d, {edition: "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't tell from the photos"}, "", done)
-    : saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
+  $("#qkCant").addEventListener("click", () => photoProblem(d, why => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
