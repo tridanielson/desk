@@ -587,7 +587,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 03:15 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 03:51 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3358,7 +3358,7 @@ function quickHTML(d, q){
         ${d._artHow ? `<div class="mut" style="font-size:12px">${{title: "Art: the number in the title", loupe: "Art: the one Loupe sees in the photos", guess: "Art: Loupe couldn't tell which - check it"}[d._artHow]}</div>` : ""}</div></div>
       ${sellerSaysHTML(d, ebayLink(d))}
     ${photoCheckLine(d)}${d.photo_kind && d.photo_kind !== "card" ? `<div class="mut" style="font-size:12px">🔍 Loupe also thinks the photos are: <b>${esc({stock: "a stock photo", lot: "several cards / a lot", verify: "not clear enough to see the card"}[d.photo_kind] || d.photo_kind)}</b> - tap 📷 Photo Problem if it's right</div>` : ""}
-    <div class="qk-q2">Is it ${esc(String(c.sn || setOf(d) || "").replace(/^Limited Edition /, ""))}${want ? " #" + esc(want) : ""}?</div>
+    <div class="qk-q2">Is it ${esc(name0)} - ${esc(c.sn || setOf(d) || "")}${want ? " #" + esc(want) : ""}?</div>
     <div class="qk-btns"><button class="btn qk-no" id="qkNo" type="button">✗ No</button><button class="btn ghost" id="qkCant" type="button" title="Stock photo, several cards, can't see the card - or the photos are fine and you just can't tell">? Can't Answer</button><button class="btn qk-yes" id="qkYes" type="button">✓ Yes</button></div></div></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the printing - condition doesn't matter here. Wrong ones are hidden like a 👎 Wrong Edition.</span></div></div>`;
