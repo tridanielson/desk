@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 10:18 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 10:22 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -708,22 +708,22 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dRvw" class="owner-only" aria-label="Reviewed" title="Deals you haven't reviewed yet"><option value="">Reviewed + Not Reviewed</option><option value="todo">Not Reviewed Yet</option><option value="done">Reviewed Only</option></select>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" aria-label="Sort by"><option value="Best Value|-1">Sort: Best Value</option><option value="">Sort: Newest First</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
-    <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
     <select id="dType" aria-label="Listing type" title="Auction Only = sorted by ending soonest, ended ones hidden"><option value="bin">Buy It Now Only</option><option value="auction">Auction Only</option><option value="">Buy It Now + Auction</option><option value="offer">🤝 Takes Offers</option><option value="sniped">🎯 My Snipes</option><option value="offers">🤝 My Offers</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
     </div>
     <div class="row" id="dMore" hidden style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
-    <label><input type="checkbox" id="dBuy"> Below Buylist Only</label>
-    <label title="Listings priced so far under value (below the 'too cheap' % in Settings) that they're usually fakes or the wrong card"><input type="checkbox" id="dSus"> Hide "Too Cheap?" Listings</label>
-    <select id="dRej" class="owner-only" title="Audit what your rules, ratings and SlaveAI removed"><option value="">Active Deals</option><option value="only">Only Hidden &amp; SlaveAI-Rejected (Audit)</option><option value="all">Everything</option></select>
+    <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
+    <select id="dShow" aria-label="Show"><option value="">Show: Active Deals</option><option value="ended">Show: Ended, Bought &amp; Ignored Too</option><option value="hidden" class="owner-only">Show: Only Hidden &amp; SlaveAI-Rejected</option><option value="all">Show: Everything</option></select>
+    <select id="dOnly" aria-label="Only"><option value="">All Deals</option><option value="top">★ Top Picks Only</option><option value="buy">Below Buylist Only</option><option value="sus">Hide "Too Cheap?" Listings</option></select>
+    <span hidden><input type="checkbox" id="dBuy" aria-label="Below Buylist Only"><input type="checkbox" id="dSus" aria-label="Hide Too Cheap? Listings"></span>
+    <select id="dRej" class="owner-only" hidden title="Audit what your rules, ratings and SlaveAI removed"><option value="">Active Deals</option><option value="only">Only Hidden &amp; SlaveAI-Rejected (Audit)</option><option value="all">Everything</option></select>
     <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All Reasons</option></select>
     <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by Anyone</option><option value="you">👎 You</option><option value="rule">📋 Your Rules</option><option value="ai">🤖 SlaveAI</option><option value="auto">🔎 Automatic Checks</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + Unsigned</option><option value="hide">Hide Signed</option><option value="only">Signed Only</option></select>
-    <label title="Top picks match your Top-pick settings (Settings) and get their own phone alert"><input type="checkbox" id="dPref"> ★ Top Picks Only</label>
-    <label><input type="checkbox" id="dUSA"> USA Sellers Only</label>
-    <label title="Listings that have ended or sold. They're re-checked every few hours; old eBay links often open a 'similar items' page instead."><input type="checkbox" id="dEnded"> Include Ended, Bought &amp; Ignored</label>
+    <span hidden><input type="checkbox" id="dPref" aria-label="Top Picks Only"><input type="checkbox" id="dEnded" aria-label="Include Ended, Bought & Ignored"></span>
+    <label title="Only listings that ship from your country (Settings > My Country) - foreign ones have import fees on top"><input type="checkbox" id="dUSA"> <span id="dUSAlbl">My Country Only</span></label>
     <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     </div>
@@ -1879,7 +1879,7 @@ function dealExtraOK(d){
   if (ty === "sniped" && !snipeOf(d)) return false;
   const st = $("#dSet") ? pickedSets() : []; if (st.length && !st.includes(setOf(d))) return false;
   if ($("#dPref").checked && !prefOK(d)) return false;
-  if ($("#dUSA").checked && (d.location || "") !== "US") return false;
+  if ($("#dUSA").checked && (d.location || "").toUpperCase() !== String((S.ini.alerts || {}).home_country || "US").toUpperCase()) return false;   // My Country Only
   const g = $("#dGraded").value; if (g === "raw" && isGraded(d)) return false; if (g === "graded" && !isGraded(d)) return false;
   const rw = $("#dRvw") ? $("#dRvw").value : ""; if (rw && FB.loaded){ const done = !!reviewedState(d); if (rw === "todo" && done) return false; if (rw === "done" && !done) return false; }
   const mc = $("#dCond").value;
@@ -2211,7 +2211,7 @@ const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
 // calmer page: secondary filters fold under "More Filters"; the how-it-works card shows until you dismiss it
 (function(){
   const more = $("#dMore"), btn = $("#dMoreBtn"); if (!more || !btn) return;
-  const set = open => { more.hidden = !open; btn.textContent = open ? "Fewer Filters ▴" : "More Filters ▾"; store.set("pd_more", open ? "1" : ""); };
+  const set = open => { more.hidden = !open; btn.textContent = open ? "Fewer Filters ▴" : "More Filters ▾"; store.set("pd_more", open ? "1" : ""); if (typeof showActiveFilters === "function") try{ showActiveFilters(); }catch(e){} };
   set(store.get("pd_more") === "1"); btn.addEventListener("click", () => set(more.hidden));
   const how = $("#dHow"); if (how && store.get("pd_howto") !== "1") how.hidden = false;
   $("#dHowOk").addEventListener("click", () => { how.hidden = true; store.set("pd_howto", "1"); });
@@ -2219,13 +2219,36 @@ const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
 })();
 function showActiveFilters(){
   const box = $("#dActive"); if (!box) return;
-  const on = DEAL_FILTERS.filter(s => { const el = $(s); if (!el || el.hidden) return false; return el.type === "checkbox" ? el.checked : String(el.value) !== (DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : "")); })
-    .map(s => { const el = $(s); return el.type === "checkbox" ? (el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : s === "#dSet" ? setLabel() : `last ${el.value} days`; });
+  if (typeof dealCombosSync === "function") dealCombosSync();
+  const on = DEAL_FILTERS.filter(s => { const el = $(s); if (!el || (el.hidden && s !== "#dRej")) return false; return el.type === "checkbox" ? el.checked : String(el.value) !== (DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : "")); })
+    .map(s => { const el = $(s); return el.type === "checkbox" ? (el.getAttribute("aria-label") || el.parentElement.textContent || "").trim() : el.tagName === "SELECT" ? el.options[el.selectedIndex].text : s === "#dSearch" ? `"${el.value}"` : s === "#dMin" ? `${el.value}%+ off` : s === "#dSet" ? setLabel() : `last ${el.value} days`; });
+  // "Show" is one choice even though it sets two old controls: list it once, by its own name
+  const showTxt = $("#dShow") && $("#dShow").value ? $("#dShow").options[$("#dShow").selectedIndex].text.replace(/^Show: /, "") : "";
+  const on2 = on.filter(t => t !== "Include Ended, Bought & Ignored" && !/^(Everything|Only Hidden)/.test(t)); if (showTxt) on2.unshift(showTxt);
+  on.length = 0; on.push(...on2);
   box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show All</a>` : "";
   if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
-    store.set("pd_dealfilters", "{}"); renderDeals(); });
+    store.set("pd_dealfilters", "{}"); dealCombosSync(); renderDeals(); });
+  // the More Filters button says how many of its filters are on, so a folded-away filter never surprises you
+  const MORE = ["#dShow", "#dPref", "#dBuy", "#dSus", "#dSet", "#dLang", "#dSigned", "#dGraded", "#dUSA", "#dBy", "#dWhy"];
+  const nMore = MORE.filter(x => { const el = $(x); if (!el) return false; if (el.type === "checkbox") return el.checked; if (x === "#dBy" || x === "#dWhy") return !el.hidden && el.value; return String(el.value) !== (el.tagName === "SELECT" ? el.options[0].value : ""); }).length;
+  const mb = $("#dMoreBtn"); if (mb) mb.textContent = ($("#dMore").hidden ? "More Filters" : "Fewer Filters") + (nMore ? ` (${nMore} on)` : "") + ($("#dMore").hidden ? " ▾" : " ▴");
 }
+// "Show" and "Only" are one dropdown each over the old checkboxes (kept underneath so saved filters keep working)
+function dealCombosSync(){
+  const sh = $("#dShow"), on = $("#dOnly"); if (!sh || !on) return;
+  const rej = $("#dRej").value, ended = $("#dEnded").checked;
+  sh.value = rej === "all" ? "all" : rej === "only" ? "hidden" : ended ? "ended" : "";
+  on.value = $("#dPref").checked ? "top" : $("#dBuy").checked ? "buy" : $("#dSus").checked ? "sus" : "";
+  const lbl = $("#dUSAlbl"); if (lbl){ const c = String((S.ini.alerts || {}).home_country || "US").toUpperCase(); lbl.textContent = c === "US" ? "USA Sellers Only" : "My Country Only (" + c + ")"; }
+}
+$("#dShow").addEventListener("change", e => { const v = e.target.value;
+  $("#dRej").value = v === "hidden" ? "only" : v === "all" ? "all" : ""; $("#dEnded").checked = v === "ended" || v === "all";
+  $("#dRej").dispatchEvent(new Event("change")); $("#dEnded").dispatchEvent(new Event("input")); });
+$("#dOnly").addEventListener("change", e => { const v = e.target.value;
+  $("#dPref").checked = v === "top"; $("#dBuy").checked = v === "buy"; $("#dSus").checked = v === "sus"; $("#dPref").dispatchEvent(new Event("input")); });
+dealCombosSync();
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
   renderDeals();
