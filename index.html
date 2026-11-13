@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:25 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:32 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4593,6 +4593,16 @@ function binderSave(list){   // list without My Collection
   (S.ini.collection = S.ini.collection || {}).binders = list.map(([k, n]) => `${k}:${String(n).replace(/[|\r\n=\[\]]/g, " ").trim()}`).join(" || ");
   markDirty("settings");
 }
+function binderChipsHTML(withAdd){
+  return `<div class="binders" role="tablist" aria-label="Binders">${binderList().map(([k]) => { const its = colItems(k).filter(i => i.left > 0 && i.status !== "ordered"), c = its.reduce((t, i) => t + i.left, 0), v = its.reduce((t, i) => t + (i.value || 0), 0);
+      const on = (COL.binder || "") === k;
+      return `<button type="button" class="binder${on ? " on" : ""}" data-binder="${k}" role="tab" aria-selected="${on}"><b>${esc(binderName(k))}${on ? ` <span class="brn" data-brename="${k}" role="button" title="Rename this binder">✎</span>` : ""}</b><span>${c} card${c === 1 ? "" : "s"} · ${money(v)}</span></button>`; }).join("")}${withAdd ? `<button type="button" class="binder binder-add" id="binderAdd" title="Add a binder"><b>+ New Binder</b><span>kept separate</span></button>` : ""}</div>`;
+}
+function wireBinderChips(box, rerender){
+  if (box.querySelector("#binderAdd")) box.querySelector("#binderAdd").addEventListener("click", addBinder);
+  box.querySelectorAll("[data-brename]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); renameBinder(b.dataset.brename); }));
+  box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} rerender(); }));
+}
 function renameBinder(b){
   const main = !b, count = COL.inv.filter(r => binderOf(r) === b).length;
   openModal(`<h3>${main ? "Rename Binder" : "Rename or Delete Binder"}</h3><label for="brName">Name</label><input id="brName" maxlength="40" value="${esc(binderName(b))}" style="width:100%">
@@ -4601,14 +4611,14 @@ function renameBinder(b){
   const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
     if (main){ (S.ini.collection = S.ini.collection || {}).binder_main_name = v; markDirty("settings"); }
     else binderSave(binderList().slice(1).map(([k, n]) => [k, k === b ? v : n]));
-    closeModal(); renderCOL(); };
+    closeModal(); renderCOL(); renderSETS(); };
   $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal);
   $("#brName").addEventListener("keydown", e => { if (e.key === "Enter") put(); }); $("#brName").select();
   if ($("#brDel")) $("#brDel").addEventListener("click", () => {
     if (count && $("#brDel").dataset.sure !== "1"){ $("#brDel").dataset.sure = "1"; $("#brDel").textContent = `Yes, Move ${count} Card${count === 1 ? "" : "s"} & Delete`; return; }
     COL.inv.forEach(r => { if (binderOf(r) === b) r.binder = ""; }); if (count) markDirty("collection");
     binderSave(binderList().slice(1).filter(([k]) => k !== b)); COL.binder = ""; try{ localStorage.setItem("pd_binder", ""); }catch(e){}
-    closeModal(); renderCOL(); toast(count ? `Binder deleted - its ${count} card${count === 1 ? "" : "s"} are back in ${binderName("")}.` : "Binder deleted.", 5000); });
+    closeModal(); renderCOL(); renderSETS(); toast(count ? `Binder deleted - its ${count} card${count === 1 ? "" : "s"} are back in ${binderName("")}.` : "Binder deleted.", 5000); });
 }
 function addBinder(){
   openModal(`<h3>New Binder</h3><label for="brName">Name</label><input id="brName" maxlength="40" placeholder="e.g. Show Box, Consignment" style="width:100%">
@@ -4616,7 +4626,7 @@ function addBinder(){
     <div class="acts"><button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Add Binder</button></div>`);
   const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
     const k = "b-" + Date.now().toString(36); binderSave(binderList().slice(1).concat([[k, v]]));
-    COL.binder = k; try{ localStorage.setItem("pd_binder", k); }catch(e){} closeModal(); renderCOL(); };
+    COL.binder = k; try{ localStorage.setItem("pd_binder", k); }catch(e){} closeModal(); renderCOL(); renderSETS(); };
   $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal);
   $("#brName").addEventListener("keydown", e => { if (e.key === "Enter") put(); }); $("#brName").focus();
 }
@@ -5303,9 +5313,7 @@ function renderCOL(){
   const VIEWS = colViews(held);
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>My Cards</h2>
       <p class="sub" style="margin:0">What you own and what it's worth. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}</p></div></div>
-    <div class="binders" role="tablist" aria-label="Binders">${binderList().map(([k]) => { const its = colItems(k).filter(i => i.left > 0 && i.status !== "ordered"), c = its.reduce((t, i) => t + i.left, 0), v = its.reduce((t, i) => t + (i.value || 0), 0);
-      const on = (COL.binder || "") === k;
-      return `<button type="button" class="binder${on ? " on" : ""}" data-binder="${k}" role="tab" aria-selected="${on}"><b>${esc(binderName(k))}${on ? ` <span class="brn" data-brename="${k}" role="button" title="Rename this binder">✎</span>` : ""}</b><span>${c} card${c === 1 ? "" : "s"} · ${money(v)}</span></button>`; }).join("")}<button type="button" class="binder binder-add" id="binderAdd" title="Add a binder"><b>+ New Binder</b><span>kept separate</span></button></div>
+    ${binderChipsHTML(true)}
     ${COL.binder ? `<p class="mut" style="font-size:12.5px;margin:4px 0 8px">${esc(binderName(COL.binder))} is kept separate: these cards don't count toward your Sets or Want List, and the scanners keep looking for them.</p>` : ""}
     <div class="cv-sum">
       ${box2(COL.binder ? binderName(COL.binder) + " worth" : "Worth today", money(worth), `${sum(held, i => i.left)} items · ${sum(singles, i => i.left)} cards · ${sum(sealedR, i => i.left)} sealed${held.length - priced.length ? ` · ${held.length - priced.length} not priced yet` : ""}`)}
@@ -5336,9 +5344,7 @@ function renderCOL(){
   $("#colAdd").addEventListener("click", () => openColEdit(null));
   $("#colPaste").addEventListener("click", openColPaste);
   if ($("#colAddS")) $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
-  if ($("#binderAdd")) $("#binderAdd").addEventListener("click", addBinder);
-  box.querySelectorAll("[data-brename]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); renameBinder(b.dataset.brename); }));
-  box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} renderCOL(); }));
+  wireBinderChips(box, () => { renderCOL(); renderSETS(); });
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
   renderColWaiting(); renderCOLList();
 }
@@ -5965,10 +5971,11 @@ async function loadSetCards(g){
   catch(e){ SETS.err[k] = e.message; }
   SETS.loading[k] = false; renderSETS(); if (document.querySelector("#tab-mine.on")) renderWant();
 }
-function goalProgress(g){
+function goalProgress(g, b){
+  b = b || "";   // "" = My Collection: the Want List and "Everything I Need" always use it; the Sets tab passes the binder you picked
   const cards = SETS.cards[goalKey(g)]; if (!cards) return null;
   const fins = goalFins(g), code = g.set.toLowerCase();
-  const left = new Map(colItems("").filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));   // sets count My Collection only
+  const left = new Map(colItems(b).filter(i => i.kind === "card" && i.left > 0).map(i => [i.id, i.left]));
   const byNum = {}, byName = {}, conds = {}, grades = {}, raws = {};   // conds: the condition of every copy you hold, per printing+finish
   COL.inv.forEach(r => { const n = left.get(r.id), f = r.finish || "nonfoil"; if (!n || (r.set || "").toLowerCase() !== code || !fins.includes(f)) return;
     const ck = r.number ? r.number + "|" + f : "n:" + (r.name || "").toLowerCase() + "|" + f;
@@ -6108,16 +6115,18 @@ function renderSETS(){
     if (!SETS.cards[tk] && !SETS.loading[tk] && !SETS.err[tk]) loadSetCards(t).then(() => { if (SETS.open === "own:" + code) renderSETS(); });
     return renderSetDetail(t); }
   SETS.open = "";
+  if (COL.binder && !binderList().some(([k]) => k === COL.binder)) COL.binder = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
     <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
-    <div class="row">${goals.length ? '<button class="btn ghost small" id="setNeedAll">📋 Everything I Need</button>' : ""}<button class="btn small" id="setAdd">+ Add a Set</button></div></div>`;
+    <div class="row">${goals.length ? '<button class="btn ghost small" id="setNeedAll">📋 Everything I Need</button>' : ""}<button class="btn small" id="setAdd">+ Add a Set</button></div></div>
+    ${binderList().length > 1 ? binderChipsHTML(false) : ""}${COL.binder ? `<p class="mut" style="font-size:12.5px;margin:4px 0 8px">Showing <b>${esc(binderName(COL.binder))}</b>: how much of each set is in this binder. Your Want List and the scanners still go by ${esc(binderName(""))} only.</p>` : ""}`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="all">Every Version</option><option value="nonfoil">Non-Foil Only</option><option value="foil">Foil Only</option><option value="etched">Etched Only</option></select>
       <label><input type="checkbox" id="setNB"> Skip Basic Lands</label><button class="btn ghost small" id="setCancel">Cancel</button></div><div id="setHits" style="margin-top:8px"></div></div>`;
   if (goals.length) L += `<h3 style="margin:16px 0 0">⭐ Completing</h3>`;
   if (!goals.length) L += `<div class="panel"><p class="mut" style="margin:0">Not completing any sets. Open one of your sets below and tap <b>☆ Complete This Set</b> (or <b>+ Add a Set</b> for one you don't own anything from) to track what's missing.</p></div>`;
   else {
-    L += `<div class="sl-grid" style="margin-top:10px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
+    L += `<div class="sl-grid" style="margin-top:10px">` + goals.map(g => { const k = goalKey(g), pr = goalProgress(g, COL.binder), nm = (SETS.cards[k] || [])[0];
       const pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0;
       return `<button class="sl-card" data-goal="${esc(k)}" style="padding:14px"><div class="row" style="gap:10px;align-items:center">
           ${nm && nm.set ? setIcon(nm.set) : ""}
@@ -6130,6 +6139,7 @@ function renderSETS(){
   }
   L += ownedSetsHTML(goals);
   box.innerHTML = L;
+  wireBinderChips(box, () => { renderSETS(); renderCOL(); });
   wireOwnedSets(box);
   if ($("#setNeedAll")) $("#setNeedAll").addEventListener("click", () => { SETS.needAll = true; renderSETS(); window.scrollTo(0, 0); });
   $("#setAdd").addEventListener("click", () => { SETS.adding = true; renderSETS(); setTimeout(() => $("#setQ") && $("#setQ").focus(), 30); });
@@ -6242,7 +6252,7 @@ function ownedSetsHTML(goals){
   if (!SETS.allSets && !SETS.setsLoading){ SETS.setsLoading = true; loadAllSets().catch(() => {}).finally(() => { SETS.setsLoading = false; if (document.querySelector("#tab-sets.on")) renderSETS(); }); }
   const info = new Map((SETS.allSets || []).map(x => [x.code, x]));
   const by = new Map();
-  colItems("").filter(i => i.kind === "card" && i.left > 0 && i.status !== "ordered" && i.set).forEach(i => {   // My Collection only
+  colItems(COL.binder || "").filter(i => i.kind === "card" && i.left > 0 && i.status !== "ordered" && i.set).forEach(i => {   // the binder you picked
     const k = i.set.toLowerCase(), a = by.get(k) || {code: k, name: i.set_name || "", cards: 0, nums: new Set(), value: 0};
     a.cards += i.left; a.nums.add(String(i.number || i.name).toLowerCase()); a.value += i.value || 0; if (!a.name && i.set_name) a.name = i.set_name; by.set(k, a); });
   const starred = new Set(goals.map(g => g.set.toLowerCase()));
@@ -6272,7 +6282,7 @@ function wireOwnedSets(box){
   const om = $("#ownMore"); if (om) om.addEventListener("click", () => { SETS.ownAll = !SETS.ownAll; renderSETS(); });
 }
 function renderSetDetail(g){
-  const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g), nm = (SETS.cards[k] || [])[0];
+  const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g, COL.binder), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
   if (!pr && SETS.err[k]){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty">${esc(SETS.err[k])}</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
   if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty loadmsg">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
@@ -6376,7 +6386,7 @@ function openSetPocket(g, r, pr){
 // your copies of one card in a set (each Collection entry), and one line saying what a copy is
 function setCopies(g, c, f){
   const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", code = g.set.toLowerCase();
-  return COL.inv.filter(r => !binderOf(r) && (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin && r.status !== "sold" &&
+  return COL.inv.filter(r => binderOf(r) === (COL.binder || "") && (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin && r.status !== "sold" &&
     (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
 }
 const copyLine = r => `×${esc(r.qty)} · <b>${esc(r.condition || "NM")}</b>${r.grade ? ` · <span class="badge" style="background:${SLAB_BADGE[0]};color:${SLAB_BADGE[1]}">🏅 ${esc(r.grade)}</span>` : ""}${(r.language || "EN").toUpperCase() !== "EN" ? " · " + esc(langName(r.language)) : ""}${variantOf(r.variant) ? ` · <b>${esc(variantOf(r.variant)[2])}</b>` : ""}${r.signed ? " · ✍ Signed" : ""}${r.status === "ordered" ? " · on the way" : ""} · paid ${numOrNull(r.cost_each) ? money(numOrNull(r.cost_each)) : "–"}${r.acquired ? " · " + esc(r.acquired) : ""}`;
@@ -6394,7 +6404,7 @@ function openSetEdit(g, c, f){
 }
 function openSetRemove(g, c, f){
   const fin = f || (g.finish !== "all" && g.finish) || "nonfoil", code = g.set.toLowerCase();
-  const mine = () => COL.inv.filter(r => !binderOf(r) && (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
+  const mine = () => COL.inv.filter(r => binderOf(r) === (COL.binder || "") && (r.kind || "card") === "card" && (r.set || "").toLowerCase() === code && (r.finish || "nonfoil") === fin &&
     (r.number ? r.number === c.collector_number : (r.name || "").toLowerCase() === c.name.toLowerCase()));
   const draw = () => {
     const rows = mine();
