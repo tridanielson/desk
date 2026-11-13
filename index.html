@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:32 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:39 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4604,21 +4604,38 @@ function wireBinderChips(box, rerender){
   box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} rerender(); }));
 }
 function renameBinder(b){
-  const main = !b, count = COL.inv.filter(r => binderOf(r) === b).length;
+  const main = !b, count = COL.inv.filter(r => binderOf(r) === b).length, others = binderList().filter(([k]) => k !== b);
   openModal(`<h3>${main ? "Rename Binder" : "Rename or Delete Binder"}</h3><label for="brName">Name</label><input id="brName" maxlength="40" value="${esc(binderName(b))}" style="width:100%">
-    ${main ? "" : `<p class="mut" style="font-size:12.5px;margin:10px 0 0">Delete Binder: ${count ? `its ${count} card${count === 1 ? "" : "s"} move back to ${esc(binderName(""))} - nothing is lost.` : "it's empty."}</p>`}
-    <div class="acts">${main ? "" : '<button class="btn ghost" type="button" id="brDel" style="margin-right:auto;color:var(--down)">Delete Binder</button>'}<button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Save</button></div>`);
+    <div class="acts">${main ? "" : '<button class="btn ghost" type="button" id="brDel" style="margin-right:auto;color:var(--down)">Delete Binder…</button>'}<button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Save</button></div>
+    <div id="brDelBox" hidden></div>`);
   const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
     if (main){ (S.ini.collection = S.ini.collection || {}).binder_main_name = v; markDirty("settings"); }
     else binderSave(binderList().slice(1).map(([k, n]) => [k, k === b ? v : n]));
     closeModal(); renderCOL(); renderSETS(); };
   $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal);
   $("#brName").addEventListener("keydown", e => { if (e.key === "Enter") put(); }); $("#brName").select();
+  const finish = msg => { binderSave(binderList().slice(1).filter(([k]) => k !== b)); COL.binder = ""; try{ localStorage.setItem("pd_binder", ""); }catch(e){}
+    closeModal(); renderCOL(); renderSETS(); toast(msg, 6000); };
   if ($("#brDel")) $("#brDel").addEventListener("click", () => {
-    if (count && $("#brDel").dataset.sure !== "1"){ $("#brDel").dataset.sure = "1"; $("#brDel").textContent = `Yes, Move ${count} Card${count === 1 ? "" : "s"} & Delete`; return; }
-    COL.inv.forEach(r => { if (binderOf(r) === b) r.binder = ""; }); if (count) markDirty("collection");
-    binderSave(binderList().slice(1).filter(([k]) => k !== b)); COL.binder = ""; try{ localStorage.setItem("pd_binder", ""); }catch(e){}
-    closeModal(); renderCOL(); renderSETS(); toast(count ? `Binder deleted - its ${count} card${count === 1 ? "" : "s"} are back in ${binderName("")}.` : "Binder deleted.", 5000); });
+    if (!count) return finish("Binder deleted - it was empty.");
+    // its cards: move them to a binder you pick, or delete them along with the binder - your choice, nothing happens by itself
+    const box = $("#brDelBox"); box.hidden = false; $("#brDel").hidden = true;
+    box.innerHTML = `<div class="panel" style="margin-top:12px;border-color:var(--down)"><b>${esc(binderName(b))} has ${count} card${count === 1 ? "" : "s"}. What should happen to ${count === 1 ? "it" : "them"}?</b>
+      <div class="row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn" type="button" id="brMove">Move ${count === 1 ? "It" : "Them"} To</button>
+        <select id="brTo">${others.map(([k, n]) => `<option value="${k}">${esc(n)}</option>`).join("")}</select><span class="mut" style="font-size:12.5px">then delete the binder</span></div>
+      <div class="row" style="margin-top:10px;align-items:center;gap:8px;flex-wrap:wrap"><button class="btn ghost" type="button" id="brKill" style="color:var(--down);border-color:var(--down)">Delete The Binder And All ${count} Card${count === 1 ? "" : "s"}</button>
+        <span class="mut" style="font-size:12.5px">removed from your collection for good</span></div>
+      <div class="row" style="margin-top:10px"><button class="btn ghost small" type="button" id="brKeep">← Keep The Binder</button></div></div>`;
+    $("#brKeep").addEventListener("click", () => { box.hidden = true; box.innerHTML = ""; $("#brDel").hidden = false; });
+    $("#brMove").addEventListener("click", () => { const to = $("#brTo").value;
+      COL.inv.forEach(r => { if (binderOf(r) === b) r.binder = to; }); markDirty("collection");
+      finish(`Binder deleted - its ${count} card${count === 1 ? "" : "s"} moved to ${binderName(to)}.`); });
+    $("#brKill").addEventListener("click", e => {
+      if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = `Tap Again To Delete ${count} Card${count === 1 ? "" : "s"} For Good`; return; }
+      const gone = new Set(COL.inv.filter(r => binderOf(r) === b).map(r => r.id)), refs = new Set(COL.inv.filter(r => gone.has(r.id) && r.ref).map(r => r.ref));
+      COL.inv = COL.inv.filter(r => !gone.has(r.id)); COL.sales = COL.sales.filter(x => !gone.has(x.item_id)); COL.rec = COL.rec.filter(x => !refs.has(x.line_id));
+      markDirty("collection"); finish(`Binder and its ${count} card${count === 1 ? "" : "s"} deleted.`); });
+  });
 }
 function addBinder(){
   openModal(`<h3>New Binder</h3><label for="brName">Name</label><input id="brName" maxlength="40" placeholder="e.g. Show Box, Consignment" style="width:100%">
