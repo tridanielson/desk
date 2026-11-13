@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 10:22 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 05:13 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2732,6 +2732,16 @@ function reviewStart(d){
 // is the back of the card in the photos? SlaveAI's answer when it looked, else Loupe's (it sorts every photo front / back)
 // What the seller says about the card (the listing's own Set / Card Condition / description), saved when the deal was found -
 // so "whose mistake?" can be answered without opening eBay.
+// tracking number(s) -> link(s) to the carrier's tracking page (UPS 1Z…, USPS 20-22 digits, FedEx 12/15 digits);
+// anything else (Wizards' 13-digit numbers) opens 17TRACK, which looks the carrier up itself
+function trackLinks(t){
+  return String(t || "").split(/[\s,;]+/).filter(Boolean).map(n => { const u = n.toUpperCase(), e = encodeURIComponent(u);
+    const [c, url] = /^1Z[0-9A-Z]{16}$/.test(u) ? ["UPS", "https://www.ups.com/track?tracknum=" + e]
+      : /^(9[1-5]\d{18,20}|\d{20,22})$/.test(u) ? ["USPS", "https://tools.usps.com/go/TrackConfirmAction?tLabels=" + e]
+      : /^(\d{12}|\d{15})$/.test(u) ? ["FedEx", "https://www.fedex.com/fedextrack/?trknbr=" + e]
+      : ["17TRACK", "https://t.17track.net/en#nums=" + e];
+    return `<a href="${url}" target="_blank" rel="noopener" title="Track it on ${c}">📦 ${esc(u)}</a>`; }).join(" ");
+}
 function sellerSaysHTML(d, url){
   let o = null; try{ o = d.seller_says ? JSON.parse(d.seller_says) : null; }catch(e){}
   const listed = String(d._c0 || d.condition || "").replace("?", "");
@@ -4555,7 +4565,7 @@ function renderSLOrders(){
   const valCell = g => { const v = gval(g), l = g.lines[0]; return v == null ? `<span class="mut unk" title="${why(g)}">Unknown ⓘ</span>` : (g.lines.some(x => x.approx) ? '<span title="Approximate: priced from the other finish (foil/non-foil) because this one has no price yet">≈ </span>' : "") + money(v) + (g.lines.some(x => x.priced === "some") ? ' <span class="badge b-out">PARTIAL</span>' : ""); };
   const recDate = l => { const r = COL.rec.find(x => x.line_id === l.line_id); return (r && r.date) || l.received || ""; };
   const st1 = l => (isReceived(l) ? `<b class="up">Received</b>${recDate(l) ? ` <span class="mut">· ${esc(recDate(l))}</span>` : ""}`
-      : esc(l.status) + (l.open && l.days_waiting != null ? ` <span class="mut">· ${l.days_waiting}d</span>` : "")) + (l.tracking ? `<div class="mut" style="font-size:12px">${esc(l.tracking)}</div>` : "");
+      : esc(l.status) + (l.open && l.days_waiting != null ? ` <span class="mut">· ${l.days_waiting}d</span>` : "")) + (l.tracking ? `<div style="font-size:12px">${trackLinks(l.tracking)}</div>` : "");
   const st = g => { if (g.lines.length === 1) return st1(g.lines[0]); const n = g.lines.filter(isReceived).length;
     return n === g.lines.length ? '<b class="up">All received</b>' : (n ? `<b>${n} of ${g.lines.length} received</b><br>` : "") + esc([...new Set(g.lines.filter(l => !isReceived(l)).map(l => l.status))].join(", ")); };
   const accts = g => [...new Set(g.lines.map(l => acctLabel(l.account)))];
@@ -5428,7 +5438,7 @@ function renderColWaiting(){
   box.innerHTML = `<details class="panel cv-wait" style="border-left:4px solid #d08a2c"${store.get("pd_wait_closed") === "0" ? " open" : ""}><summary><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span></summary>
     <div class="bdl-list" style="margin-top:8px;max-height:320px;overflow:auto">
       ${ebay.map(i => row(i.name, `${esc(i.set)} · ${esc(i.condition)} · eBay buy · paid ${money(i.cost_each)}${i.acquired ? " · " + esc(i.acquired) : ""}`, `<span class="btn small" role="button" data-recv="${esc(i.id)}">Mark Received</span>`)).join("")}
-      ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
+      ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}${l.tracking ? " · " + trackLinks(l.tracking) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
     </div></details>`;
   box.querySelector("details").addEventListener("toggle", e => store.set("pd_wait_closed", e.target.open ? "0" : "1"));
 }
