@@ -2602,7 +2602,7 @@ function ignoreBtnHTML(d, tile){
   if (READONLY || !IGN.loaded || !itemId(d)) return "";
   const tag = tile ? 'span role="button"' : 'button type="button"', end = tile ? "span" : "button";
   return isIgnored(d) ? ` <${tag} class="btn ghost small" data-ign="undo" data-u="${esc(d.url)}" title="Show this listing again">↩ Unignore</${end}>`
-    : ` <${tag} class="btn ghost small" data-ign="yes" data-u="${esc(d.url)}" title="Not interested in this one - hide it for good (doesn't teach the filters or SlaveAI)">🙈 Ignore</${end}>`;
+    : ` <${tag} class="btn ghost small" data-ign="yes" data-u="${esc(d.url)}" title="Not interested in this one - hide it for good. Teaches nothing: Loupe and SlaveAI don't learn from it (use Review for that)">🙈 Ignore</${end}>`;
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-ign]"); if (!b) return; e.preventDefault(); e.stopPropagation();
   const d = S.deals.find(x => x.url === b.dataset.u); if (!d) return; const id = itemId(d); if (!id) return;
