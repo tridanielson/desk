@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 10:17 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 10:18 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2116,7 +2116,7 @@ const DSORT = (() => { try{
   if (!localStorage.getItem("pd_bv1")){ localStorage.setItem("pd_bv1", "1"); localStorage.setItem("pd_dsort", "Best Value|-1"); localStorage.removeItem("pd_dsort_phone"); }   // Best Value is the new default (once)
   const v = (localStorage.getItem("pd_dsort") || "").split("|"); return v[0] ? {k: v[0], dir: +v[1] || -1} : {k: "Best Value", dir: -1}; }catch(e){ return {k: "Best Value", dir: -1}; } })();   // your sort survives a reload
 // While you work through the list (open a deal in an eBay tab, come back), it holds still: same order, sold/ended ones stay
-// put (greyed) instead of vanishing, new finds go on top. It re-sorts when you change a filter or sort, or tap "Re-sort now".
+// put (greyed) instead of vanishing, new finds go on top. It re-sorts when you change a filter or sort, or tap "↻ Update List".
 const DFREEZE = {order: null, at: 0, changed: 0};
 function freezeDeals(){ if (!DFREEZE.order && S._dealRows && S._dealRows.length){ DFREEZE.order = new Map(S._dealRows.map((d, i) => [d.url, i])); DFREEZE.at = Date.now(); DFREEZE.changed = 0; } }
 const COND_ORDER = {NM: 5, LP: 4, MP: 3, HP: 2, DMG: 1};
@@ -2191,7 +2191,7 @@ function renderDeals_(){
     if (n !== DFREEZE.changed) DFREEZE.changed = n;
     rows.length = 0; rows.push(...fresh, ...kept);
   } else S.deals.forEach(d => { d._held = false; });
-  $("#dCount").innerHTML = `${rows.length} deals` + (DFREEZE.order ? ` · <a href="#" id="dResort" title="The list is holding still while you look${DFREEZE.changed ? " - " + DFREEZE.changed + " changed since" : ""}">${DFREEZE.changed ? DFREEZE.changed + " changed - " : ""}re-sort now</a>` : ""); S._dealRows = rows; showActiveFilters();
+  $("#dCount").innerHTML = `${rows.length} deals` + (DFREEZE.order ? ` <button type="button" class="btn ghost small" id="dResort" style="margin-left:8px" title="The list holds still while you look, so nothing jumps under your finger. This puts it back in order${DFREEZE.changed ? " - " + DFREEZE.changed + " deal" + (DFREEZE.changed === 1 ? "" : "s") + " changed since" : ""}.">↻ Update List${DFREEZE.changed ? ` (${DFREEZE.changed} new or changed)` : ""}</button>` : ""); S._dealRows = rows; showActiveFilters();
   const t = $("#dealsTable");
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or SlaveAI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort" title="Best Value: % off x the square root of the dollars saved - big savings rank above the same % on a cheap card">Best Value</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
