@@ -430,7 +430,7 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .qk-a{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}.qk-a-ph,.qk-a-info{min-width:0}
 .qk-card{display:flex;gap:12px;align-items:center}.qk-refimg img{width:74px;border-radius:5px;display:block}.qk-name{font-size:18px;font-weight:600;line-height:1.25}
 .binders{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.binder{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit}
-.binder span{font-size:12px;color:var(--muted)}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
+.binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
 .qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
 .qk-cmp{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.qk-cmp img{width:120px;height:167px;object-fit:contain;border-radius:6px;flex:none;background:var(--soft)}.qk-cmp #qkCmpCap{min-height:167px}.qk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:12 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 12, 05:25 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -4575,11 +4575,51 @@ function wireSLEditor(){
 
 // ---------------------------------------------------------------- Collection + received marks
 const INV_COLS = ["id", "name", "set", "number", "finish", "condition", "language", "qty", "cost_each", "acquired", "source", "status", "list_price", "notes", "scryfall_id", "kind", "ref", "signed", "proof", "own_value", "grade", "variant", "binder"];
-// Binders: "" = My Collection (every card added before binders existed - nothing about them changes). Trade and For Sale are
-// kept completely separate: they never count toward your Sets or Want List, and their worth is shown on its own.
-const BINDERS = [["", "My Collection"], ["trade", "Trade"], ["sale", "For Sale"]];
-const binderOf = r => { const b = String((r && r.binder) || "").toLowerCase(); return BINDERS.some(x => x[0] === b) ? b : ""; };
-const binderName = b => (BINDERS.find(x => x[0] === b) || BINDERS[0])[1];
+// Binders: "" = My Collection (every card added before binders existed - nothing about them changes). Every other binder
+// (Trade & Sell, and any you add) is kept completely separate: never counts toward your Sets or Want List, its worth shown on its own.
+// The list and names live in settings.ini [collection] (binders = trade:Trade & Sell || b-x1y2:Show Box), so every device matches.
+function binderList(){
+  const C_ = S.ini.collection || {}, raw = C_.binders == null ? "trade:Trade & Sell" : String(C_.binders);
+  const out = [["", String(C_.binder_main_name || "").trim() || "My Collection"]];
+  raw.split("||").map(x => x.trim()).filter(Boolean).forEach(x => { const k = x.split(":")[0].trim().toLowerCase(), n = x.slice(x.indexOf(":") + 1).trim();
+    if (k && !out.some(o => o[0] === k)) out.push([k, n || k]); });
+  // cards in a binder that's not on the list (never lose them): show it under its key
+  (COL.inv || []).forEach(r => { const b = binderOf(r); if (b && !out.some(o => o[0] === b)) out.push([b, b]); });
+  return out;
+}
+const binderOf = r => { const b = String((r && r.binder) || "").trim().toLowerCase(); return b === "sale" ? "trade" : b; };   // "sale" was briefly its own binder
+const binderName = b => (binderList().find(x => x[0] === b) || ["", b || "My Collection"])[1];
+function binderSave(list){   // list without My Collection
+  (S.ini.collection = S.ini.collection || {}).binders = list.map(([k, n]) => `${k}:${String(n).replace(/[|\r\n=\[\]]/g, " ").trim()}`).join(" || ");
+  markDirty("settings");
+}
+function renameBinder(b){
+  const main = !b, count = COL.inv.filter(r => binderOf(r) === b).length;
+  openModal(`<h3>${main ? "Rename Binder" : "Rename or Delete Binder"}</h3><label for="brName">Name</label><input id="brName" maxlength="40" value="${esc(binderName(b))}" style="width:100%">
+    ${main ? "" : `<p class="mut" style="font-size:12.5px;margin:10px 0 0">Delete Binder: ${count ? `its ${count} card${count === 1 ? "" : "s"} move back to ${esc(binderName(""))} - nothing is lost.` : "it's empty."}</p>`}
+    <div class="acts">${main ? "" : '<button class="btn ghost" type="button" id="brDel" style="margin-right:auto;color:var(--down)">Delete Binder</button>'}<button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Save</button></div>`);
+  const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
+    if (main){ (S.ini.collection = S.ini.collection || {}).binder_main_name = v; markDirty("settings"); }
+    else binderSave(binderList().slice(1).map(([k, n]) => [k, k === b ? v : n]));
+    closeModal(); renderCOL(); };
+  $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal);
+  $("#brName").addEventListener("keydown", e => { if (e.key === "Enter") put(); }); $("#brName").select();
+  if ($("#brDel")) $("#brDel").addEventListener("click", () => {
+    if (count && $("#brDel").dataset.sure !== "1"){ $("#brDel").dataset.sure = "1"; $("#brDel").textContent = `Yes, Move ${count} Card${count === 1 ? "" : "s"} & Delete`; return; }
+    COL.inv.forEach(r => { if (binderOf(r) === b) r.binder = ""; }); if (count) markDirty("collection");
+    binderSave(binderList().slice(1).filter(([k]) => k !== b)); COL.binder = ""; try{ localStorage.setItem("pd_binder", ""); }catch(e){}
+    closeModal(); renderCOL(); toast(count ? `Binder deleted - its ${count} card${count === 1 ? "" : "s"} are back in ${binderName("")}.` : "Binder deleted.", 5000); });
+}
+function addBinder(){
+  openModal(`<h3>New Binder</h3><label for="brName">Name</label><input id="brName" maxlength="40" placeholder="e.g. Show Box, Consignment" style="width:100%">
+    <p class="mut" style="font-size:12.5px;margin:10px 0 0">Kept separate like Trade & Sell: its cards don't count toward your Sets or Want List.</p>
+    <div class="acts"><button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Add Binder</button></div>`);
+  const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
+    const k = "b-" + Date.now().toString(36); binderSave(binderList().slice(1).concat([[k, v]]));
+    COL.binder = k; try{ localStorage.setItem("pd_binder", k); }catch(e){} closeModal(); renderCOL(); };
+  $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal);
+  $("#brName").addEventListener("keydown", e => { if (e.key === "Enter") put(); }); $("#brName").focus();
+}
 // special printings Scryfall doesn't list on their own (no market price - worth what you enter, like an Artist Proof)
 const VARIANTS = [["alt4e", "Alternate 4th Edition (USPCC)", "ALT 4E"]];
 const variantOf = v => VARIANTS.find(x => x[0] === v);
@@ -4599,7 +4639,7 @@ const gradeOf = d => { const m = /\b(PSA|BGS|CGC|SGC|Beckett)\s*(?:grade\s*)?(10
 const colSpecial = r => (r && variantOf(r.variant) ? `<span class="chip" title="${esc(variantOf(r.variant)[1])} - valued at what you entered">${esc(variantOf(r.variant)[2])}</span> ` : "") + (r && r.grade ? `<span class="chip" title="Graded slab - valued at the raw price for its condition">🏅 ${esc(r.grade)}</span> ` : "") + (r && r.signed ? `<span class="chip" title="Signed${r.signed !== "yes" ? " by " + esc(r.signed) : ""}">✍ Signed${r.signed !== "yes" ? " · " + esc(r.signed) : ""}</span> ` : "") + (r && r.proof === "artist" ? '<span class="chip" title="Artist Proof - valued at what you entered">Artist Proof</span>' : "");
 const SALE_COLS = ["id", "date", "item_id", "name", "qty", "price_each", "shipping_charged", "shipping_cost", "platform", "fees", "notes"];
 const REC_COLS = ["line_id", "qty", "date"];
-const COL = {binder: (() => { try{ const b = localStorage.getItem("pd_binder") || ""; return ["", "trade", "sale"].includes(b) ? b : ""; }catch(e){ return ""; } })(), goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
+const COL = {binder: (() => { try{ const b = localStorage.getItem("pd_binder") || ""; return b === "sale" ? "trade" : String(b).toLowerCase(); }catch(e){ return ""; } })(), goals: [], goalsSha: null, loaded: false, loading: false, error: "", data: null, inv: [], invSha: null, sales: [], salesSha: null, rec: [], recSha: null,
              q: "", src: "", status: "held", kind: "", limit: 150, showSales: false, view: "all", showBulk: false, layout: store.get("pd_col_layout") || "list"};
 const BULK_EACH = 5;   // under this each, a card folds into the one Bulk line
 const todayAZ = () => new Date().toLocaleDateString("en-CA", {timeZone: "America/Phoenix"});
@@ -5249,6 +5289,7 @@ function renderCOL(){
   const box = $("#colBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
   if (COL.loading && !COL.loaded){ box.innerHTML = waitHTML(); return; }
+  if (COL.binder && !binderList().some(([k]) => k === COL.binder)) COL.binder = "";   // a binder deleted on another device
   if (COL.error){ box.innerHTML = `<div class="panel"><b>Collection couldn't load</b><p class="sub" style="margin:6px 0 0">${esc(COL.error.replace(/^UPDATE:\s*/, ""))}</p><button class="btn small" id="colRetry" style="margin-top:10px">Try Again</button></div>`; $("#colRetry").addEventListener("click", () => loadCOL(true)); return; }
   const all = colAll(), held = all.filter(i => !i.ordered), priced = held.filter(i => i.value != null);
   const sum = (a, f) => Math.round(a.reduce((t, x) => t + (f(x) || 0), 0) * 100) / 100;
@@ -5262,8 +5303,9 @@ function renderCOL(){
   const VIEWS = colViews(held);
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>My Cards</h2>
       <p class="sub" style="margin:0">What you own and what it's worth. Only you can see this.${COL.data ? ` Values from ${esc(azFmt(COL.data.updated, {month: "short", day: "numeric", hour: "numeric", minute: "2-digit"}))} AZ.` : ""}</p></div></div>
-    <div class="binders" role="tablist" aria-label="Binders">${BINDERS.map(([k, n]) => { const its = colItems(k).filter(i => i.left > 0 && i.status !== "ordered"), c = its.reduce((t, i) => t + i.left, 0), v = its.reduce((t, i) => t + (i.value || 0), 0);
-      return `<button type="button" class="binder${(COL.binder || "") === k ? " on" : ""}" data-binder="${k}" role="tab" aria-selected="${(COL.binder || "") === k}"><b>${n}</b><span>${c} card${c === 1 ? "" : "s"} · ${money(v)}</span></button>`; }).join("")}</div>
+    <div class="binders" role="tablist" aria-label="Binders">${binderList().map(([k]) => { const its = colItems(k).filter(i => i.left > 0 && i.status !== "ordered"), c = its.reduce((t, i) => t + i.left, 0), v = its.reduce((t, i) => t + (i.value || 0), 0);
+      const on = (COL.binder || "") === k;
+      return `<button type="button" class="binder${on ? " on" : ""}" data-binder="${k}" role="tab" aria-selected="${on}"><b>${esc(binderName(k))}${on ? ` <span class="brn" data-brename="${k}" role="button" title="Rename this binder">✎</span>` : ""}</b><span>${c} card${c === 1 ? "" : "s"} · ${money(v)}</span></button>`; }).join("")}<button type="button" class="binder binder-add" id="binderAdd" title="Add a binder"><b>+ New Binder</b><span>kept separate</span></button></div>
     ${COL.binder ? `<p class="mut" style="font-size:12.5px;margin:4px 0 8px">${esc(binderName(COL.binder))} is kept separate: these cards don't count toward your Sets or Want List, and the scanners keep looking for them.</p>` : ""}
     <div class="cv-sum">
       ${box2(COL.binder ? binderName(COL.binder) + " worth" : "Worth today", money(worth), `${sum(held, i => i.left)} items · ${sum(singles, i => i.left)} cards · ${sum(sealedR, i => i.left)} sealed${held.length - priced.length ? ` · ${held.length - priced.length} not priced yet` : ""}`)}
@@ -5294,6 +5336,8 @@ function renderCOL(){
   $("#colAdd").addEventListener("click", () => openColEdit(null));
   $("#colPaste").addEventListener("click", openColPaste);
   if ($("#colAddS")) $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
+  if ($("#binderAdd")) $("#binderAdd").addEventListener("click", addBinder);
+  box.querySelectorAll("[data-brename]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); renameBinder(b.dataset.brename); }));
   box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} renderCOL(); }));
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
   renderColWaiting(); renderCOLList();
@@ -5790,7 +5834,7 @@ function openColEdit(id, pre){
       <div><label for="eCost">Paid each ($)</label><input id="eCost" inputmode="decimal" value="${esc(r.cost_each)}"></div>
       <div><label for="eSrc">Where From</label><input id="eSrc" value="${esc(r.source)}" list="eSrcs" placeholder="e.g. Friend collection"><datalist id="eSrcs">${srcs.map(x => `<option value="${esc(x)}">`).join("")}</datalist></div>
       <div><label for="eAcq">Acquired</label><input id="eAcq" type="date" value="${esc(r.acquired)}"></div>
-      ${isSL ? "" : `<div><label for="eBinder">Binder</label><select id="eBinder">${BINDERS.map(([k, n]) => `<option value="${k}"${(id ? binderOf(r) : (COL.binder || "")) === k ? " selected" : ""}>${n}</option>`).join("")}</select></div>`}
+      ${isSL ? "" : `<div><label for="eBinder">Binder</label><select id="eBinder">${binderList().map(([k]) => `<option value="${k}"${(id ? binderOf(r) : (COL.binder || "")) === k ? " selected" : ""}>${esc(binderName(k))}</option>`).join("")}</select></div>`}
       <div><label for="eStat">Status</label><select id="eStat"><option value="owned">Owned</option><option value="ordered">Ordered (On the Way)</option><option value="listed">Listed for Sale</option></select></div>
       <div><label for="eList">Listed at ($)</label><input id="eList" inputmode="decimal" value="${esc(r.list_price)}"></div>
       <div class="full"><label for="eNotes">Notes</label><input id="eNotes" value="${esc(r.notes)}"></div>
