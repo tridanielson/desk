@@ -592,7 +592,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 05:13 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 05:22 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -2732,15 +2732,18 @@ function reviewStart(d){
 // is the back of the card in the photos? SlaveAI's answer when it looked, else Loupe's (it sorts every photo front / back)
 // What the seller says about the card (the listing's own Set / Card Condition / description), saved when the deal was found -
 // so "whose mistake?" can be answered without opening eBay.
-// tracking number(s) -> link(s) to the carrier's tracking page (UPS 1Z…, USPS 20-22 digits, FedEx 12/15 digits);
-// anything else (Wizards' 13-digit numbers) opens 17TRACK, which looks the carrier up itself
+// tracking -> a link straight to the carrier's own page: the official ESW link from Wizards' "on its way" email (saved in full),
+// UPS 1Z…, USPS 20-22 digits, FedEx 12/15 digits. An older Wizards number without its link opens that email in Gmail.
 function trackLinks(t){
-  return String(t || "").split(/[\s,;]+/).filter(Boolean).map(n => { const u = n.toUpperCase(), e = encodeURIComponent(u);
+  return String(t || "").split(/[\s,;]+/).filter(Boolean).map(n => {
+    if (/^https?:\/\//i.test(n)){ const num = (/\/(\d{8,})_/.exec(n) || /(\d{8,})/.exec(n) || [])[1] || "Track";
+      return `<a href="${esc(n)}" target="_blank" rel="noopener" title="Track it (Wizards' shipping page)">📦 ${esc(num)}</a>`; }
+    const u = n.toUpperCase(), e = encodeURIComponent(u);
     const [c, url] = /^1Z[0-9A-Z]{16}$/.test(u) ? ["UPS", "https://www.ups.com/track?tracknum=" + e]
       : /^(9[1-5]\d{18,20}|\d{20,22})$/.test(u) ? ["USPS", "https://tools.usps.com/go/TrackConfirmAction?tLabels=" + e]
       : /^(\d{12}|\d{15})$/.test(u) ? ["FedEx", "https://www.fedex.com/fedextrack/?trknbr=" + e]
-      : ["17TRACK", "https://t.17track.net/en#nums=" + e];
-    return `<a href="${url}" target="_blank" rel="noopener" title="Track it on ${c}">📦 ${esc(u)}</a>`; }).join(" ");
+      : ["your email", "https://mail.google.com/mail/u/0/#search/" + e];
+    return `<a href="${url}" target="_blank" rel="noopener" title="${c === "your email" ? "Opens Wizards' shipping email for this number - its tracking link is in it" : "Track it on " + c}">📦 ${esc(u)}</a>`; }).join(" ");
 }
 function sellerSaysHTML(d, url){
   let o = null; try{ o = d.seller_says ? JSON.parse(d.seller_says) : null; }catch(e){}
