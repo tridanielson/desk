@@ -429,6 +429,11 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .qk-head{font-size:15px;margin-bottom:8px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:4px 8px}.qk-head>div{flex-basis:100%}
 .qk-a{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}.qk-a-ph,.qk-a-info{min-width:0}
 .qk-card{display:flex;gap:12px;align-items:center}.qk-refimg img{width:74px;border-radius:5px;display:block}.qk-name{font-size:18px;font-weight:600;line-height:1.25}
+#cardSheet{position:fixed;inset:0;z-index:950;background:rgba(0,0,0,.6);overflow:auto;padding:24px 12px}#cardSheet .cs-in{max-width:1050px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+body.cs-open{overflow:hidden}
+.mk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}.mk-row{display:flex;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer}.mk-row:last-child{border-bottom:0}
+.mk-row img{width:34px;border-radius:3px;flex:none}.mk-row .mk-n{flex:1;min-width:0}.mk-row .mk-n b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mk-row .mk-p{text-align:right;white-space:nowrap}
+.cchart{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted)}.cchart:hover{color:var(--accent)}
 .binders{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.binder{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit}
 .binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed;justify-content:center}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
@@ -545,7 +550,6 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
   <div class="brandwrap"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs><path d="M20 2 35 10.5v19L20 38 5 29.5v-19z" fill="none" stroke="url(#lg)" stroke-width="2.4"/><path d="M20 7.5 30.5 13.5v13L20 32.5 9.5 26.5v-13z" fill="url(#lg)" opacity=".16"/><path d="M14 12v16M26 12v16M14 20h12" stroke="url(#lg)" stroke-width="3.2" stroke-linecap="round"/><circle cx="20" cy="20" r="2.3" fill="var(--gold)"/></svg><div class="brand">Havoth Price Desk<small id="updated">Not connected</small></div></div>
   <div class="navs">
   <nav id="navGroups" aria-label="Sections">
-    <button data-group="prices">📈 Prices</button>
     <button data-group="deals">🏷️ Deals</button>
     <button data-group="mine">🗃️ My Cards</button>
     <button data-group="train" class="owner-only">🎯 Training</button>
@@ -553,10 +557,10 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-group="setup">⚙️ Settings</button>
   </nav>
   <nav id="nav">
-    <button data-tab="mine" data-group="prices" class="on" title="Everything the desk hunts for: cards, sets you're completing, Scryfall searches">Want List</button>
-    <button data-tab="all" data-group="prices" title="Every card priced daily: your watchlist plus your auto-track lists">All Prices</button>
-    <button data-tab="detail" data-group="prices" title="Price chart and history for one card">Card Chart</button>
-    <button data-tab="deals" data-group="deals" title="eBay listings priced below fair value">eBay Deals</button>
+    <button data-tab="deals" data-group="deals" class="on" title="eBay listings priced below fair value">eBay Deals</button>
+    <button data-tab="mine" data-group="deals" title="Everything the deal finder hunts for: cards, sets you're completing, searches">Want List</button>
+    <button data-tab="market" data-group="deals" title="What's moving: your tracked cards' biggest price changes, sets trending, cards near their low">Market</button>
+    <button data-tab="all" data-group="deals" hidden title="Every card priced daily">All Prices</button>
     <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
     <button data-tab="sets" data-group="mine" title="Every set you own cards from, and the ones you are completing">Sets</button>
     <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
@@ -580,11 +584,11 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
 </header>
 
 <div class="hero" id="hero"><div class="hero-art" id="heroArt"></div><div class="hero-txt"><div class="hero-t" id="heroT">Prices</div><div class="hero-s" id="heroS">What your cards are worth today, and where they are heading.</div></div><a class="hero-cr" id="heroCr" target="_blank" rel="noopener"></a></div>
-<script>(function(){try{var G={mine:"prices",all:"prices",detail:"prices",deals:"deals",audit:"deals",col:"mine",sets:"mine",sl:"mine",sealed:"mine",guide:"guide",settings:"setup",connect:"setup"};
-var h=(location.hash||"").slice(1),t=G[h]?h:(localStorage.getItem("pd_tab")||"mine"),g=G[t]||"prices";
+<script>(function(){try{var G={mine:"deals",all:"deals",market:"deals",detail:"deals",deals:"deals",audit:"deals",col:"mine",sets:"mine",sl:"mine",sealed:"mine",guide:"guide",settings:"setup",connect:"setup"};
+var h=(location.hash||"").slice(1),t=G[h]?h:(localStorage.getItem("pd_tab")||"deals"),g=G[t]||"deals";if(t==="detail"){t="deals";}
 document.querySelectorAll("#nav button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" pre";if(b.getAttribute("data-tab")===t)b.className+=" on";else b.className=b.className.replace(/\bon\b/,"");});
 document.querySelectorAll("#navGroups button").forEach(function(b){if(b.getAttribute("data-group")===g)b.className+=" on";});
-var T={prices:["Prices","What your cards are worth today, and where they are heading."],deals:["Deals","Underpriced eBay listings, checked by the scanner and a SlaveAI check."],mine:["My Cards","Your collection, the sets you are completing, and Secret Lair drops."],guide:["ID & Fake Guide","Spot fakes and proxies, and tell look-alike editions apart."],setup:["Settings","Deal rules, alerts, fees - and connection status."]}[g];
+var T={prices:["Prices","What your cards are worth today, and where they are heading."],deals:["Deals","Underpriced eBay listings, what the deal finder hunts for, and what's moving in the market."],mine:["My Cards","Your collection, the sets you are completing, and Secret Lair drops."],guide:["ID & Fake Guide","Spot fakes and proxies, and tell look-alike editions apart."],setup:["Settings","Deal rules, alerts, fees - and connection status."]}[g];
 if(T){document.getElementById("heroT").textContent=T[0];document.getElementById("heroS").textContent=T[1];}}catch(e){}})();</script>
 <main>
 <!-- CONNECT -->
@@ -592,7 +596,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 05:22 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 11:54 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -618,9 +622,9 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 </section>
 
 <!-- MY CARDS -->
-<section class="tab on" id="tab-mine">
+<section class="tab" id="tab-mine">
   <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px"><div><h2>Want List</h2>
-    <p class="sub" id="mineSub" style="margin:0">Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.</p></div>
+    <p class="sub" id="mineSub" style="margin:0">Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search. <a href="#all" id="wlAllLink">📋 See every tracked card and its price</a></p></div>
     <button class="btn" id="wlAdd" type="button">+ Add</button></div>
   <div class="panel" id="wlAddBox" hidden>
     <div class="wl-pick">
@@ -658,7 +662,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- ALL -->
 <section class="tab" id="tab-all">
-  <h2>All Prices</h2>
+  <p style="margin:0 0 4px"><a href="#mine" id="allBack">← Want List</a></p>
+  <h2>Every Tracked Card</h2>
   <p class="sub">Every card the tracker prices each morning: every card on your <b>Want List</b>: the cards you picked plus every card your searches find (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
   <div class="panel row">
     <input id="allSearch" placeholder="Search name or set..." style="flex:1;min-width:200px">
@@ -677,12 +682,12 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 </section>
 
 <!-- DETAIL -->
-<section class="tab" id="tab-detail">
-  <div id="detailBody"><p class="empty">Pick a card from your Want List or All Prices to see its price history.</p></div>
-</section>
+<section class="tab" id="tab-detail"></section>
+<section class="tab" id="tab-market"><div id="marketBody"><p class="empty loadmsg">Loading…</p></div></section>
+<div id="cardSheet" hidden role="dialog" aria-modal="true" aria-label="Card price chart"><div class="cs-in"><div class="row" style="justify-content:flex-end"><button class="btn ghost small" type="button" id="csClose">✕ Close</button></div><div id="detailBody"></div></div></div>
 
 <!-- DEALS -->
-<section class="tab" id="tab-deals">
+<section class="tab on" id="tab-deals">
   <div class="row" style="justify-content:space-between;align-items:flex-end"><h2 style="margin:0">eBay Deals <a href="#" id="dHowShow" class="owner-only" style="font-size:13px;font-weight:400">How This Works</a></h2>
     <div class="row"><span class="status" id="dQuota"></span><span class="status" id="dScanMsg"></span><span class="status owner-only" id="dLearnSt" title="Your reviews update the rules, re-judge every logged deal and update the sniper automatically - about a minute after you save. No eBay searches."></span><button class="btn small owner-only" id="dScan">Scan eBay Now</button></div></div>
   <p class="sub">eBay listings under fair value for the cards you track. New ones arrive by themselves<span class="owner-only"> - tap <b>Review</b> on any deal to teach it</span>.</p>
@@ -887,7 +892,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   </form>
 </div>
 <div class="lightbox" id="lightbox" role="dialog" aria-label="Card image"><img id="lightboxImg" alt=""></div>
-<script>(function(){try{var h=(location.hash||"").slice(1),t=document.getElementById("tab-"+h)?h:(localStorage.getItem("pd_tab")||"mine");   // reloading: show the page you were on, not the Watchlist, while it loads
+<script>(function(){try{var h=(location.hash||"").slice(1),t=document.getElementById("tab-"+h)?h:(localStorage.getItem("pd_tab")||"deals");if(t==="detail")t="deals";   // reloading: show the page you were on, not the Watchlist, while it loads
 if(t!=="detail"&&document.getElementById("tab-"+t)){document.querySelectorAll("section.tab").forEach(function(x){x.classList.toggle("on",x.id==="tab-"+t);});}}catch(e){}})();</script>
 <div class="modal-bg" id="colModalBg"></div>
 <div class="modal" id="colModal" role="dialog" aria-modal="true"><div id="colModalBody"></div></div>
@@ -1136,7 +1141,7 @@ async function server(fn, ...args){
 }
 function showLogin(msg){ $("#login").hidden = false; $("#loginMsg").textContent = msg || ""; setTimeout(() => $("#loginPw").focus(), 50); }
 function signOutLocal(){ AUTH.token = ""; store.del("pd_session"); $("#signOutBtn").hidden = true; }
-const savedTab = () => { const h = (location.hash || "").slice(1), t = (h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "mine"; return document.getElementById("tab-" + t) || t === "detail" ? t : "mine"; };
+const savedTab = () => { const h = (location.hash || "").slice(1), t = ((h && document.getElementById("tab-" + h) ? h : store.get("pd_tab")) || "deals").replace(/^detail$/, "deals"); return document.getElementById("tab-" + t) || t === "detail" ? t : "mine"; };
 const tabOK = t => !["detail", "connect"].concat(READONLY && ROLE !== "peek" ? ["settings"] : []).concat(ROLE === "peek" ? ["quick", "audit"] : []).concat(document.body.classList.contains("nodeals") ? ["deals"] : []).includes(t) && document.getElementById("tab-" + t);
 async function startApp(){
   document.body.classList.add("booting");   // first load: header stays, the page below is blank until your data is in (just the loading card)
@@ -1687,7 +1692,8 @@ $("#allMore").addEventListener("click", () => { allLimit += 300; renderAll(); })
 let chart;
 function cssVar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 function showDetail(key){
-  const c = S.byKey.get(key); if (!c) return; S.selected = key; switchTab("detail");
+  const c = S.byKey.get(key); if (!c) return; S.selected = key;
+  $("#cardSheet").hidden = false; document.body.classList.add("cs-open");   // a popup over whatever you're on - ✕ or Esc goes back
   const w = S.watch.find(w => watchMatch(w) === c);
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   $("#detailBody").innerHTML = `
@@ -1714,6 +1720,43 @@ function showDetail(key){
   $("#ranges").querySelectorAll("button").forEach(b => b.addEventListener("click", () => drawChart(c, w, b.dataset.r)));
   drawChart(c, w, "1Y");
 }
+document.addEventListener("click", e => { const a = e.target.closest(".cchart"); if (!a) return; e.preventDefault(); e.stopPropagation(); showDetail(a.dataset.ck); });
+document.addEventListener("click", e => { const a = e.target.closest("#wlAllLink, #allBack"); if (!a) return; e.preventDefault(); switchTab(a.id === "allBack" ? "mine" : "all"); });
+// ---------------------------------------------------------------- Market: what's moving among the cards you track
+const MKT = {span: (() => { try{ return localStorage.getItem("pd_mkt") === "30" ? "30" : "7"; }catch(e){ return "7"; } })()};
+function renderMarket(){
+  const box = $("#marketBody"); if (!box) return;
+  if (!S.cards.length){ box.innerHTML = `<p class="empty loadmsg">Loading…</p>`; return; }
+  const key = MKT.span === "30" ? "c30" : "c7", span = MKT.span === "30" ? "30 days" : "this week";
+  const priced = S.cards.filter(c => (+c.p || 0) >= 5 && c[key] != null);
+  const row = (c, right) => `<div class="mk-row" data-ck="${esc(c.k)}" title="Price chart and history">${c.img ? `<img src="${esc(c.img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}
+    <div class="mk-n"><b>${esc(c.n)}</b><span class="mut" style="font-size:12px">${esc(c.sn || c.s)}${c.num ? " #" + esc(c.num) : ""}${c.f && c.f !== "nonfoil" ? " · " + esc(c.f) : ""}</span></div><div class="mk-p">${right}</div></div>`;
+  const mv = c => `<b>${money(c.p)}</b><div style="font-size:12.5px">${pct(c[key])}</div>`;
+  const up = priced.filter(c => c[key] > 0.5).sort((a, b) => b[key] - a[key]).slice(0, 10);
+  const down = priced.filter(c => c[key] < -0.5).sort((a, b) => a[key] - b[key]).slice(0, 10);
+  // sets: price-weighted average change of their tracked cards ($2+, at least 5 cards)
+  const bySet = new Map(); S.cards.filter(c => (+c.p || 0) >= 2 && c[key] != null).forEach(c => { const a = bySet.get(c.s) || {s: c.s, sn: c.sn || c.s, w: 0, x: 0, n: 0, img: c.img}; a.w += +c.p; a.x += +c.p * c[key]; a.n++; bySet.set(c.s, a); });
+  const sets = [...bySet.values()].filter(a => a.n >= 5).map(a => Object.assign(a, {ch: a.x / a.w}));
+  const setRow = a => `<div class="mk-row" style="cursor:default"><div class="mk-n"><b>${esc(a.sn)}</b><span class="mut" style="font-size:12px">${a.n} tracked cards · ${money(a.w)} together</span></div><div class="mk-p">${pct(a.ch)}</div></div>`;
+  const setsUp = sets.filter(a => a.ch > 0.2).sort((a, b) => b.ch - a.ch).slice(0, 6), setsDown = sets.filter(a => a.ch < -0.2).sort((a, b) => a.ch - b.ch).slice(0, 6);
+  const low = S.cards.filter(c => (+c.p || 0) >= 10 && c.lo && c.hi >= c.lo * 1.15 && +c.p <= c.lo * 1.05 && (c.h || []).length >= 30).sort((a, b) => b.p - a.p).slice(0, 10);
+  const panel = (t, sub, body) => `<div class="panel"><b>${t}</b><div class="mut" style="font-size:12.5px;margin-bottom:4px">${sub}</div>${body || '<p class="mut" style="font-size:13px">Nothing moved enough.</p>'}</div>`;
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end;gap:10px"><div><h2>Market</h2><p class="sub" style="margin:0">What's moving among the ${S.cards.length.toLocaleString()} cards you track (TCGplayer market, cards $5 and up). Tap a card for its chart.</p></div>
+    <div class="row" role="tablist"><button type="button" class="btn small${MKT.span === "7" ? "" : " ghost"}" data-mk="7">This Week</button><button type="button" class="btn small${MKT.span === "30" ? "" : " ghost"}" data-mk="30">30 Days</button></div></div>
+    <div class="mk-grid" style="margin-top:12px">
+      ${panel("📈 Biggest Gains", `Up the most ${span}`, up.map(c => row(c, mv(c))).join(""))}
+      ${panel("📉 Biggest Drops", `Down the most ${span} - maybe a buying chance`, down.map(c => row(c, mv(c))).join(""))}
+      ${panel("🗂️ Sets Heating Up", `Tracked cards from the set, weighted by price, ${span}`, setsUp.map(setRow).join(""))}
+      ${panel("🧊 Sets Cooling Off", `Tracked cards from the set, weighted by price, ${span}`, setsDown.map(setRow).join(""))}
+      ${panel("🎯 Near Their 1-Year Low", "Within 5% of the lowest price in a year ($10+)", low.map(c => row(c, `<b>${money(c.p)}</b><div class="mut" style="font-size:12px">low ${money(c.lo)} · high ${money(c.hi)}</div>`)).join(""))}
+    </div>`;
+  box.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", () => { MKT.span = b.dataset.mk; try{ localStorage.setItem("pd_mkt", MKT.span); }catch(e){} renderMarket(); }));
+  box.querySelectorAll(".mk-row[data-ck]").forEach(r => r.addEventListener("click", () => showDetail(r.dataset.ck)));
+}
+function closeCardSheet(){ $("#cardSheet").hidden = true; document.body.classList.remove("cs-open"); }
+$("#csClose").addEventListener("click", closeCardSheet);
+$("#cardSheet").addEventListener("click", e => { if (e.target.id === "cardSheet") closeCardSheet(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#cardSheet").hidden) closeCardSheet(); });
 const CHARTS = {};
 function drawChart(c, w, range, slot){
   const rid = slot ? "#" + slot + "Ranges" : "#ranges", cv = $(slot ? "#" + slot + "Chart" : "#chart");
@@ -2196,7 +2239,7 @@ function renderDeals_(){
   if (!rows.length){ t.innerHTML = `<tr><td class="empty">${$("#dRej") && $("#dRej").value === "only" ? "Nothing hidden or SlaveAI-rejected in this time range." : S.deals.length ? "No deals match these filters." : "No deals logged yet. They'll appear after the eBay scanner finds some."}</td></tr>`; return; }
   t.innerHTML = `<thead><tr><th class="nosort">Found</th><th class="nosort">Card</th><th class="r nosort">% Off</th><th class="r nosort" title="Best Value: % off x the square root of the dollars saved - big savings rank above the same % on a cheap card">Best Value</th><th class="r nosort">Price + Ship</th><th class="nosort">Condition</th><th class="r nosort">Fair Value</th><th class="nosort hide-sm">Type / Ends</th><th class="nosort">Listing</th><th class="nosort owner-only">Review</th></tr></thead><tbody>` +
     rows.slice(0, 500).map(d => { const k = whyKind(d); return `<tr${k ? ` class="removed${d._held ? " held" : ""}" style="--why-c:${esc(k.r.color || "#6f6a5f")}"` : d._held ? ' class="held"' : ""}><td class="mut" style="white-space:nowrap" data-sort="${Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z") || 0}">${esc(dealWhen(d))}</td>
-      <td><div class="cname">${isIgnored(d) ? '<span class="badge b-out">IGNORED</span> ' : ""}${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${condWarn(d) && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(condWarn(d))}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
+      <td><div class="cname">${isIgnored(d) ? '<span class="badge b-out">IGNORED</span> ' : ""}${d._held ? `<span class="badge b-out" title="Changed since you started looking (sold, ended, re-priced or now filtered out) - it leaves the list when you re-sort">${d.status === "ended" || d._gone ? "GONE" : "CHANGED"}</span> ` : ""}${isNewDeal(d) ? '<span class="flag must newtag" title="New since you last looked - tap the deal (or ✕ here) to clear" data-seen="' + esc(d.url) + '">NEW ✕</span> ' : ""}${prefOK(d) ? '<span title="Top pick - matches your Top-pick settings, gets its own phone alert" style="color:var(--gold)">★</span> ' : ""}${(dealCard(d) || {}).k ? `<a href="#" class="cchart" data-ck="${esc(dealCard(d).k)}" title="Price chart and history">${esc(d.card)}</a>` : esc(d.card)}&nbsp;${sfBtn(d)}</div>${isMustBuy(d) ? '<span class="flag must" title="MUST BUY: a big saving in dollars and percent, on something you can buy now - these ring your phone">🚨 MUST BUY</span> ' : ""}${d.source === "sniper" ? '<span class="flag buy" title="Caught by the every-minute sniper right after it was listed">⚡ just listed</span> ' : ""}${d.need ? `<span class="flag buy" title="You need this for ${esc(d.need)}">NEED · ${esc(d.need)}</span> ` : ""}${d.below_buylist ? `<span class="flag buy" title="${esc(buylistText(d))}">below buylist</span> ` : ""}${d.suspicious ? '<span class="flag sus" title="Priced suspiciously far under value - often a fake, proxy or the wrong card. Check carefully.">too cheap?</span>' : ""}${condWarn(d) && !reviewedByMe(d) ? `<span class="flag sus" title="${esc(condWarn(d))}">${condFlag(d)}</span> ` : ""}${qualityHTML(d)}</td>
       <td class="r ${+d.discount_pct < 0 ? "down" : "up"}" style="font-weight:600"${+d.discount_pct < 0 ? ' title="Costs more than fair value at this condition - not a deal"' : ""}>${(+d.discount_pct).toFixed(0)}%</td><td class="r" style="font-weight:600" title="% off x the square root of the dollars saved">${bestValue(d) || '<span class="mut">-</span>'}</td><td class="r">${money(d.total)}${d._was && +d._was > +d.total ? `<div class="up" style="font-size:11px;white-space:nowrap" title="The seller lowered the price - found again">↓ was ${money(d._was)}</div>` : ""}${+d.ship ? `<div class="mut" style="font-size:11px;white-space:nowrap"${d.ship_est === "yes" ? ' title="eBay didn\'t quote shipping to you - this is your default guess"' : ""}>${money(d.price)} + ${d.ship_est === "yes" ? "~" : ""}${money(d.ship)} ship${d.ship_est === "yes" ? " (guess)" : ""}</div>` : ""}${d.location && d.location !== "US" ? `<div class="down" style="font-size:11px;white-space:nowrap" title="Ships from outside the US - shipping and import fees on top">from ${esc({CA: "Canada", GB: "the UK", JP: "Japan", DE: "Germany", AU: "Australia", FR: "France", IT: "Italy", NL: "the Netherlands"}[d.location] || d.location)} + import fees</div>` : ""}</td><td>${condText(d)}</td><td class="r">${money(d.fair)}${vinTag(d)}${d._adj ? `<div class="mut" style="font-size:11px;white-space:nowrap" title="Fair value at the listing condition">was ${money(d._f0)}</div>` : ""}</td>
       <td class="hide-sm mut">${esc(typeText(d))}${offerHTML(d)}${isAuction(d) || d.ends_in ? "<br>" + endsHTML(d) : ""}${d.location ? " · " + esc(d.location) : ""}</td>
       <td><a href="${esc(ebayLink(d))}" target="_blank" rel="noopener">${esc(d.title.slice(0, 60))}</a>${+d.max_bid ? `<div>${snipeBtnHTML(d)}</div>` : ""}</td><td class="owner-only mk">${reviewBtnHTML(d)}</td></tr>`; }).join("") + "</tbody>";
@@ -6562,7 +6605,7 @@ function isMustBuy(d){
 // ---------------------------------------------------------------- sections (two-level nav) + artwork
 const GROUPS = {
   prices: {t: "Prices", s: "What your cards are worth today, and where they are heading."},
-  deals: {t: "Deals", s: "Underpriced eBay listings, checked by the scanner and a SlaveAI check."},
+  deals: {t: "Deals", s: "Underpriced eBay listings, what the deal finder hunts for, and what's moving in the market."},
   train: {t: "Training", s: "Teach Loupe, and see how it and SlaveAI are doing."},
   mine: {t: "My Cards", s: "Your collection, sealed product, the sets you are completing, and Secret Lair drops."},
   guide: {t: "ID & Fake Guide", s: "Spot fakes and proxies, and tell look-alike editions apart."},
@@ -6573,14 +6616,14 @@ const tabShown = b => b && getComputedStyle(b).display !== "none" && !b.hidden;
 function groupTabs(g){ return [...document.querySelectorAll(`#nav [data-group="${g}"]`)].filter(b => { b.classList.remove("off"); return tabShown(b); }); }
 function renderGroups(tab){
   document.body.classList.add("ui-ready");   // first: before ui-ready only the pre-marked buttons show, which hid whole sections after a reload
-  const g = (tabBtn(tab) || {}).dataset ? tabBtn(tab).dataset.group : "prices";
+  const g = (tabBtn(tab) || {}).dataset ? tabBtn(tab).dataset.group : "deals";
   document.querySelectorAll("#navGroups button").forEach(b => { b.hidden = !groupTabs(b.dataset.group).length; b.classList.toggle("on", b.dataset.group === g); });
   const vis = groupTabs(g);
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("off", b.dataset.group !== g));
   $("#nav").classList.toggle("single", vis.length < 2);
   document.body.classList.add("ui-ready");
   store.set("pd_tab_" + g, tab);
-  const G = GROUPS[g] || GROUPS.prices; $("#heroT").textContent = G.t; $("#heroS").textContent = G.s;
+  const G = GROUPS[g] || GROUPS.deals; $("#heroT").textContent = G.t; $("#heroS").textContent = G.s;
   heroArt(g);
 }
 document.querySelectorAll("#navGroups button").forEach(b => b.addEventListener("click", () => {
@@ -6710,12 +6753,13 @@ function switchTab(name){
   if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "dice") loadDICE();
+  if (name === "market") renderMarket();
   if ((name === "audit" || name === "quick") && !READONLY) renderAudit();
   if (name === "train" && !GUESTVIEW()) renderTrain();
   if (name === "guide") renderGuide();
   if (name === "settings" && !READONLY){ if (!FB.loaded) loadFB(); else renderReasonEditor(); }
 }
-document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => { if (b.dataset.tab === "detail" && S.selected) showDetail(S.selected); else switchTab(b.dataset.tab); }));
+document.querySelectorAll("#nav button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
 
 // ---------------------------------------------------------------- load / save
 async function loadAll(){
@@ -6742,8 +6786,8 @@ async function loadAll(){
   if (ROLE === "peek") $("#acctName").textContent = (d0.name || "") + " · look only";
   if (!READONLY) setTimeout(checkServerCode, 1500);
   if (!READONLY && !store.get("pd_relabel1")) setTimeout(relabelSniper, 8000);
-  $("#mineSub").textContent = READONLY ? "Everything the desk hunts for: single cards, sets being completed, and groups of cards from a Scryfall search. Click a card to see its price chart."
-    : "Everything the desk prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.";
+  $("#mineSub").innerHTML = (READONLY ? "Everything the desk hunts for: single cards, sets being completed, and groups of cards from a Scryfall search. Click a card to see its price chart."
+    : "Everything the deal finder prices every day and hunts eBay for: single cards, sets you're completing, and groups of cards from a Scryfall search.") + ' <a href="#all" id="wlAllLink">📋 See every tracked card and its price</a>';
   ["watchlist", "rules", "settings"].forEach(f => S.dirty.delete(f));   // just reloaded these; anything else still waiting to save (reviews…) keeps saving
   if (!S.dirty.size) $("#pending").hidden = true; else markDirty();
   $("#saveBtn").disabled = true; $("#runBtn").disabled = false;
@@ -6754,7 +6798,8 @@ async function loadAll(){
   if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
-  if (document.querySelector("#tab-quick.on, #tab-audit.on")) renderAudit();   // Quick / Full Review opened first: show it now the listings are in
+  if (document.querySelector("#tab-quick.on, #tab-audit.on")) renderAudit();
+  if (document.querySelector("#tab-market.on")) renderMarket();   // Quick / Full Review opened first: show it now the listings are in
 }
 $("#saveBtn").addEventListener("click", () => saveAll());
 $("#pending").addEventListener("click", () => { if ($("#pending").dataset.state === "error"){ if (AUTOSAVE.err) toast("Last error: " + AUTOSAVE.err + " - retrying…", 6000); saveAll(); } });
