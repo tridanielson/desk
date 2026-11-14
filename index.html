@@ -486,6 +486,7 @@ body.cs-open{overflow:hidden}
 .loud-tog{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;cursor:pointer}.loud-tog.on{border-color:var(--down)}
 .loud-sw{flex:none;width:40px;height:22px;border-radius:11px;background:var(--line);position:relative;transition:background .15s}.loud-sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
 .loud-tog.on .loud-sw{background:var(--down)}.loud-tog.on .loud-sw i{left:21px}.loud-tog:focus-visible{outline:2px solid var(--accent)}
+.dk-alt{all:unset;display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;cursor:pointer;white-space:nowrap;margin-top:3px;background:var(--soft);color:var(--muted);border:1px dashed var(--line)}.dk-alt:hover{color:var(--ink);text-decoration:underline}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -658,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:39 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:44 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6349,12 +6350,24 @@ function dkHave(name, row){
     const h = Math.min(i.left, mine.get(i.id) || 0), o = cl.filter(c => c.row !== row).reduce((t, c) => t + c.n, 0);
     here += h; if (h) hereItems.push(i);
     cl.filter(c => c.row !== row).forEach(c => other.set(c.deck, (other.get(c.deck) || 0) + c.n));
-    const f = Math.max(0, i.left - h - o); free += f; if (f) items.push({i, free: f}); });
-  return {n: total, here, free, freeItems: items, hereItems, other: [...other]};
+    const f = Math.max(0, i.left - h - o); if (f) items.push({i, free: f}); });
+  // a printing picked on the list (the art matters): only copies of that printing count; others are shown, not counted
+  const picked = row && row.set && row.collector_number, same = i => !picked || (String(i.set || "").toLowerCase() === row.set.toLowerCase() && String(i.number || "").toLowerCase() === String(row.collector_number).toLowerCase());
+  const freeItems = items.filter(x => same(x.i)), alt = items.filter(x => !same(x.i));
+  free = freeItems.reduce((t, x) => t + x.free, 0);
+  return {n: total, here, free, freeItems, alt, altN: alt.reduce((t, x) => t + x.free, 0), hereItems, hereOff: hereItems.filter(i => !same(i)), other: [...other]};
+}
+// "Use Mine": the deck takes the printing you own (first other-printing copy), then tags it
+function dkUseMine(r){
+  const h = dkHave(r.name, r), x = h && h.alt[0]; if (!x) return;
+  r.set = String(x.i.set || "").toLowerCase(); r.collector_number = String(x.i.number || ""); r.finish = x.i.finish || "nonfoil";
+  DK._idx = null; markDirty("decks");
+  const got = dkPutIn(r, true);
+  renderDECKS(); toast(`${r.name}: the deck now uses your ${String(x.i.set || "").toUpperCase()} #${x.i.number}${got ? ` - tagged "in ${r.deck}"` : ""}.`, 5000);
 }
 // "You own: ..." -> your collection, in the binder view, showing just that card (with a way back to the deck)
-function dkShowOwned(r){
-  const h = dkHave(r.name, r), first = h && h.freeItems[0];
+function dkShowOwned(r, alt){
+  const h = dkHave(r.name, r), first = h && (alt ? h.alt[0] : h.freeItems[0]);
   COL.binder = first ? first.i.binder : (COL.binder || ""); COL.q = String(r.name).split(" // ")[0]; COL.view = "all"; COL.limit = 150;
   COL.layout = "binder";   // just for this look - your saved List / Binder choice comes back with ← Back
   COL.back = {deck: DK.cur, name: (dkDecks().find(d => d[0] === DK.cur) || [, "the deck"])[1], y: window.scrollY, row: DK.rows.indexOf(r)};
@@ -6524,11 +6537,12 @@ function dkRowHTML(x){
     : r.mark === "proxy" ? ` <span class="chip dk-prx" title="A stand-in for now - still on the buy list">Proxy${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>` : "";
   if (x.basic) badge = `<span class="chip">Basic land</span>`;
   else if (h && r.zone !== "maybe"){
-    if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
+    if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}${h.hereOff.length ? " (not the picked printing)" : ""}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
     if (short && h.free && !x.covered) badge += ` <button type="button" class="chip dk-part dk-own" data-dkown="${x.idx}" title="Tap to see them in your collection. Copies not in any deck yet: ${esc(h.freeItems.map(f => `${f.free}× ${f.i.set_name || f.i.set} #${f.i.number} · ${f.i.finish} · ${f.i.condition} · ${binderName(f.i.binder)}`).join("; "))}">You own: ${esc(dkOwnTxt(h.freeItems))} ›</button>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
     else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
+  if (h && h.altN && x.open && !x.covered && !x.basic) badge += ` <button type="button" class="chip dk-alt" data-dkownalt="${x.idx}" title="Copies of another printing - they don't count for the printing picked on the list. Tap to see them in your collection.">You own another printing: ${esc(dkOwnTxt(h.alt))} ›</button>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkusemine="${x.idx}" title="Switch the deck to the printing you own and tag your copy">Use Mine</button>` : ""}`;
   if (x.wanted && x.open) badge += ` <span class="chip dk-wanted" title="On your Want List - the deal finder is hunting it">★ Wanted</span>`;
   if (!x.basic) badge = (x.covered ? badge.replace(/ ?<span class="chip dk-need">[^<]*<\/span>/, "") : badge) + markChip
     + (x.covered && h && h.free ? ` <span class="chip" title="Your own copy stays free for other decks">you also own ${h.free}</span>` : "") + markBtn;
@@ -6551,6 +6565,8 @@ function wireDecks(box){
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
   box.querySelectorAll("[data-dkmark]").forEach(b => b.addEventListener("click", () => dkMark(DK.rows[+b.dataset.dkmark])));
   box.querySelectorAll("[data-dkown]").forEach(b => b.addEventListener("click", () => dkShowOwned(DK.rows[+b.dataset.dkown])));
+  box.querySelectorAll("[data-dkownalt]").forEach(b => b.addEventListener("click", () => dkShowOwned(DK.rows[+b.dataset.dkownalt], true)));
+  box.querySelectorAll("[data-dkusemine]").forEach(b => b.addEventListener("click", () => dkUseMine(DK.rows[+b.dataset.dkusemine])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
   box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
   wireDkAdd(box); const az = box.querySelector("#dkAddZone"); if (az) az.addEventListener("change", () => { DK.addZone = az.value; });
