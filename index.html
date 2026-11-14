@@ -648,7 +648,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 10:28 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 10:33 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -2117,6 +2117,7 @@ function qualityHTML(d){
   const p0 = +d.price;
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
+  if (d.cond_upside) h += `<span class="flag buy" title="Condition upside: ${esc(d.cond_upside)}. eBay's condition box says less - if the photos back it up, it's a much bigger deal.">⬆ ${esc(d.cond_upside.split(" (")[0])} upside</span> `;
   if (isStock(d)){ const why = stockWhy(d), cheap = stockCheap(d);
     h += `<span class="flag sus" title="${/^photo:/.test(why) ? "Loupe: the photo is a stock image (" + esc(why.slice(6).trim()) + ")" : "The listing says: “" + esc(why) + "”"}. Not the actual card, so condition and edition can't be checked - it sits in the Stock Photo bucket and never rings your phone.">📷 Stock</span> `;
     if (cheap) h += `<span class="flag buy" title="${Math.round(+d.discount_pct)}% under fair value - at or past your ${stockPct()}% line, cheap enough to be worth a look even sight-unseen">💰 Cheap Even Blind</span> `; }
