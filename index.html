@@ -627,7 +627,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:14 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:34 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6387,7 +6387,9 @@ function renderDECKS(){
     <div class="seg" id="dkSort">${[["type", "By Type"], ["price", "By Price"], ["cmc", "By Mana"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.sort === k ? "on" : ""}">${l}</button>`).join("")}</div>
     ${DK_EDIT() && freeN ? `<button class="btn small" type="button" id="dkPutAll" title="Tags a free copy you own for every card that's short - nothing moves, they just show 'in ${esc((decks.find(d => d[0] === id) || [, ""])[1])}'">Put All I Own in Deck</button>` : ""}
     ${ROLE === "owner" && needN ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cheapest printing of every card you still need to your Want List, so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
-  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? x.need > 0 : x.covered || (x.have && (x.have.here > 0 || x.have.free > 0))));
+  // Need = not settled yet: short of tagged copies and not Covered - whether it's to buy or a copy you own that isn't tagged yet
+  const open = x => !x.basic && x.r.zone !== "maybe" && !x.covered && (!x.have || x.have.here < x.qty);
+  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? open(x) : x.covered || (x.have && x.have.here > 0)));
   const byPrice = (a, b) => (b.price || 0) - (a.price || 0), byCmc = (a, b) => ((a.c || {}).cmc ?? 99) - ((b.c || {}).cmc ?? 99) || a.r.name.localeCompare(b.r.name);
   let groups = [];
   const zone = z => shown.filter(x => x.r.zone === z);
@@ -6399,7 +6401,7 @@ function renderDECKS(){
   groups.push(["Sideboard", zone("side")], ["Maybeboard", zone("maybe")]);
   groups = groups.filter(g => g[1].length);
   const list = groups.length ? groups.map(([title, xs]) => `<div class="panel dk-grp"><h3>${esc(title)} <span class="mut">${xs.reduce((t, x) => t + x.qty, 0)} · ${money(xs.reduce((t, x) => t + (x.price || 0) * x.qty, 0))}</span></h3>${xs.map(dkRowHTML).join("")}</div>`).join("")
-    : `<p class="empty">${DK.show === "need" ? "Nothing to get - you have every card." : "No cards here."}</p>`;
+    : `<p class="empty">${DK.show === "need" ? "Nothing left - every card is in the deck or covered." : "No cards here."}</p>`;
   const chk = dkCheck(id, rows);
   const fmt = `<div class="dk-fmt${loading ? "" : chk.ok ? " ok" : " bad"}">${DK_EDIT() ? `<select id="dkFmt" aria-label="Format">${FORMATS.filter(f => f.game === "mtg").map(f => `<option value="${f.id}"${f.id === chk.f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : `<b>${esc(chk.f.name)}</b>`}
     <span>${loading ? "Checking…" : !chk.f.size ? "No deck rules checked." : chk.ok ? `✓ ${chk.count} of ${chk.f.size}${chk.f.exact ? "" : "+"} · every card legal${chk.f.cmdr ? " · in the commander's colors" : ""}` : `⚠ ${chk.out.length} problem${chk.out.length === 1 ? "" : "s"}`}</span>
@@ -6415,18 +6417,18 @@ function dkRowHTML(x){
   const other = h && h.other.length ? h.other.map(([d, n]) => `${n > 1 ? n + " " : ""}in ${d}`).join(", ") : "";
   const short = h ? Math.max(0, x.qty - h.here) : 0;
   let badge = "";
-  const short0 = h ? Math.max(0, x.qty - h.here - h.free) : x.qty;
-  const markBtn = DK_EDIT() && !x.basic && r.zone !== "maybe" && (short0 > 0 || r.mark) ? ` <button class="dk-x dk-mk" type="button" data-dkmark="${x.idx}" title="Covered (someone else's or borrowed - off the buy list) or Proxy (a stand-in you still plan to buy)">${r.mark ? "✎" : "Mark…"}</button>` : "";
+  const markBtn = DK_EDIT() && !x.basic && r.zone !== "maybe" && (!h || h.here < x.qty || r.mark) ? ` <button class="dk-x dk-mk" type="button" data-dkmark="${x.idx}" title="Covered (someone else's or borrowed - off the buy list) or Proxy (a stand-in you still plan to buy)">${r.mark ? "✎" : "Mark…"}</button>` : "";
   const markChip = r.mark === "covered" ? ` <span class="chip dk-cov" title="Not in your collection - off the buy list">Covered${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>`
     : r.mark === "proxy" ? ` <span class="chip dk-prx" title="A stand-in for now - still on the buy list">Proxy${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>` : "";
   if (x.basic) badge = `<span class="chip">Basic land</span>`;
   else if (h && r.zone !== "maybe"){
     if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
-    if (short && h.free) badge += ` <span class="chip dk-part">Own ${Math.min(h.free, short)}${h.free > short ? "+" : ""} free</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
+    if (short && h.free && !x.covered) badge += ` <span class="chip dk-part">Own ${Math.min(h.free, short)}${h.free > short ? "+" : ""} free</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
     else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
-  if (!x.basic) badge = (x.covered ? badge.replace(/ ?<span class="chip dk-need">[^<]*<\/span>/, "") : badge) + markChip + markBtn;
+  if (!x.basic) badge = (x.covered ? badge.replace(/ ?<span class="chip dk-need">[^<]*<\/span>/, "") : badge) + markChip
+    + (x.covered && h && h.free ? ` <span class="chip" title="Your own copy stays free for other decks">you also own ${h.free}</span>` : "") + markBtn;
   return `<div class="dk-row">
     <span class="dk-q">${x.qty}</span>
     <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-big="${esc(dkImg(c, "large"))}" alt="">
