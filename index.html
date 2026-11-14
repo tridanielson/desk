@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:44 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:50 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6600,7 +6600,7 @@ function dkExport(){
       <p class="mut" style="font-size:12.5px;margin:12px 0 4px">Which printing</p>
       <div class="dk-opts dk-exp-p">${[["list", "Keep the Deck's Printing", "Exact set, number and finish - the artwork you picked"], ["cheapest", "Cheapest", "The cheapest paper printing of each"], ["any", "Any Printing", "Just the card name"]]
         .map(([v, t, d]) => `<button type="button" class="dk-opt${st.print === v ? " on" : ""}" data-ep="${v}"><b>${t}</b><span>${d}</span></button>`).join("")}</div>
-      ${st.print === "list" && rs.length - ex ? `<p style="font-size:12.5px;margin:6px 0 0">${rs.length - ex} of these ${rs.length - ex === 1 ? "has" : "have"} no printing picked yet - use <select id="dkeNone"><option value="cheapest"${st.none === "cheapest" ? " selected" : ""}>the cheapest</option><option value="any"${st.none === "any" ? " selected" : ""}>any printing</option></select> for ${rs.length - ex === 1 ? "it" : "them"}.</p>` : ""}
+      ${st.print === "list" && rs.length - ex ? `<p style="font-size:12.5px;margin:6px 0 0">${rs.length - ex} of these ${rs.length - ex === 1 ? "has" : "have"} no printing picked yet - use <select id="dkeNone"><option value="cheapest"${st.none === "cheapest" ? " selected" : ""}>the cheapest</option><option value="any"${st.none === "any" ? " selected" : ""}>any printing</option></select> for ${rs.length - ex === 1 ? "it" : "them"}: <span class="mut">${esc(rs.filter(x => !(x.r.set && x.r.collector_number)).map(x => x.r.name).join(", "))}</span></p>` : ""}
       <p class="mut" style="font-size:12.5px;margin:12px 0 4px">How many</p>
       <select id="dkeQty"><option value="need"${st.qty === "need" ? " selected" : ""}>Only what's still needed (e.g. 1 of 2)</option><option value="deck"${st.qty === "deck" ? " selected" : ""}>The deck's full count</option></select>
       <p class="status" id="dkeMsg" style="min-height:18px;margin:10px 0 0">${rs.length} card${rs.length === 1 ? "" : "s"}, ${rs.reduce((t, x) => t + qtyOf(x), 0)} copies.</p>
