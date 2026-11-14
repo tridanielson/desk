@@ -436,6 +436,10 @@ body.cs-open{overflow:hidden}
 .cchart{color:inherit;text-decoration:none;border-bottom:1px dotted var(--muted)}.cchart:hover{color:var(--accent)}
 .dk-hero{display:flex;gap:14px;align-items:center;margin:8px 0 12px}.dk-cmdr{width:120px;border-radius:7px;cursor:zoom-in;box-shadow:0 4px 14px rgba(0,0,0,.2);aspect-ratio:488/680}
 .dk-stats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.dk-fmt{border:1px solid var(--line);border-left:4px solid var(--line);border-radius:8px;background:var(--panel);padding:8px 12px;margin:0 0 10px;display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13.5px}
+.dk-fmt.ok{border-left-color:var(--up)}.dk-fmt.ok span{color:var(--up);font-weight:600}.dk-fmt.bad{border-left-color:var(--gold)}.dk-fmt.bad span{color:var(--gold);font-weight:600}
+.dk-fmt select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:600 13px inherit;font-family:inherit}
+.dk-fmt ul{flex-basis:100%;margin:2px 0 0;padding-left:20px;color:var(--ink)}.dk-fmt li{margin:1px 0}
 .dk-tools{gap:8px;flex-wrap:wrap;margin:0 0 10px}.dk-tools .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
 .dk-tools .seg button{border:0;background:none;color:var(--ink);padding:6px 11px;font:600 12.5px/1 inherit;font-family:inherit;cursor:pointer}.dk-tools .seg button.on{background:var(--accent);color:var(--accent-ink)}
 .dk-grp{padding:0;overflow:hidden;margin-bottom:10px}.dk-grp h3{margin:0;padding:9px 14px;background:var(--soft);font-size:14px;display:flex;justify-content:space-between;gap:8px}.dk-grp h3 .mut{font-weight:500}
@@ -615,7 +619,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:56 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:58 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6151,7 +6155,7 @@ function goalProgress(g, b){
 async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
 // ---------------- Decks: paste a list, see every printing, what you have (any binder) and what you still need ----------------
 // Saved in collection/decks.csv (each account its own). Card details and prices come from Scryfall in the browser.
-const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added", "claim"];   // claim: your copies sleeved in this deck, "inventory id:count|..."
+const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added", "claim", "format"];   // claim: your copies sleeved in this deck, "inventory id:count|..."
 const DK = {rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", cur: "", cards: new Map(), fetching: new Set(),
   show: "all", sort: "type"};
 try{ DK.cur = store.get("pd_deck") || ""; DK.show = store.get("pd_deck_show") || "all"; DK.sort = store.get("pd_deck_sort") || "type"; }catch{}
@@ -6286,6 +6290,56 @@ function dkRows(id){
   });
 }
 
+// ---- formats: one table of rules (game, size, copies, sideboard, commander slot, which legality list), so other card
+// games add their own rows. Legality comes from Scryfall's per-format list on each card.
+const FORMATS = [
+  {id: "commander", game: "mtg", name: "Commander", size: 100, exact: true, copies: 1, side: null, cmdr: true, legal: "commander"},
+  {id: "standard", game: "mtg", name: "Standard", size: 60, copies: 4, side: 15, legal: "standard"},
+  {id: "pioneer", game: "mtg", name: "Pioneer", size: 60, copies: 4, side: 15, legal: "pioneer"},
+  {id: "modern", game: "mtg", name: "Modern", size: 60, copies: 4, side: 15, legal: "modern"},
+  {id: "legacy", game: "mtg", name: "Legacy", size: 60, copies: 4, side: 15, legal: "legacy"},
+  {id: "vintage", game: "mtg", name: "Vintage", size: 60, copies: 4, side: 15, legal: "vintage"},
+  {id: "pauper", game: "mtg", name: "Pauper", size: 60, copies: 4, side: 15, legal: "pauper"},
+  {id: "casual", game: "mtg", name: "Casual (no rules)", size: 0, copies: 0, side: null},
+];
+const dkFormat = id => { const r = DK.rows.find(x => x.deck_id === id && x.format); const f = r && FORMATS.find(f => f.id === r.format);
+  return f || (DK.rows.some(x => x.deck_id === id && x.zone === "cmdr") ? FORMATS[0] : FORMATS.find(f => f.id === "casual")); };
+// how many copies a card may have: basics any; "any number of cards named"; "up to seven/nine cards named"; else the format's limit
+function dkMaxCopies(c, f){
+  const t = (c.oracle_text || (c.card_faces || []).map(x => x.oracle_text || "").join("\n"));
+  if (/\bBasic\b/.test(c.type_line || "") || /any number of cards named/i.test(t)) return Infinity;
+  const m = /up to (\w+) cards named/i.exec(t), W = {seven: 7, nine: 9};
+  if (m) return W[m[1].toLowerCase()] || parseInt(m[1]) || f.copies;
+  return f.copies;
+}
+function dkCheck(id, rows){
+  const f = dkFormat(id), out = [];
+  if (!f.size) return {f, ok: true, out, count: null};
+  const deck = rows.filter(x => x.r.zone === "cmdr" || x.r.zone === "main"), side = rows.filter(x => x.r.zone === "side");
+  const count = deck.reduce((t, x) => t + x.qty, 0);
+  if (f.exact ? count !== f.size : count < f.size) out.push(`${count} cards - ${f.name} needs ${f.exact ? "exactly" : "at least"} ${f.size}`);
+  if (f.side != null){ const sn = side.reduce((t, x) => t + x.qty, 0); if (sn > f.side) out.push(`Sideboard has ${sn} - at most ${f.side}`); }
+  if (f.cmdr){
+    const cm = rows.filter(x => x.r.zone === "cmdr" && x.c);
+    if (!cm.length) out.push("No commander - put one in the Commander section");
+    else {
+      const txt = c => (c.oracle_text || (c.card_faces || []).map(x => x.oracle_text || "").join(" ")) + " " + (c.type_line || "");
+      if (cm.length > 2 || (cm.length === 2 && !cm.every(x => /Partner|Friends forever|Doctor's companion|Choose a Background|Background/.test(txt(x.c))))) out.push("Two commanders only work with Partner, Friends Forever, Background or Doctor's Companion");
+      cm.forEach(x => { if (!/Legendary/.test(x.c.type_line || "") && !/can be your commander/i.test(txt(x.c)) && !/Background/.test(x.c.type_line || "")) out.push(`${x.r.name} isn't a legendary creature`); });
+      const ci = new Set(cm.flatMap(x => x.c.color_identity || []));
+      const off = deck.filter(x => x.c && x.r.zone !== "cmdr" && (x.c.color_identity || []).some(k => !ci.has(k))).map(x => x.r.name);
+      if (off.length) out.push(`Outside ${cm.map(x => x.r.name.split(",")[0]).join(" + ")}'s colors: ${off.slice(0, 6).join(", ")}${off.length > 6 ? ` +${off.length - 6} more` : ""}`);
+    }
+  }
+  const byName = new Map(); deck.concat(f.side != null ? side : []).forEach(x => { const k = dkFront(x.c ? x.c.name : x.r.name); const o = byName.get(k) || {n: 0, x}; o.n += x.qty; byName.set(k, o); });
+  byName.forEach(({n, x}) => { if (!x.c) return; const L = (x.c.legalities || {})[f.legal];
+    const max = L === "restricted" ? 1 : dkMaxCopies(x.c, f);
+    if (n > max) out.push(`${n} × ${x.r.name} - ${L === "restricted" ? "restricted to 1" : max === 1 ? "only 1 allowed" : `max ${max}`}`);
+    if (f.legal && L === "banned") out.push(`${x.r.name} is banned in ${f.name}`);
+    else if (f.legal && L === "not_legal") out.push(`${x.r.name} isn't legal in ${f.name}${f.id === "pauper" ? " (not printed as a common)" : ""}`); });
+  return {f, ok: !out.length, out, count};
+}
+
 function renderDECKS(){
   const box = $("#deckBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("decks"); wireJoin(box); return; }
@@ -6334,7 +6388,11 @@ function renderDECKS(){
   groups = groups.filter(g => g[1].length);
   const list = groups.length ? groups.map(([title, xs]) => `<div class="panel dk-grp"><h3>${esc(title)} <span class="mut">${xs.reduce((t, x) => t + x.qty, 0)} · ${money(xs.reduce((t, x) => t + (x.price || 0) * x.qty, 0))}</span></h3>${xs.map(dkRowHTML).join("")}</div>`).join("")
     : `<p class="empty">${DK.show === "need" ? "Nothing to get - you have every card." : "No cards here."}</p>`;
-  box.innerHTML = head + chips + stats + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
+  const chk = dkCheck(id, rows);
+  const fmt = `<div class="dk-fmt${loading ? "" : chk.ok ? " ok" : " bad"}">${DK_EDIT() ? `<select id="dkFmt" aria-label="Format">${FORMATS.filter(f => f.game === "mtg").map(f => `<option value="${f.id}"${f.id === chk.f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : `<b>${esc(chk.f.name)}</b>`}
+    <span>${loading ? "Checking…" : !chk.f.size ? "No deck rules checked." : chk.ok ? `✓ ${chk.count} of ${chk.f.size}${chk.f.exact ? "" : "+"} · every card legal${chk.f.cmdr ? " · in the commander's colors" : ""}` : `⚠ ${chk.out.length} problem${chk.out.length === 1 ? "" : "s"}`}</span>
+    ${!loading && chk.out.length ? `<ul>${chk.out.slice(0, 12).map(o => `<li>${esc(o)}</li>`).join("")}${chk.out.length > 12 ? `<li>…and ${chk.out.length - 12} more</li>` : ""}</ul>` : ""}</div>`;
+  box.innerHTML = head + chips + stats + fmt + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
   wireDecks(box);
 }
 function dkRowHTML(x){
@@ -6370,6 +6428,7 @@ function wireDecks(box){
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
   box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
+  const fs = box.querySelector("#dkFmt"); if (fs) fs.addEventListener("change", () => { DK.rows.filter(r => r.deck_id === DK.cur).forEach(r => r.format = fs.value); markDirty("decks"); renderDECKS(); });
   const pa = box.querySelector("#dkPutAll"); if (pa) pa.addEventListener("click", () => {
     const n = DK.rows.filter(r => r.deck_id === DK.cur && (r.zone === "cmdr" || r.zone === "main")).reduce((t, r) => t + dkPutIn(r, true), 0);
     renderDECKS(); toast(`Tagged ${n} of your cards "in ${(dkDecks().find(d => d[0] === DK.cur) || [, ""])[1]}". Nothing moved - they stay in your collection.`, 5000); });
@@ -6453,6 +6512,8 @@ function dkEditor(id){
   const name = id ? (dkDecks().find(d => d[0] === id) || [, ""])[1] : "";
   openModal(`<h3>${id ? "Edit Deck" : "New Deck"}</h3>
     <label for="dkName">Name</label><input id="dkName" maxlength="60" value="${esc(name)}" placeholder="e.g. Bello Enchantments" style="width:100%">
+    <label for="dkFormatSel" style="margin-top:10px;display:block">Format</label>
+    <select id="dkFormatSel" style="width:100%"><option value="">Work it out (Commander if there's a commander)</option>${FORMATS.filter(f => f.game === "mtg").map(f => `<option value="${f.id}"${id && dkFormat(id).id === f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>
     <label for="dkText" style="margin-top:10px;display:block">Deck list</label>
     <textarea id="dkText" rows="14" style="width:100%;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace" placeholder="1 Sol Ring&#10;1 Command Tower&#10;9 Mountain&#10;&#10;Sideboard&#10;1 Veil of Summer&#10;&#10;1 Bello, Bard of the Brambles">${esc(id ? deckText(id) : "")}</textarea>
     <p class="mut" style="font-size:12.5px;margin:6px 0 0">Paste an export from Moxfield, Archidekt, Arena or plain text: one card per line, with a number in front. "Commander", "Sideboard" and "Maybeboard" lines start those sections; a single card in its own last block is taken as the commander. A set and number in brackets, like <code>1 Sol Ring (C21) 263</code>, picks that printing.</p>
@@ -6467,11 +6528,12 @@ function dkEditor(id){
     const nm = $("#dkName").value.replace(/[\r\n]/g, " ").trim(), cards = parseDeck($("#dkText").value);
     if (!nm) return ($("#dkMsg").textContent = "Give the deck a name.");
     if (!cards.length) return ($("#dkMsg").textContent = "No cards found - one per line, like \"1 Sol Ring\".");
+    const fmtSel = $("#dkFormatSel").value || (cards.some(c => c.zone === "cmdr") ? "commander" : "");
     const did = id || "d-" + Date.now().toString(36), old = DK.rows.filter(r => r.deck_id === did), today = todayAZ();
     const keep = c => old.find(o => o.name.toLowerCase() === c.name.toLowerCase() && o.zone === c.zone);   // re-saved list: keep printings you picked
     const fresh = cards.map(c => { const o = keep(c);
       return {deck_id: did, deck: nm, zone: c.zone, qty: String(c.qty), name: c.name, set: c.set || (o ? o.set : ""), collector_number: c.collector_number || (o && !c.set ? o.collector_number : ""),
-        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today, claim: o ? o.claim || "" : ""}; });
+        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today, claim: o ? o.claim || "" : "", format: fmtSel}; });
     const at = DK.rows.findIndex(r => r.deck_id === did);
     DK.rows = DK.rows.filter(r => r.deck_id !== did);
     DK.rows.splice(at < 0 ? DK.rows.length : at, 0, ...fresh);
