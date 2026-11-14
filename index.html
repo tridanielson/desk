@@ -658,7 +658,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:04 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:33 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1482,6 +1482,7 @@ const SETTINGS = [
     ["alert_home_only", "Phone Alerts: My Country Only", "bool", true, "Only listings shipping from your country ring your phone - shipping from abroad often isn't quoted and import fees are on top. They still show on the desk."],
     ["home_country", "My Country", "country", "US", "Where a listing ships from counts - not where the seller is."],
     ["must_buy_rings_overnight", "MUST BUY Rings During Quiet Hours", "bool", true, "The 🔔 mute button still silences everything."],
+    ["phone_app", "Phone App", "phoneapp", "pushover", "Pushover = everything goes to Pushover (the loud alarm), and ntfy only if Pushover can't be reached. ntfy = back to ntfy only. Both = every alert in both apps."],
     ["other_deals", "All Other Deals", "otherdeals", "off", "Off = Price Desk only, no phone alert. Summary = one quiet list per scan. Each = an alert for every top pick (the old way - lots of notifications)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
     ["quiet_hours", "Quiet Hours On", "bool", true, "Stops alerts from waking you up. The 🔔 button at the top mutes on demand."],
@@ -1634,6 +1635,7 @@ function renderSettings_(){
       else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option><option value="both">Both</option></select>`;
       else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky Deals Only (Saves Money)</option><option value="all">Every Deal</option></select>`;
       else if (type === "otherdeals") input = `<select id="${id}"><option value="off">Off - Price Desk Only</option><option value="summary">One Quiet Summary per Scan</option><option value="each">An Alert for Every Top Pick</option></select>`;
+      else if (type === "phoneapp") input = `<select id="${id}"><option value="pushover">Pushover (ntfy as Backup)</option><option value="ntfy">ntfy Only</option><option value="both">Both Apps</option></select>`;
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
       else if (type === "country") input = `<select id="${id}">${[["US","United States"],["CA","Canada"],["GB","United Kingdom"],["AU","Australia"],["JP","Japan"],["DE","Germany"],["FR","France"],["IT","Italy"],["ES","Spain"],["NL","Netherlands"],["IE","Ireland"],["NZ","New Zealand"]].map(([c, n]) => `<option value="${c}">${n}</option>`).join("")}</select>`;
@@ -1643,7 +1645,7 @@ function renderSettings_(){
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
-      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals") ? val.toLowerCase() : val;
+      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals" || type === "phoneapp") ? val.toLowerCase() : val;
       if (type === "note") el.value = val.split(/\s*\|\|\s*/).filter(Boolean).join("\n");   // saved on one line, lessons split by ||
       el.addEventListener("change", () => { (S.ini[rsec] = S.ini[rsec] || {})[k] = type === "note" ? el.value.split(/\n/).map(x => x.replace(/\|\|/g, "|").trim()).filter(Boolean).join(" || ") : el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
