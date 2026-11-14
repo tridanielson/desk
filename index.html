@@ -443,6 +443,8 @@ body.cs-open{overflow:hidden}
 .dk-q{color:var(--muted);font-weight:600;text-align:right}.dk-th{width:42px;aspect-ratio:488/680;border-radius:3px;background:var(--soft);object-fit:cover;cursor:zoom-in;display:block}
 .dk-nm{min-width:0}.dk-nm b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:zoom-in}.dk-nm small{display:block;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dk-nm .chip{margin-top:3px}.dk-have{background:rgba(31,122,77,.14);color:var(--up)}.dk-need{background:rgba(179,38,30,.12);color:var(--down)}.dk-part{background:rgba(168,123,19,.15);color:var(--gold)}
+.dk-tag{background:rgba(138,59,18,.12);color:var(--accent)}.dk-pktag{color:var(--accent)!important;font-weight:600}
+.dk-x{all:unset;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px}.dk-x:hover{color:var(--down)}.dk-put{padding:2px 8px!important;font-size:11.5px!important;margin-left:2px}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -613,7 +615,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:41 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:56 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -5566,7 +5568,7 @@ function renderCOLList(){
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
   const worth = i => i.value == null ? (i.pending ? '<span class="mut">next run</span>' : '<span class="mut">not priced</span>') : (i.approx ? "≈ " : "") + money(i.value);
-  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}${i.row && (i.row.signed || i.row.proof || i.row.grade || i.row.variant) ? " " + colSpecial(i.row) : ""}`;
+  const meta = i => i.kind === "sealed" ? "Sealed · " + esc(i.meta) : `${esc(i.set_name || i.set)}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish)} · ${esc(i.condition)}${(i.row && i.row.language || "EN").toUpperCase() !== "EN" ? " · <b>" + esc(langName(i.row.language)) + "</b>" : ""}${i.row && (i.row.signed || i.row.proof || i.row.grade || i.row.variant) ? " " + colSpecial(i.row) : ""}${dkTagHTML(i)}`;
   const acts = i => i.kind === "sealed" ? `<span class="btn ghost small" role="button" data-tosealed="${esc(i.name)}" title="Mark opened, given or sold on the Sealed tab">On Sealed tab</span>`
     : `<button class="btn ghost small" data-crem="${esc(i.id)}">Remove</button> <button class="btn ghost small" data-edit="${esc(i.id)}">Edit</button>`;
   $("#colTable").innerHTML = `<thead><tr><th class="nosort">Item</th><th class="r nosort">Have</th><th class="r nosort">Paid Each</th><th class="r nosort">Worth Each</th><th class="r nosort" title="Market price change over the last 30 days - tap it for the price history">30d</th><th class="r nosort">Worth</th><th class="r nosort" title="Against what you paid when you entered it, otherwise since you added it">Change</th><th class="nosort"></th></tr></thead><tbody>` +
@@ -5628,7 +5630,7 @@ function colBinderHTML(show, bulk){
         ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
         ${i.row && (i.row.signed || i.row.proof || variantOf(i.row.variant)) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${variantOf(i.row.variant) ? " " + variantOf(i.row.variant)[2] : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
       <span class="pk-row"><span class="pk-name">${esc(i.name)}</span><b>${i.value == null ? "–" : (i.approx ? "≈" : "") + money(i.value)}</b></span>
-      <span class="pk-sub">${i.kind === "sealed" ? "Sealed" : esc((i.set || "").toUpperCase()) + (i.number ? " #" + esc(i.number) : "")}${i.left > 1 && i.value_each != null ? " · " + money(i.value_each) + " each" : ""}</span></button>`; };
+      <span class="pk-sub">${i.kind === "sealed" ? "Sealed" : esc((i.set || "").toUpperCase()) + (i.number ? " #" + esc(i.number) : "")}${i.left > 1 && i.value_each != null ? " · " + money(i.value_each) + " each" : ""}</span>${i.kind === "card" && dkTagOf(i) ? `<span class="pk-sub dk-pktag">🃏 ${esc(dkTagOf(i))}</span>` : ""}</button>`; };
   return show.map(pocket).join("") + (bulk.length ? `<button type="button" class="pocket" data-showbulk="1"><span class="pk-card pk-bulk"><b>${bulk.reduce((t, i) => t + i.left, 0)}</b><small>cards under $${BULK_EACH}</small><u>Open Bulk</u></span>
       <span class="pk-row"><span class="pk-name">Bulk</span><b>${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</b></span></button>` : "")
     || '<p class="empty">Nothing here yet.</p>';
@@ -5645,6 +5647,7 @@ function openPocket(i){
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${img ? `<img src="${esc(img)}" alt="" class="zoomable" data-big="${esc(img.replace("/normal/", "/large/"))}" style="width:180px;height:auto;align-self:flex-start;border-radius:9px;cursor:zoom-in">` : ""}
     <div style="flex:1;min-width:220px"><h3 style="margin:0">${esc(i.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(i.set_name || i.set || "")}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish || "")} · ${esc(i.condition || "")}</p>
+      ${dkTagOf(i) ? `<p style="margin:0 0 8px">${dkTagHTML(i)}</p>` : ""}
       <p style="margin:0 0 10px">Have <b>${i.left}</b> · worth <b>${i.value == null ? "–" : money(i.value)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
       ${(m => m ? `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 10px">${stat("Market (NM)", money(m.p))}${stat("CK buylist", money(m.ck))}${stat("30 days", pct(m.c30))}${stat("90 days", pct(m.c90))}${stat("1 year", pct(m.c1y))}</div>
         ${m.h && m.h.length > 1 ? `<div class="row" id="pkRanges" style="justify-content:flex-end;margin-bottom:4px">${["3M","6M","1Y","All"].map(r => `<button class="btn ghost small" data-r="${r}">${r}</button>`).join("")}</div><div class="chartbox" style="height:200px"><canvas id="pkChart"></canvas></div>
@@ -6148,7 +6151,7 @@ function goalProgress(g, b){
 async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
 // ---------------- Decks: paste a list, see every printing, what you have (any binder) and what you still need ----------------
 // Saved in collection/decks.csv (each account its own). Card details and prices come from Scryfall in the browser.
-const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added"];
+const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added", "claim"];   // claim: your copies sleeved in this deck, "inventory id:count|..."
 const DK = {rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", cur: "", cards: new Map(), fetching: new Set(),
   show: "all", sort: "type"};
 try{ DK.cur = store.get("pd_deck") || ""; DK.show = store.get("pd_deck_show") || "all"; DK.sort = store.get("pd_deck_sort") || "type"; }catch{}
@@ -6163,7 +6166,7 @@ async function loadDECKS(){
   if (!DK.loaded && !DK.loading){ DK.loading = true; renderDECKS();
     try{ const f = (await GH.readFiles(["collection/decks.csv"]))["collection/decks.csv"] || {};
       DK.rows = f.text ? parseCSV(f.text).filter(r => r.deck_id && r.name) : []; DK.sha = f.sha || null;
-      DK.base = new Set(DK.rows.map(r => r.deck_id)); DK.loaded = true; DK.error = "";
+      DK.base = new Set(DK.rows.map(r => r.deck_id)); DK.loaded = true; DK.error = ""; DK._idx = null;
     }catch(e){ DK.error = "Couldn't load your decks: " + (e.message || e); }
     DK.loading = false; }
   renderDECKS();
@@ -6234,17 +6237,51 @@ function dkType(c){ const tl = dkFace(c).type_line || c.type_line || ""; if (/\b
   return (DK_TYPES.find(([t]) => tl.includes(t)) || ["Other"])[0]; }
 const dkBasic = c => /\bBasic\b/.test(c.type_line || "") && !/\bSnow\b/.test(c.type_line || "");   // plain basics: everyone has them - never "needed"
 
-// what you own of a card, any printing, every binder (not sold, not still on order)
-function dkHave(name){
+// ---- deck tags: a deck claims specific copies from your collection. The cards don't move - they stay in their binder,
+// keep counting toward your Sets and value - they just carry an "in Bello" tag, and other decks see them as taken.
+const dkClaims = r => String(r.claim || "").split("|").map(x => { const i = x.lastIndexOf(":"); return i > 0 ? {id: x.slice(0, i), n: parseInt(x.slice(i + 1)) || 0} : null; }).filter(c => c && c.n > 0);
+const dkSetClaims = (r, cs) => { r.claim = cs.filter(c => c.n > 0).map(c => `${c.id}:${c.n}`).join("|"); };
+function dkClaimIdx(){   // inventory id -> [{deck_id, deck, n, row}]
+  const m = new Map(); DK.rows.forEach(r => dkClaims(r).forEach(c => { if (!m.has(c.id)) m.set(c.id, []); m.get(c.id).push({deck_id: r.deck_id, deck: r.deck || "Deck", n: c.n, row: r}); }));
+  return m;
+}
+// the decks a collection line's copies are in ("in Bello", "2 in Bello"), for the Collection tab
+function dkTagOf(i){
+  if (!DK.loaded || !i) return "";
+  const idx = DK._idx || (DK._idx = dkClaimIdx()), by = new Map();
+  (i.lots || [i]).forEach(l => (idx.get(l.id) || []).forEach(c => by.set(c.deck, (by.get(c.deck) || 0) + c.n)));
+  return [...by].map(([d, n]) => `${n > 1 ? n + " " : ""}in ${d}`).join(", ");
+}
+const dkTagHTML = i => { const t = dkTagOf(i); return t ? ` <span class="chip dk-tag" title="Sleeved in a deck - still yours, still counts toward Sets">🃏 ${esc(t)}</span>` : ""; };
+// what you own of a card, any printing, every binder (not sold, not on order): in this deck, free, or in another deck
+function dkHave(name, row){
   if (!COL.loaded) return null;
-  const n = dkFront(name), by = new Map(); let t = 0;
-  colItems("*").forEach(i => { if (i.left > 0 && i.status !== "ordered" && i.kind === "card" && dkFront(i.name) === n){ t += i.left; by.set(i.binder, (by.get(i.binder) || 0) + i.left); } });
-  return {n: t, where: [...by].map(([b, q]) => `${binderName(b)}${by.size > 1 || q > 1 ? " ×" + q : ""}`)};
+  const n = dkFront(name), idx = DK._idx || (DK._idx = dkClaimIdx()), mine = new Map(dkClaims(row || {}).map(c => [c.id, c.n]));
+  let total = 0, here = 0, free = 0; const other = new Map(), items = [], hereItems = [];
+  colItems("*").forEach(i => { if (!(i.left > 0 && i.status !== "ordered" && i.kind === "card" && dkFront(i.name) === n)) return;
+    total += i.left; const cl = idx.get(i.id) || [];
+    const h = Math.min(i.left, mine.get(i.id) || 0), o = cl.filter(c => c.row !== row).reduce((t, c) => t + c.n, 0);
+    here += h; if (h) hereItems.push(i);
+    cl.filter(c => c.row !== row).forEach(c => other.set(c.deck, (other.get(c.deck) || 0) + c.n));
+    const f = Math.max(0, i.left - h - o); free += f; if (f) items.push({i, free: f}); });
+  return {n: total, here, free, freeItems: items, hereItems, other: [...other]};
+}
+function dkPutIn(row, quiet){   // claim free copies: the printing on the list first, then the cheapest
+  const qty = parseInt(row.qty) || 1, h = dkHave(row.name, row); if (!h) return 0;
+  let want = qty - h.here; if (want <= 0 || !h.free) return 0;
+  const cs = dkClaims(row), same = x => (x.i.set || "").toLowerCase() === (row.set || "").toLowerCase() && (!row.collector_number || x.i.number === row.collector_number);
+  const pool = h.freeItems.sort((a, b) => (same(b) - same(a)) || ((a.i.value_each ?? 1e9) - (b.i.value_each ?? 1e9)));
+  let got = 0;
+  for (const x of pool){ if (want <= 0) break; const k = Math.min(want, x.free), c = cs.find(c => c.id === x.i.id);
+    if (c) c.n += k; else cs.push({id: x.i.id, n: k}); want -= k; got += k; }
+  dkSetClaims(row, cs); DK._idx = null; markDirty("decks");
+  if (!quiet) toast(`${row.name}: ${got} cop${got === 1 ? "y" : "ies"} tagged "in ${row.deck}". It stays in your collection.`);
+  return got;
 }
 function dkRows(id){
   return DK.rows.filter(r => r.deck_id === id).map((r, i) => {
-    const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name), basic = c ? dkBasic(c) : false;
-    const need = h == null || basic || r.zone === "maybe" ? 0 : Math.max(0, qty - h.n);
+    const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name, r), basic = c ? dkBasic(c) : false;
+    const need = h == null || basic || r.zone === "maybe" ? 0 : Math.max(0, qty - h.here - h.free);   // to buy: not in the deck and no free copy
     return {r, c, qty, have: h, need, basic, price: c ? dkPrice(c, r.finish) : null, idx: DK.rows.indexOf(r), i};
   });
 }
@@ -6268,20 +6305,23 @@ function renderDECKS(){
   const rows = dkRows(id), inDeck = rows.filter(x => x.r.zone === "cmdr" || x.r.zone === "main");
   const count = inDeck.reduce((t, x) => t + x.qty, 0), value = inDeck.reduce((t, x) => t + (x.price || 0) * x.qty, 0);
   const needRows = inDeck.filter(x => x.need > 0), needN = needRows.reduce((t, x) => t + x.need, 0), needCost = needRows.reduce((t, x) => t + (x.price || 0) * x.need, 0);
-  const haveN = COL.loaded ? inDeck.reduce((t, x) => t + (x.basic ? x.qty : Math.min(x.qty, x.have ? x.have.n : 0)), 0) : null;
+  const haveN = COL.loaded ? inDeck.reduce((t, x) => t + (x.basic ? x.qty : Math.min(x.qty, x.have ? x.have.here : 0)), 0) : null;
+  const freeN = COL.loaded ? inDeck.reduce((t, x) => t + (x.basic || !x.have ? 0 : Math.min(x.have.free, Math.max(0, x.qty - x.have.here))), 0) : 0;
   const cmdr = rows.find(x => x.r.zone === "cmdr" && x.c);
   const loading = missing.length > 0;
   const stats = `<div class="dk-hero">${cmdr ? `<img class="dk-cmdr" src="${esc(dkImg(cmdr.c))}" data-big="${esc(dkImg(cmdr.c, "large"))}" alt="${esc(cmdr.r.name)}">` : ""}
     <div class="stats dk-stats" style="margin:0;flex:1">
       <div class="stat"><span>Cards</span><b>${count}</b></div>
       <div class="stat"><span>Deck value</span><b>${loading ? "…" : money(value)}</b></div>
-      <div class="stat"><span>You have</span><b>${haveN == null ? "…" : `${haveN} <span class="mut" style="font-size:14px;font-weight:500">of ${count}</span>`}</b></div>
+      <div class="stat"><span title="Copies of yours tagged to this deck (basic lands count as in)">In the deck</span><b>${haveN == null ? "…" : `${haveN} <span class="mut" style="font-size:14px;font-weight:500">of ${count}</span>`}</b></div>
+      ${freeN ? `<div class="stat"><span>Own, not tagged yet</span><b>${freeN}</b></div>` : ""}
       <div class="stat"><span>Still need</span><b>${haveN == null || loading ? "…" : needN ? `${needN} <span class="mut" style="font-size:14px;font-weight:500">· ${money(needCost)}</span>` : "Nothing 🎉"}</b></div></div></div>`;
   const tools = `<div class="row dk-tools">
     <div class="seg" id="dkShow">${[["all", "All"], ["need", "Need"], ["have", "Have"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.show === k ? "on" : ""}">${l}</button>`).join("")}</div>
     <div class="seg" id="dkSort">${[["type", "By Type"], ["price", "By Price"], ["cmc", "By Mana"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.sort === k ? "on" : ""}">${l}</button>`).join("")}</div>
+    ${DK_EDIT() && freeN ? `<button class="btn small" type="button" id="dkPutAll" title="Tags a free copy you own for every card that's short - nothing moves, they just show 'in ${esc((decks.find(d => d[0] === id) || [, ""])[1])}'">Put All I Own in Deck</button>` : ""}
     ${ROLE === "owner" && needN ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cheapest printing of every card you still need to your Want List, so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
-  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? x.need > 0 : x.have && x.have.n > 0));
+  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? x.need > 0 : x.have && (x.have.here > 0 || x.have.free > 0)));
   const byPrice = (a, b) => (b.price || 0) - (a.price || 0), byCmc = (a, b) => ((a.c || {}).cmc ?? 99) - ((b.c || {}).cmc ?? 99) || a.r.name.localeCompare(b.r.name);
   let groups = [];
   const zone = z => shown.filter(x => x.r.zone === z);
@@ -6294,15 +6334,24 @@ function renderDECKS(){
   groups = groups.filter(g => g[1].length);
   const list = groups.length ? groups.map(([title, xs]) => `<div class="panel dk-grp"><h3>${esc(title)} <span class="mut">${xs.reduce((t, x) => t + x.qty, 0)} · ${money(xs.reduce((t, x) => t + (x.price || 0) * x.qty, 0))}</span></h3>${xs.map(dkRowHTML).join("")}</div>`).join("")
     : `<p class="empty">${DK.show === "need" ? "Nothing to get - you have every card." : "No cards here."}</p>`;
-  box.innerHTML = head + chips + stats + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. "Have" counts any printing in any binder; plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
+  box.innerHTML = head + chips + stats + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
   wireDecks(box);
 }
 function dkRowHTML(x){
   const c = x.c, r = x.r;
   if (!c) return `<div class="dk-row"><span class="dk-q">${x.qty}</span><span class="dk-th"></span><div class="dk-nm"><b>${esc(r.name)}</b><small>${DK.fetching.has(dkKey(r)) ? "Loading…" : "Not found on Scryfall - check the spelling (✎ to edit the list)"}</small></div></div>`;
   const tl = dkFace(c).type_line || c.type_line || "", h = x.have;
-  const badge = x.basic ? `<span class="chip">Basic land</span>` : r.zone === "maybe" ? "" : h == null ? "" : x.need === 0 ? `<span class="chip dk-have" title="${esc(h.where.join(", "))}">✓ Have · ${esc(h.where.join(", "))}</span>`
-    : h.n > 0 ? `<span class="chip dk-part" title="${esc(h.where.join(", "))}">Have ${h.n} of ${x.qty} · need ${x.need}</span>` : `<span class="chip dk-need">Need${x.need > 1 ? " " + x.need : ""}</span>`;
+  const where = its => [...new Set(its.map(i => `${i.set}${i.number ? " #" + i.number : ""}${i.condition && i.condition !== "NM" ? " " + i.condition : ""}`))].join(", ");
+  const other = h && h.other.length ? h.other.map(([d, n]) => `${n > 1 ? n + " " : ""}in ${d}`).join(", ") : "";
+  const short = h ? Math.max(0, x.qty - h.here) : 0;
+  let badge = "";
+  if (x.basic) badge = `<span class="chip">Basic land</span>`;
+  else if (h && r.zone !== "maybe"){
+    if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
+    if (short && h.free) badge += ` <span class="chip dk-part">Own ${Math.min(h.free, short)}${h.free > short ? "+" : ""} free</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
+    if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
+    else if (other && !h.here && !h.free) badge += ` <span class="chip">${esc(other)}</span>`;
+  }
   return `<div class="dk-row">
     <span class="dk-q">${x.qty}</span>
     <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-big="${esc(dkImg(c, "large"))}" alt="">
@@ -6319,6 +6368,11 @@ function wireDecks(box){
   box.querySelectorAll("#dkSort [data-v]").forEach(b => b.addEventListener("click", () => { DK.sort = b.dataset.v; store.set("pd_deck_sort", DK.sort); renderDECKS(); }));
   box.querySelectorAll("[data-big]").forEach(i => i.addEventListener("click", () => { $("#lightboxImg").src = i.dataset.big; $("#lightbox").classList.add("on"); }));
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
+  box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
+  box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
+  const pa = box.querySelector("#dkPutAll"); if (pa) pa.addEventListener("click", () => {
+    const n = DK.rows.filter(r => r.deck_id === DK.cur && (r.zone === "cmdr" || r.zone === "main")).reduce((t, r) => t + dkPutIn(r, true), 0);
+    renderDECKS(); toast(`Tagged ${n} of your cards "in ${(dkDecks().find(d => d[0] === DK.cur) || [, ""])[1]}". Nothing moved - they stay in your collection.`, 5000); });
   box.querySelectorAll("[data-dkwant]").forEach(b => b.addEventListener("click", async () => { b.disabled = true; await dkWantCheapest([DK.rows[+b.dataset.dkwant]]); b.disabled = false; }));
   const wa = box.querySelector("#dkWantAll"); if (wa) wa.addEventListener("click", () => {
     const rs = dkRows(DK.cur).filter(x => x.need > 0 && (x.r.zone === "cmdr" || x.r.zone === "main"));
@@ -6402,12 +6456,13 @@ function dkEditor(id){
     <label for="dkText" style="margin-top:10px;display:block">Deck list</label>
     <textarea id="dkText" rows="14" style="width:100%;font:13px/1.4 ui-monospace,Menlo,Consolas,monospace" placeholder="1 Sol Ring&#10;1 Command Tower&#10;9 Mountain&#10;&#10;Sideboard&#10;1 Veil of Summer&#10;&#10;1 Bello, Bard of the Brambles">${esc(id ? deckText(id) : "")}</textarea>
     <p class="mut" style="font-size:12.5px;margin:6px 0 0">Paste an export from Moxfield, Archidekt, Arena or plain text: one card per line, with a number in front. "Commander", "Sideboard" and "Maybeboard" lines start those sections; a single card in its own last block is taken as the commander. A set and number in brackets, like <code>1 Sol Ring (C21) 263</code>, picks that printing.</p>
+    ${id ? `<p class="mut" style="font-size:12.5px;margin:6px 0 0">Deleting a deck only removes its list and its "in deck" tags - your cards stay in your collection.</p>` : ""}
     <p class="status" id="dkMsg" style="min-height:18px;margin:8px 0 0"></p>
     <div class="acts">${id ? `<button class="btn ghost" type="button" id="dkDel" style="margin-right:auto;color:var(--down)">Delete Deck</button>` : ""}<button class="btn ghost" type="button" id="dkCancel">Cancel</button><button class="btn" type="button" id="dkOk">${id ? "Save Deck" : "Add Deck"}</button></div>`, true);
   $("#dkCancel").addEventListener("click", closeModal);
   const del = $("#dkDel"); if (del) del.addEventListener("click", () => {
     if (del.dataset.sure !== "1"){ del.dataset.sure = "1"; del.textContent = "Tap Again to Delete"; return; }
-    DK.rows = DK.rows.filter(r => r.deck_id !== id); DK.cur = ""; markDirty("decks"); closeModal(); renderDECKS(); toast(`Deleted ${name}.`); });   // stays in DK.base, so a save merge never brings it back
+    DK.rows = DK.rows.filter(r => r.deck_id !== id); DK.cur = ""; DK._idx = null; markDirty("decks"); closeModal(); renderDECKS(); toast(`Deleted ${name}.`); });   // stays in DK.base, so a save merge never brings it back
   $("#dkOk").addEventListener("click", () => {
     const nm = $("#dkName").value.replace(/[\r\n]/g, " ").trim(), cards = parseDeck($("#dkText").value);
     if (!nm) return ($("#dkMsg").textContent = "Give the deck a name.");
@@ -6416,11 +6471,11 @@ function dkEditor(id){
     const keep = c => old.find(o => o.name.toLowerCase() === c.name.toLowerCase() && o.zone === c.zone);   // re-saved list: keep printings you picked
     const fresh = cards.map(c => { const o = keep(c);
       return {deck_id: did, deck: nm, zone: c.zone, qty: String(c.qty), name: c.name, set: c.set || (o ? o.set : ""), collector_number: c.collector_number || (o && !c.set ? o.collector_number : ""),
-        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today}; });
+        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today, claim: o ? o.claim || "" : ""}; });
     const at = DK.rows.findIndex(r => r.deck_id === did);
     DK.rows = DK.rows.filter(r => r.deck_id !== did);
     DK.rows.splice(at < 0 ? DK.rows.length : at, 0, ...fresh);
-    DK.cur = did; store.set("pd_deck", did); markDirty("decks"); closeModal(); renderDECKS();
+    DK.cur = did; DK._idx = null; store.set("pd_deck", did); markDirty("decks"); closeModal(); renderDECKS();
     toast(`${id ? "Saved" : "Added"} ${nm}: ${fresh.filter(r => r.zone === "cmdr" || r.zone === "main").reduce((t, r) => t + (+r.qty || 1), 0)} cards.`);
   });
   setTimeout(() => (id ? $("#dkText") : $("#dkName")).focus(), 30);
@@ -7078,6 +7133,7 @@ function switchTab(name){
   const stale = k => Date.now() - (TABLOAD[k] || Date.now()) > 15 * 6e4;   // reopened after a while: quietly fetch fresh data (no Refresh buttons)
   if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!GUESTVIEW()) loadCOL(); }
   if (name === "sealed" && typeof loadCOL === "function"){ loadCOL(stale("sealed") && !S.dirty.has("collection")); TABLOAD.sealed = Date.now(); if (typeof loadSL === "function") loadSL(); renderSD(); }
+  if ((name === "col" || name === "sets") && MYCOL() && !DK.loaded && !DK.loading) loadDECKS().then(() => { renderCOL(); });   // "in Bello" tags
   if (name === "col" && typeof loadCOL === "function"){ loadCOL(stale("col") && !S.dirty.has("collection")); TABLOAD.col = Date.now(); if (!GUESTVIEW() && typeof loadSL === "function") loadSL(); }
   if (name === "connect" && !READONLY) loadAccounts();
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
