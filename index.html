@@ -596,7 +596,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 06:13 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 06:16 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -3699,7 +3699,7 @@ function renderTrain(){
       ${sc.other && sc.other.n ? tile(`${sc.other.pct}% <span class="mut" style="font-size:13px">of ${sc.other.n}</span>`, "When it's NOT your printing", "Listings that really are another printing: how often Loupe caught it") : ""}
       ${sc.read && sc.read.n ? tile(`${sc.read.pct}% <span class="mut" style="font-size:13px">of ${sc.read.n}</span>`, "Read on the card", "Times it read the set code and number printed on the card (newer cards only), and how often that was right") : ""}
       ${tile(sc.exact && sc.exact.n ? `${sc.exact.pct}% <span class="mut" style="font-size:13px">of ${sc.exact.n}</span>` : "–", "Exact printing", "Only listings where the exact printing is known (\"It's Revised #147\")")}
-      ${sc.lands && sc.lands.n ? tile(`${sc.lands.pct}% <span class="mut" style="font-size:13px">of ${sc.lands.n}</span>`, "Basic lands: right painting", "Plains, Islands, Swamps, Mountains and Forests where you named the exact one (\"It's Beta #294\"): how often Loupe picked the right painting. Same-frame paintings are judged by the art window alone") : ""}
+      ${sc.paintings && sc.paintings.n ? tile(`${sc.paintings.pct}% <span class="mut" style="font-size:13px">of ${sc.paintings.n}</span>`, "Right painting", "Cards one set printed with several paintings (basic lands, energies, alternate arts - any game) where you named the exact one (\"It's Beta #294\"): how often Loupe picked the right painting. These are judged by the art window alone") : ""}
       ${tile(bk.n ? `${bk.pct}% <span class="mut" style="font-size:13px">of ${bk.n}</span>` : "–", "Back shown", "Its \"is the back in the photos?\" against your Back of Card answers")}
       ${tile(v.n ? `${v.matcher_pct}% <span class="mut" style="font-size:13px">vs ${v.ai_pct}%</span>` : "–", `Loupe vs SlaveAI <span class="mut">(${v.n || 0})</span>`, "Same listings, both checked: how often each got the edition right. Loupe ahead for long enough = it can take over")}
       ${tile(L.adopted ? `On <span class="mut" style="font-size:13px">${L.learned_pct}% vs ${L.plain_pct}%</span>` : `Off <span class="mut" style="font-size:13px">${L.learned_pct != null ? L.learned_pct + "% vs " + L.plain_pct + "%" : ""}</span>`, "Learning", "On only when the retrained version beats the plain one by 2+ points on listings it never trained on. Re-tried weekly")}
