@@ -647,7 +647,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:44 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:57 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6419,7 +6419,7 @@ function renderDECKS0(box){
       <div class="stat"><span>Cards</span><b>${count}</b></div>
       <div class="stat"><span>Deck value</span><b>${loading ? "…" : money(value)}</b></div>
       <div class="stat"><span title="Copies of yours tagged to this deck (basic lands count as in)">In the deck</span><b>${haveN == null ? "…" : `${haveN} <span class="mut" style="font-size:14px;font-weight:500">of ${count}</span>`}</b></div>
-      ${freeN ? `<div class="stat"><span>Own, not tagged yet</span><b>${freeN}</b></div>` : ""}
+      ${freeN ? `<div class="stat"><span title="Copies in your collection that aren't in any deck yet - tap Put in Deck to use them here">You own, not in a deck</span><b>${freeN}</b></div>` : ""}
       ${covN ? `<div class="stat"><span title="Marked Covered: someone else's or borrowed - off the buy list, not in your collection">Covered</span><b>${covN}</b></div>` : ""}
       <div class="stat"><span>Still need</span><b>${haveN == null || loading ? "…" : needN ? `${needN} <span class="mut" style="font-size:14px;font-weight:500">· ${money(needCost)}</span>` : "Nothing 🎉"}${proxN ? `<span class="mut" style="display:block;font-size:12px;font-weight:500">${proxN} proxied for now</span>` : ""}</b></div></div></div>`;
   const adder = DK_EDIT() ? `<div class="row dk-addrow"><div class="ac dk-add"><input id="dkAdd" placeholder="+ Add a card - start typing its name" autocomplete="off" aria-label="Add a card to this deck"><ul id="dkAddList" hidden></ul></div>
@@ -6454,6 +6454,9 @@ function renderDECKS0(box){
   box.innerHTML = head + chips + stats + fmt + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
   wireDecks(box);
 }
+// your free copies as "M19 #314 NM" (foil / language when not plain), up to two printings, then "+N more"
+const dkOwnTxt = fs => { const t = fs.map(f => `${f.free > 1 ? f.free + "× " : ""}${String(f.i.set || "").toUpperCase()} #${f.i.number}${f.i.finish && f.i.finish !== "nonfoil" ? " " + f.i.finish : ""} ${f.i.condition || "NM"}`);
+  return t.slice(0, 2).join(", ") + (t.length > 2 ? ` +${t.length - 2} more` : ""); };
 const dkQtyHTML = x => DK_EDIT() ? `<span class="dk-q dk-step"><button type="button" data-dkdec="${x.idx}" aria-label="One less">−</button><b>${x.qty}</b><button type="button" data-dkinc="${x.idx}" aria-label="One more">+</button></span>` : `<span class="dk-q">${x.qty}</span>`;
 function dkRowHTML(x){
   const c = x.c, r = x.r;
@@ -6469,7 +6472,7 @@ function dkRowHTML(x){
   if (x.basic) badge = `<span class="chip">Basic land</span>`;
   else if (h && r.zone !== "maybe"){
     if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
-    if (short && h.free && !x.covered) badge += ` <span class="chip dk-part">Own ${Math.min(h.free, short)}${h.free > short ? "+" : ""} free</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
+    if (short && h.free && !x.covered) badge += ` <span class="chip dk-part" title="Copies in your collection that aren't in any deck yet: ${esc(h.freeItems.map(f => `${f.free}× ${f.i.set_name || f.i.set} #${f.i.number} · ${f.i.finish} · ${f.i.condition} · ${binderName(f.i.binder)}`).join("; "))}">You own: ${esc(dkOwnTxt(h.freeItems))}</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
     else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
