@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:04 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:06 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6322,7 +6322,9 @@ const dkCost = c => (c.mana_cost || dkFace(c).mana_cost || "").replace(/\{([^}]+
 const DK_TYPES = [["Creature", "Creatures"], ["Planeswalker", "Planeswalkers"], ["Battle", "Battles"], ["Instant", "Instants"], ["Sorcery", "Sorceries"], ["Artifact", "Artifacts"], ["Enchantment", "Enchantments"], ["Land", "Lands"]];
 function dkType(c){ const tl = dkFace(c).type_line || c.type_line || ""; if (/\bLand\b/.test(tl) && !/Creature/.test(tl)) return "Land";
   return (DK_TYPES.find(([t]) => tl.includes(t)) || ["Other"])[0]; }
-const dkBasic = c => /\bBasic\b/.test(c.type_line || "") && !/\bSnow\b/.test(c.type_line || "");   // plain basics: everyone has them - never "needed"
+// plain basics: everyone has them - never "needed". A basic with a printing picked (a Secret Lair or full-art land) is a card
+// like any other: Need unless you own that exact printing. Snow-covered basics are never "plain".
+const dkBasic = (c, r) => /\bBasic\b/.test(c.type_line || "") && !/\bSnow\b/.test(c.type_line || "") && !(r && r.set && r.collector_number);
 
 // ---- deck tags: a deck claims specific copies from your collection. The cards don't move - they stay in their binder,
 // keep counting toward your Sets and value - they just carry an "in Bello" tag, and other decks see them as taken.
@@ -6392,7 +6394,7 @@ function dkPutIn(row, quiet){   // claim free copies: the printing on the list f
 function dkWanted(name){ const n = dkFront(name); return (S.watch || []).some(w => dkFront(w.name) === n); }
 function dkRows(id){
   return DK.rows.filter(r => r.deck_id === id).map((r, i) => {
-    const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name, r), basic = c ? dkBasic(c) : false;
+    const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name, r), basic = c ? dkBasic(c, r) : false;
     const covered = r.mark === "covered";
     const need = h == null || basic || covered || r.zone === "maybe" ? 0 : Math.max(0, qty - h.here - h.free);   // to buy: not in the deck, no free copy, not covered
     const open = !basic && r.zone !== "maybe" && !covered && (!h || h.here < qty);
@@ -6584,7 +6586,7 @@ function wireDecks(box){
 // The printing on the list is kept exactly (art matters); cards with none picked use the cheapest or any printing.
 const DK_GROUPS = [["need", "Need - nobody has it", x => x.need > 0 && !x.proxy, true], ["proxy", "Proxy - stand-ins to replace", x => x.proxy && x.need > 0, true],
   ["free", "You own one, not in a deck yet", x => x.open && x.need === 0 && !x.covered, false], ["covered", "Covered - someone else's", x => x.covered, false],
-  ["indeck", "Already in the deck (your copies)", x => !x.open && !x.covered && !x.basic, false], ["basic", "Basic lands", x => x.basic, false]];
+  ["indeck", "Already in the deck (your copies)", x => !x.open && !x.covered && !x.basic, false], ["basic", "Plain basic lands (no printing picked)", x => x.basic, false]];
 function dkExport(){
   const rows = dkRows(DK.cur), deckName = (dkDecks().find(d => d[0] === DK.cur) || [, "Deck"])[1];
   const st = DK.exp || (DK.exp = {g: Object.fromEntries(DK_GROUPS.map(g => [g[0], g[3]])), side: false, print: "list", none: "cheapest", qty: "need", skipWanted: true});
@@ -6691,7 +6693,7 @@ function dkAddWatch(p, fin, quiet){
 // Proxy: a stand-in to play with for now - stays on the buy list. Optional short note ("Sarah's", "printed").
 // ⋯ on a deck card: which section it's in, Covered / Proxy (with a note), or remove it
 function dkMark(r){
-  const canMark = !(DK.cards.get(dkKey(r)) && dkBasic(DK.cards.get(dkKey(r))));
+  const canMark = !(DK.cards.get(dkKey(r)) && dkBasic(DK.cards.get(dkKey(r)), r));
   openModal(`<h3>${esc(r.name)}</h3>
     <p class="mut" style="font-size:12.5px;margin:8px 0 4px">Section</p>
     <div class="dk-opts dk-zones" role="radiogroup" aria-label="Section">${DK_ZONES.map(([z, label]) => `<button type="button" class="dk-opt dk-z${r.zone === z ? " on" : ""}" role="radio" aria-checked="${r.zone === z}" data-z="${z}"><b>${label}</b></button>`).join("")}</div>
