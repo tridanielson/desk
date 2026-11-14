@@ -475,6 +475,7 @@ body.cs-open{overflow:hidden}
 .dk-more{font-weight:700;letter-spacing:1px}
 .hr-weeks{display:flex;gap:8px;align-items:flex-end;overflow-x:auto;padding:4px 0}.hr-wk{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:44px;font-size:11px}
 .hr-wk span{width:22px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85}.hr-wk b{font-size:11.5px}.hr-wk i{font-style:normal;color:var(--muted);white-space:nowrap}
+.dk-own{all:unset;display:inline-block;border-radius:10px;padding:1px 8px;font-size:12px;cursor:pointer;white-space:nowrap;margin-top:3px;background:rgba(168,123,19,.15);color:var(--gold);font-weight:600}.dk-own:hover{text-decoration:underline}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -647,7 +648,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:58 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 10:28 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -5526,10 +5527,12 @@ function renderCOL(){
     <div class="cv-views" role="group" aria-label="Views">${VIEWS.map(([k, l, n, tip]) => `<button type="button" class="btn small${COL.view === k ? "" : " ghost"}" data-cview="${k}" title="${esc(tip)}">${l}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("")}
       <span class="seg cv-layout" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" class="btn small${COL.layout === "binder" ? " ghost" : ""}" data-clayout="list">☰ List</button><button type="button" class="btn small${COL.layout === "binder" ? "" : " ghost"}" data-clayout="binder">▦ Binder</button></span>
       <input id="colQ" type="search" placeholder="Find a card…" value="${esc(COL.q)}" style="min-width:160px;flex:0 1 220px"></div>
+    ${COL.back ? `<div class="row" style="gap:8px;margin:6px 0 0"><button type="button" class="btn small" id="colBack">← Back to ${esc(COL.back.name)}</button><span class="mut" style="font-size:12.5px">Showing your copies of <b>${esc(COL.q)}</b></span></div>` : ""}
     <p class="mut" id="colViewTip" style="font-size:12px;margin:4px 0 8px">${esc((VIEWS.find(v => v[0] === COL.view) || [])[3] || "")}</p>
     <div class="panel scroll${COL.layout === "binder" ? " is-binder" : ""}" id="colPanel"><span class="status" id="colCount"></span><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table><div class="binder" id="colBinder"></div>
       <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show More</button></div></div>`;
   $("#colQ").addEventListener("input", e => { COL.q = e.target.value; COL.limit = 150; renderCOLList(); });
+  if ($("#colBack")) $("#colBack").addEventListener("click", () => { const d = COL.back.deck; COL.back = null; COL.q = ""; COL.layout = store.get("pd_col_layout") || "list"; DK.cur = d; switchTab("decks"); });
   // picking a view (again) drops any column sort you clicked, so each view shows its own order - Recently added = the order you entered them
   box.querySelectorAll("[data-cview]").forEach(b => b.addEventListener("click", () => { COL.view = b.dataset.cview; COL.limit = 150; COL.showBulk = false; delete TSORT["colTable"]; renderCOL(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
@@ -6310,6 +6313,14 @@ function dkHave(name, row){
     const f = Math.max(0, i.left - h - o); free += f; if (f) items.push({i, free: f}); });
   return {n: total, here, free, freeItems: items, hereItems, other: [...other]};
 }
+// "You own: ..." -> your collection, in the binder view, showing just that card (with a way back to the deck)
+function dkShowOwned(r){
+  const h = dkHave(r.name, r), first = h && h.freeItems[0];
+  COL.binder = first ? first.i.binder : (COL.binder || ""); COL.q = String(r.name).split(" // ")[0]; COL.view = "all"; COL.limit = 150;
+  COL.layout = "binder";   // just for this look - your saved List / Binder choice comes back with ← Back
+  COL.back = {deck: DK.cur, name: (dkDecks().find(d => d[0] === DK.cur) || [, "the deck"])[1]};
+  switchTab("col"); window.scrollTo(0, 0);
+}
 function dkPutIn(row, quiet){   // claim free copies: the printing on the list first, then the cheapest
   const qty = parseInt(row.qty) || 1, h = dkHave(row.name, row); if (!h) return 0;
   let want = qty - h.here; if (want <= 0 || !h.free) return 0;
@@ -6472,7 +6483,7 @@ function dkRowHTML(x){
   if (x.basic) badge = `<span class="chip">Basic land</span>`;
   else if (h && r.zone !== "maybe"){
     if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
-    if (short && h.free && !x.covered) badge += ` <span class="chip dk-part" title="Copies in your collection that aren't in any deck yet: ${esc(h.freeItems.map(f => `${f.free}× ${f.i.set_name || f.i.set} #${f.i.number} · ${f.i.finish} · ${f.i.condition} · ${binderName(f.i.binder)}`).join("; "))}">You own: ${esc(dkOwnTxt(h.freeItems))}</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
+    if (short && h.free && !x.covered) badge += ` <button type="button" class="chip dk-part dk-own" data-dkown="${x.idx}" title="Tap to see them in your collection. Copies not in any deck yet: ${esc(h.freeItems.map(f => `${f.free}× ${f.i.set_name || f.i.set} #${f.i.number} · ${f.i.finish} · ${f.i.condition} · ${binderName(f.i.binder)}`).join("; "))}">You own: ${esc(dkOwnTxt(h.freeItems))} ›</button>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
     else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
@@ -6497,6 +6508,7 @@ function wireDecks(box){
   box.querySelectorAll("[data-dkview]").forEach(i => i.addEventListener("click", () => dkViewRow(DK.rows[+i.dataset.dkview])));
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
   box.querySelectorAll("[data-dkmark]").forEach(b => b.addEventListener("click", () => dkMark(DK.rows[+b.dataset.dkmark])));
+  box.querySelectorAll("[data-dkown]").forEach(b => b.addEventListener("click", () => dkShowOwned(DK.rows[+b.dataset.dkown])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
   box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
   wireDkAdd(box); const az = box.querySelector("#dkAddZone"); if (az) az.addEventListener("change", () => { DK.addZone = az.value; });
@@ -7438,6 +7450,7 @@ function renderAccounts(){
 }
 const TABLOAD = {};
 function switchTab(name){
+  if (name !== "col" && typeof COL !== "undefined" && COL.back){ COL.back = null; COL.q = ""; COL.layout = store.get("pd_col_layout") || "list"; }   // leaving a deck's "your copies" look
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   renderGroups(name);
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + name));
