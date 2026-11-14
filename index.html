@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:15 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:20 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6537,7 +6537,7 @@ function dkRowHTML(x){
   const markBtn = "";
   const markChip = r.mark === "covered" ? ` <span class="chip dk-cov" title="Not in your collection - off the buy list">Covered${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>`
     : r.mark === "proxy" ? ` <span class="chip dk-prx" title="A stand-in for now - still on the buy list">Proxy${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>` : "";
-  if (x.basic) badge = `<span class="chip">Basic land</span>`;
+  if (x.basic) badge = `<span class="chip dk-have" title="Plain basic lands count as in the deck - everyone has them. Pick a printing (All Printings) if the art matters, and it counts like any card.">✓ In Deck · Basic Land</span>`;
   else if (h && r.zone !== "maybe"){
     if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}${h.hereOff.length ? " (not the picked printing)" : ""}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
     if (short && h.free && !x.covered) badge += ` <button type="button" class="chip dk-part dk-own" data-dkown="${x.idx}" title="Tap to see them in your collection. Copies not in any deck yet: ${esc(h.freeItems.map(f => `${f.free}× ${f.i.set_name || f.i.set} #${f.i.number} · ${f.i.finish} · ${f.i.condition} · ${binderName(f.i.binder)}`).join("; "))}">You own: ${esc(dkOwnTxt(h.freeItems))} ›</button>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
@@ -6586,7 +6586,7 @@ function wireDecks(box){
 // The printing on the list is kept exactly (art matters); cards with none picked use the cheapest or any printing.
 const DK_GROUPS = [["need", "Need", x => x.need > 0, true],   // proxies are still to buy - they're in Need
   ["free", "You Own", x => x.open && x.need === 0 && !x.covered, false], ["covered", "Covered", x => x.covered, false],
-  ["indeck", "In Deck", x => !x.open && !x.covered && !x.basic, false], ["basic", "Basic Lands", x => x.basic, false]];
+  ["indeck", "In Deck", x => (!x.open && !x.covered) || x.basic, false]];   // your tagged copies, and plain basic lands (everyone has them)
 function dkExport(){
   const rows = dkRows(DK.cur), deckName = (dkDecks().find(d => d[0] === DK.cur) || [, "Deck"])[1];
   const st = DK.exp || (DK.exp = {g: Object.fromEntries(DK_GROUPS.map(g => [g[0], g[3]])), side: false, print: "list", none: "cheapest", qty: "need", skipWanted: true});
@@ -6641,7 +6641,7 @@ async function dkExportGo(to, rs, st, qtyOf, deckName){
   const btns = document.querySelectorAll("[data-eto]"); btns.forEach(b => b.disabled = true);
   try{
     const ps = await dkExportPrints(rs, st);
-    const status = x => x.covered ? "Covered" + (x.r.mark_note ? " (" + x.r.mark_note + ")" : "") : x.proxy ? "Proxy" : x.need > 0 ? "Need" : x.open ? "You Own" : "In Deck";
+    const status = x => x.covered ? "Covered" + (x.r.mark_note ? " (" + x.r.mark_note + ")" : "") : x.basic ? "In Deck (basic land)" : x.proxy ? "Proxy" : x.need > 0 ? "Need" : x.open ? "You Own" : "In Deck";
     if (to === "copy"){
       const txt = ps.map(p => `${qtyOf(p.x)} ${p.name}${p.set ? ` (${p.set.toUpperCase()})${p.num ? " " + p.num : ""}` : ""}${p.finish === "foil" ? " *F*" : p.finish === "etched" ? " *E*" : ""}`).join("\n");
       try{ await navigator.clipboard.writeText(txt); $("#dkeMsg").innerHTML = `Copied ${ps.length} lines. Paste into Moxfield, Archidekt or <a href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">TCGplayer Mass Entry</a>.`; }
