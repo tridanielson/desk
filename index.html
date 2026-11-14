@@ -458,6 +458,16 @@ body.cs-open{overflow:hidden}
 @media (max-width:520px){.dk-opts{grid-template-columns:1fr}}
 .dk-wanted{background:rgba(168,123,19,.15);color:var(--gold)}
 .dk-chk{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;cursor:pointer}.dk-chk input{width:auto!important;height:auto!important;margin:3px 0 0;flex:none}
+.dkv{position:fixed;inset:0;z-index:1500;background:rgba(8,6,4,.88);display:flex;align-items:center;justify-content:center;padding:16px;touch-action:pan-y}
+.dkv-box{display:flex;gap:18px;align-items:center;max-width:min(940px,100%);max-height:100%}
+.dkv-card{height:min(76vh,680px);width:auto;max-width:min(488px,62vw);border-radius:4.5%/3.3%;box-shadow:0 12px 40px rgba(0,0,0,.6);user-select:none;-webkit-user-drag:none;background:#222;aspect-ratio:488/680;object-fit:contain}
+.dkv-card.cur{outline:3px solid var(--accent);outline-offset:4px}
+.dkv-cap{background:var(--panel);color:var(--ink);border-radius:12px;padding:12px 14px;width:280px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.dkv-top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.dkv-top b{font-size:15px}
+.dkv-nav{all:unset;position:fixed;top:50%;transform:translateY(-50%);width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:30px;line-height:44px;text-align:center;cursor:pointer;z-index:2}
+.dkv-nav:hover{background:rgba(255,255,255,.28)}.dkv-nav.prev{left:14px}.dkv-nav.next{right:14px}.dkv-nav:focus-visible,.dkv-x:focus-visible{outline:2px solid #fff}
+.dkv-x{all:unset;position:fixed;top:12px;right:14px;color:#fff;font-size:22px;cursor:pointer;padding:6px 10px;z-index:2}
+@media (max-width:760px){.dkv{align-items:flex-start;overflow:auto;padding:48px 12px 16px}.dkv-box{flex-direction:column;gap:10px;width:100%}.dkv-card{height:auto;width:min(340px,82vw);max-width:none}.dkv-cap{width:min(340px,82vw)}.dkv-nav{top:36%}.dkv-nav.prev{left:4px}.dkv-nav.next{right:4px}}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -630,7 +640,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:46 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:20 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6441,8 +6451,8 @@ function dkRowHTML(x){
     + (x.covered && h && h.free ? ` <span class="chip" title="Your own copy stays free for other decks">you also own ${h.free}</span>` : "") + markBtn;
   return `<div class="dk-row">
     <span class="dk-q">${x.qty}</span>
-    <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-big="${esc(dkImg(c, "large"))}" alt="">
-    <div class="dk-nm"><b data-big="${esc(dkImg(c, "large"))}">${esc(r.name)} <span class="dk-cost">${dkCost(c)}</span></b><small>${esc(tl)} · ${esc(c.set_name)} #${esc(c.collector_number)}${r.finish !== "nonfoil" ? " · " + esc(r.finish) : ""}</small>${badge ? `<div>${badge}</div>` : ""}</div>
+    <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-dkview="${x.idx}" alt="" title="See it big - flip through every printing">
+    <div class="dk-nm"><b data-dkview="${x.idx}" title="See it big - flip through every printing">${esc(r.name)} <span class="dk-cost">${dkCost(c)}</span></b><small>${esc(tl)} · ${esc(c.set_name)} #${esc(c.collector_number)}${r.finish !== "nonfoil" ? " · " + esc(r.finish) : ""}</small>${badge ? `<div>${badge}</div>` : ""}</div>
     <div class="dk-pr">${money(x.price)}${x.qty > 1 ? `<small>×${x.qty} ${money((x.price || 0) * x.qty)}</small>` : ""}</div>
     <div class="dk-acts"><button class="btn small" type="button" data-dkprints="${x.idx}">All Printings</button><a class="btn small ghost" href="${esc(c.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(c))}" target="_blank" rel="noopener">TCGplayer</a>${ROLE === "owner" && x.open && !x.wanted ? `<button class="btn small ghost" type="button" data-dkwant="${x.idx}" title="${r.set && r.collector_number ? `Adds ${esc(r.set.toUpperCase())} #${esc(r.collector_number)}${r.finish !== "nonfoil" ? " " + esc(r.finish) : ""} (the printing on the list) to your Want List` : "Adds the cheapest printing to your Want List - pick one in All Printings to want that instead"}">Want</button>` : ""}</div>
   </div>`;
@@ -6454,6 +6464,7 @@ function wireDecks(box){
   box.querySelectorAll("#dkShow [data-v]").forEach(b => b.addEventListener("click", () => { DK.show = b.dataset.v; store.set("pd_deck_show", DK.show); renderDECKS(); }));
   box.querySelectorAll("#dkSort [data-v]").forEach(b => b.addEventListener("click", () => { DK.sort = b.dataset.v; store.set("pd_deck_sort", DK.sort); renderDECKS(); }));
   box.querySelectorAll("[data-big]").forEach(i => i.addEventListener("click", () => { $("#lightboxImg").src = i.dataset.big; $("#lightbox").classList.add("on"); }));
+  box.querySelectorAll("[data-dkview]").forEach(i => i.addEventListener("click", () => dkViewRow(DK.rows[+i.dataset.dkview])));
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
   box.querySelectorAll("[data-dkmark]").forEach(b => b.addEventListener("click", () => dkMark(DK.rows[+b.dataset.dkmark])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
@@ -6525,6 +6536,20 @@ function dkMark(r){
 
 // ---- every printing of one card: switch the one on the list, or want a specific one
 const DKP = {token: 0, list: [], r: null, sort: "new"};
+// every paper printing of a card, fetched once per visit (the printings screen and the card viewer share it)
+const DK_PRINTS = new Map();
+async function dkFetchPrints(c, onPage, live){
+  const hit = DK_PRINTS.get(c.oracle_id); if (hit && hit.done){ onPage && onPage(hit.list, false); return hit.list; }
+  const list = []; let path = "/cards/search?unique=prints&include_extras=true&include_variations=true&order=released&dir=desc&q=" + encodeURIComponent(`oracleid:${c.oracle_id} game:paper`);
+  for (let k = 0; k < 20 && path && (!live || live()); k++){
+    const j = await sf(path); list.push(...(j.data || []));
+    path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : "";
+    onPage && onPage(list, !!path);
+    if (path) await new Promise(res => setTimeout(res, 110));
+  }
+  if (!path) DK_PRINTS.set(c.oracle_id, {list, done: true});
+  return list;
+}
 async function dkPrints(r){
   const c = DK.cards.get(dkKey(r)); if (!c) return;
   const tok = ++DKP.token; DKP.list = []; DKP.r = r; DKP.sel = {};
@@ -6535,14 +6560,8 @@ async function dkPrints(r){
   $("#dkpClose").addEventListener("click", () => { DKP.token++; closeModal(); });
   $("#dkpSort").addEventListener("change", e => { DKP.sort = e.target.value; dkPrintsDraw(false); });
   DKP.q = ""; $("#dkpQ").addEventListener("input", e => { DKP.q = e.target.value; dkPrintsDraw(false); });
-  let path = "/cards/search?unique=prints&include_extras=true&include_variations=true&order=released&dir=desc&q=" + encodeURIComponent(`oracleid:${c.oracle_id} game:paper`);
-  try{
-    for (let k = 0; k < 20 && path && tok === DKP.token; k++){
-      const j = await sf(path); DKP.list.push(...(j.data || [])); dkPrintsDraw(!!j.has_more);
-      path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : "";
-      if (path) await new Promise(res => setTimeout(res, 110));
-    }
-  }catch(e){ const b = $("#dkpBody"); if (b && tok === DKP.token) b.insertAdjacentHTML("beforeend", `<p class="empty">Couldn't load more printings (${esc(e.message || e)}).</p>`); }
+  try{ await dkFetchPrints(c, (list, more) => { if (tok !== DKP.token) return; DKP.list = list.slice(); dkPrintsDraw(more); }, () => tok === DKP.token); }
+  catch(e){ const b = $("#dkpBody"); if (b && tok === DKP.token) b.insertAdjacentHTML("beforeend", `<p class="empty">Couldn't load more printings (${esc(e.message || e)}).</p>`); }
 }
 // one tile per printing: Scryfall lists some foil-only / etched versions as their own card (own number) with the same set and
 // art - those merge, and the finish is picked under the picture (Non-Foil / Foil / Etched, each with its price)
@@ -6577,13 +6596,67 @@ function dkPrintsDraw(more){
         <b>${esc(p.set_name)}</b><span class="mut">${esc(p.set.toUpperCase())} #${esc(nums)} · ${esc((p.released_at || "").slice(0, 4))}${tags ? " · " + esc(tags) : ""}</span>
         <div class="dk-fins" role="radiogroup" aria-label="Finish">${g.fins.map(x => `<button type="button" class="dk-fin${x.f === f.f ? " on" : ""}" role="radio" aria-checked="${x.f === f.f}" data-g="${i}" data-f="${x.f}"><span>${x.label}</span><b>${x.price == null ? "–" : money(x.price)}</b></button>`).join("")}</div>
         <div class="dk-pacts">${DK_EDIT() && !onList ? `<button class="btn small" type="button" data-puse="${i}" title="Put this printing and finish on the deck list">Use in Deck</button>` : onList ? `<span class="chip">On the list</span>` : ""}${ROLE === "owner" ? `<button class="btn small ghost" type="button" data-pwant="${i}" title="Add this exact printing and finish to your Want List">Want This One</button>` : ""}<a class="btn small ghost" href="${esc(f.card.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(f.card))}" target="_blank" rel="noopener">TCGplayer</a></div></div>`; }).join("")}</div>`;
-  b.querySelectorAll("[data-pbig]").forEach(i => i.addEventListener("click", () => { $("#lightboxImg").src = i.dataset.pbig; $("#lightbox").classList.add("on"); }));
+  DKP.groups = groups; DKP.pick = pick;
+  b.querySelectorAll("[data-pbig]").forEach((im, i) => im.addEventListener("click", () => dkView(groups, i, r, pick)));
   b.querySelectorAll(".dk-fin").forEach(x => x.addEventListener("click", () => { const g = groups[+x.dataset.g]; sel[g.k] = x.dataset.f; const keep = b.scrollTop; dkPrintsDraw(more); b.scrollTop = keep; }));
   b.querySelectorAll("[data-pwant]").forEach(x => x.addEventListener("click", () => { const f = pick(groups[+x.dataset.pwant]); dkAddWatch(f.card, f.f, false); x.textContent = "✓ Wanted"; x.disabled = true; renderDECKS(); }));
-  b.querySelectorAll("[data-puse]").forEach(x => x.addEventListener("click", () => { const f = pick(groups[+x.dataset.puse]), p = f.card;
-    r.set = p.set; r.collector_number = p.collector_number; r.finish = f.f;
-    DK.cards.set(dkKey(r), p); markDirty("decks"); renderDECKS(); dkPrintsDraw(false);
-    toast(`${r.name}: now ${p.set_name} #${p.collector_number}${f.f !== "nonfoil" ? " · " + f.label : ""}.`); }));
+  b.querySelectorAll("[data-puse]").forEach(x => x.addEventListener("click", () => { dkUsePrint(r, pick(groups[+x.dataset.puse])); dkPrintsDraw(false); }));
+}
+
+function dkUsePrint(r, f){
+  const p = f.card; r.set = p.set; r.collector_number = p.collector_number; r.finish = f.f;
+  DK.cards.set(dkKey(r), p); markDirty("decks"); renderDECKS();
+  toast(`${r.name}: now ${p.set_name} #${p.collector_number}${f.f !== "nonfoil" ? " · " + f.label : ""}.`);
+}
+
+// ---- the card viewer: tap a card picture to see it big, then flip through every printing (arrows, ← →, or swipe),
+// pick the finish, and put that printing on the list or on your Want List
+const DKV = {groups: [], i: 0, r: null, sel: {}, pick: null};
+function dkViewRow(r){
+  const c = DK.cards.get(dkKey(r)); if (!c) return;
+  const tok = (DKV.tok = (DKV.tok || 0) + 1);
+  dkView(dkPrintGroups([c]), 0, r, null, true);
+  dkFetchPrints(c, (list, more) => { if (DKV.tok !== tok || !$("#dkView")) return;
+    const cur = DK.cards.get(dkKey(r)) || c, shown = DKV.groups[DKV.i];
+    const gs = dkPrintGroups(list).sort((a, z) => z.p.released_at.localeCompare(a.p.released_at));
+    let i = shown ? gs.findIndex(g => g.k === shown.k) : -1; if (i < 0) i = Math.max(0, gs.findIndex(g => g.cards.some(x => x.id === cur.id)));
+    DKV.groups = gs; DKV.i = i; DKV.loading = more; dkViewDraw(); }).catch(() => { DKV.loading = false; dkViewDraw(); });
+}
+function dkView(groups, i, r, pick, loading){
+  DKV.groups = groups; DKV.i = i; DKV.r = r; DKV.sel = {}; DKV.pick = pick; DKV.loading = !!loading;
+  let v = $("#dkView");
+  if (!v){ v = document.createElement("div"); v.id = "dkView"; v.className = "dkv"; v.setAttribute("role", "dialog"); v.setAttribute("aria-label", "Card printings"); document.body.appendChild(v);
+    v.addEventListener("click", e => { if (e.target === v) dkViewClose(); });
+    let x0 = null; v.addEventListener("pointerdown", e => { if (e.target.closest(".dkv-card")) x0 = e.clientX; });
+    v.addEventListener("pointerup", e => { if (x0 == null) return; const dx = e.clientX - x0; x0 = null; if (Math.abs(dx) > 40) dkViewStep(dx < 0 ? 1 : -1); });
+    if (!DKV.keys) DKV.keys = true, document.addEventListener("keydown", e => { if (!$("#dkView")) return; if (e.key === "ArrowRight"){ dkViewStep(1); e.preventDefault(); } else if (e.key === "ArrowLeft"){ dkViewStep(-1); e.preventDefault(); } else if (e.key === "Escape"){ dkViewClose(); e.stopPropagation(); } }, true);
+  }
+  dkViewDraw();
+}
+function dkViewClose(){ const v = $("#dkView"); if (v) v.remove(); DKV.tok = (DKV.tok || 0) + 1; }
+function dkViewStep(d){ if (!DKV.groups.length) return; DKV.i = (DKV.i + d + DKV.groups.length) % DKV.groups.length; dkViewDraw(); }
+function dkViewDraw(){
+  const v = $("#dkView"); if (!v) return;
+  const g = DKV.groups[DKV.i]; if (!g) return;
+  const r = DKV.r, cur = DK.cards.get(dkKey(r)) || {};
+  const isCur = g.cards.some(c => c.id === cur.id);
+  const f = (() => { const want = DKV.sel[g.k] || (DKV.pick ? DKV.pick(g).f : isCur ? r.finish || "nonfoil" : (g.fins.find(x => x.f === "nonfoil" && x.price != null) || g.fins.find(x => x.price != null) || g.fins[0]).f);
+    return g.fins.find(x => x.f === want) || g.fins[0]; })();
+  const p = f.card, onList = isCur && f.card.id === cur.id && f.f === (r.finish || "nonfoil"), n = DKV.groups.length;
+  const tags = [p.lang && p.lang !== "en" ? p.lang.toUpperCase() : "", p.border_color && !["black", "borderless"].includes(p.border_color) ? p.border_color + " border" : "", p.border_color === "borderless" ? "borderless" : "", p.full_art ? "full art" : "", p.promo ? "promo" : ""].filter(Boolean).join(" · ");
+  v.innerHTML = `<button class="dkv-x" type="button" aria-label="Close">✕</button>
+    ${n > 1 ? `<button class="dkv-nav prev" type="button" aria-label="Previous printing">‹</button><button class="dkv-nav next" type="button" aria-label="Next printing">›</button>` : ""}
+    <div class="dkv-box"><img class="dkv-card${isCur ? " cur" : ""}" src="${esc(dkImg(p, "large") || dkImg(p))}" alt="${esc(p.name)} - ${esc(p.set_name)}" draggable="false">
+      <div class="dkv-cap"><div class="dkv-top"><b>${esc(p.set_name)}</b><span class="mut">${n > 1 || DKV.loading ? `${DKV.i + 1} of ${n}${DKV.loading ? "…" : ""}` : ""}</span></div>
+        <div class="mut">${esc(p.set.toUpperCase())} #${esc([...new Set(g.cards.map(c => c.collector_number))].join(" / "))} · ${esc((p.released_at || "").slice(0, 4))}${tags ? " · " + esc(tags) : ""}${isCur ? " · <b>on the list</b>" : ""}</div>
+        <div class="dk-fins">${g.fins.map(x => `<button type="button" class="dk-fin${x.f === f.f ? " on" : ""}" data-vf="${x.f}"><span>${x.label}</span><b>${x.price == null ? "–" : money(x.price)}</b></button>`).join("")}</div>
+        <div class="dk-pacts">${DK_EDIT() && !onList ? `<button class="btn small" type="button" id="dkvUse">Use in Deck</button>` : ""}${ROLE === "owner" ? `<button class="btn small ghost" type="button" id="dkvWant">Want This One</button>` : ""}<a class="btn small ghost" href="${esc(p.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(p))}" target="_blank" rel="noopener">TCGplayer</a></div></div></div>`;
+  v.querySelector(".dkv-x").addEventListener("click", dkViewClose);
+  v.querySelectorAll(".dkv-nav").forEach(b => b.addEventListener("click", () => dkViewStep(b.classList.contains("next") ? 1 : -1)));
+  v.querySelectorAll("[data-vf]").forEach(b => b.addEventListener("click", () => { DKV.sel[g.k] = b.dataset.vf; dkViewDraw(); }));
+  const u = v.querySelector("#dkvUse"); if (u) u.addEventListener("click", () => { dkUsePrint(r, f); dkViewDraw(); if ($("#dkpBody")) dkPrintsDraw(false); });
+  const w = v.querySelector("#dkvWant"); if (w) w.addEventListener("click", () => { dkAddWatch(f.card, f.f, false); w.textContent = "✓ Wanted"; w.disabled = true; renderDECKS(); });
+  [1, -1].forEach(d => { const nb = DKV.groups[(DKV.i + d + n) % n]; if (nb){ const im = new Image(); im.src = dkImg(nb.fins[0].card, "large") || dkImg(nb.p); } });   // next/previous load ahead
 }
 
 // ---- new deck / edit deck: name + the list as text (paste from anywhere), and delete
