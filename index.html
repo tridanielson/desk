@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:06 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:09 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6584,9 +6584,9 @@ function wireDecks(box){
 }
 // ---- Export: pick which cards (by what they are in this deck) and which printing, then send them somewhere.
 // The printing on the list is kept exactly (art matters); cards with none picked use the cheapest or any printing.
-const DK_GROUPS = [["need", "Need - nobody has it", x => x.need > 0 && !x.proxy, true], ["proxy", "Proxy - stand-ins to replace", x => x.proxy && x.need > 0, true],
-  ["free", "You own one, not in a deck yet", x => x.open && x.need === 0 && !x.covered, false], ["covered", "Covered - someone else's", x => x.covered, false],
-  ["indeck", "Already in the deck (your copies)", x => !x.open && !x.covered && !x.basic, false], ["basic", "Plain basic lands (no printing picked)", x => x.basic, false]];
+const DK_GROUPS = [["need", "Need", x => x.need > 0, true],   // proxies are still to buy - they're in Need
+  ["free", "You Own", x => x.open && x.need === 0 && !x.covered, false], ["covered", "Covered", x => x.covered, false],
+  ["indeck", "In Deck", x => !x.open && !x.covered && !x.basic, false], ["basic", "Basic Lands", x => x.basic, false]];
 function dkExport(){
   const rows = dkRows(DK.cur), deckName = (dkDecks().find(d => d[0] === DK.cur) || [, "Deck"])[1];
   const st = DK.exp || (DK.exp = {g: Object.fromEntries(DK_GROUPS.map(g => [g[0], g[3]])), side: false, print: "list", none: "cheapest", qty: "need", skipWanted: true});
@@ -6595,16 +6595,16 @@ function dkExport(){
   const draw = () => {
     const rs = pick(), ex = rs.filter(x => x.r.set && x.r.collector_number).length, wanted = rs.filter(x => x.wanted).length;
     openModal(`<h3>Export ${esc(deckName)}</h3>
-      <p class="mut" style="font-size:12.5px;margin:10px 0 4px">Which cards</p>
+      <p class="mut" style="font-size:12.5px;margin:10px 0 4px">Cards</p>
       ${DK_GROUPS.map(([k, label, f]) => { const n = rows.filter(x => (st.side || x.r.zone === "cmdr" || x.r.zone === "main") && f(x)).length;
         return `<label class="dk-chk"><input type="checkbox" data-eg="${k}"${st.g[k] ? " checked" : ""}${n ? "" : " disabled"}> <span><b>${label}</b> <span class="mut">(${n})</span></span></label>`; }).join("")}
-      <label class="dk-chk"><input type="checkbox" id="dkeSide"${st.side ? " checked" : ""}> <span>Include Sideboard &amp; Maybeboard</span></label>
-      <p class="mut" style="font-size:12.5px;margin:12px 0 4px">Which printing</p>
-      <div class="dk-opts dk-exp-p">${[["list", "Keep the Deck's Printing", "Exact set, number and finish - the artwork you picked"], ["cheapest", "Cheapest", "The cheapest paper printing of each"], ["any", "Any Printing", "Just the card name"]]
-        .map(([v, t, d]) => `<button type="button" class="dk-opt${st.print === v ? " on" : ""}" data-ep="${v}"><b>${t}</b><span>${d}</span></button>`).join("")}</div>
-      ${st.print === "list" && rs.length - ex ? `<p style="font-size:12.5px;margin:6px 0 0">${rs.length - ex} of these ${rs.length - ex === 1 ? "has" : "have"} no printing picked yet - use <select id="dkeNone"><option value="cheapest"${st.none === "cheapest" ? " selected" : ""}>the cheapest</option><option value="any"${st.none === "any" ? " selected" : ""}>any printing</option></select> for ${rs.length - ex === 1 ? "it" : "them"}: <span class="mut">${esc(rs.filter(x => !(x.r.set && x.r.collector_number)).map(x => x.r.name).join(", "))}</span></p>` : ""}
-      <p class="mut" style="font-size:12.5px;margin:12px 0 4px">How many</p>
-      <select id="dkeQty"><option value="need"${st.qty === "need" ? " selected" : ""}>Only what's still needed (e.g. 1 of 2)</option><option value="deck"${st.qty === "deck" ? " selected" : ""}>The deck's full count</option></select>
+      <label class="dk-chk"><input type="checkbox" id="dkeSide"${st.side ? " checked" : ""}> <span><b>Sideboard &amp; Maybeboard</b></span></label>
+      <p class="mut" style="font-size:12.5px;margin:12px 0 4px">Printing</p>
+      <div class="dk-opts dk-exp-p">${[["list", "Deck's Printing", "The art you picked"], ["cheapest", "Cheapest", ""], ["any", "Any", "Name only"]]
+        .map(([v, t, d]) => `<button type="button" class="dk-opt${st.print === v ? " on" : ""}" data-ep="${v}"><b>${t}</b>${d ? `<span>${d}</span>` : ""}</button>`).join("")}</div>
+      ${st.print === "list" && rs.length - ex ? `<p style="font-size:12.5px;margin:6px 0 0">No printing picked (${rs.length - ex}) - use <select id="dkeNone"><option value="cheapest"${st.none === "cheapest" ? " selected" : ""}>Cheapest</option><option value="any"${st.none === "any" ? " selected" : ""}>Any</option></select>: <span class="mut">${esc(rs.filter(x => !(x.r.set && x.r.collector_number)).map(x => x.r.name).join(", "))}</span></p>` : ""}
+      <p class="mut" style="font-size:12.5px;margin:12px 0 4px">Quantity</p>
+      <select id="dkeQty"><option value="need"${st.qty === "need" ? " selected" : ""}>Still Needed</option><option value="deck"${st.qty === "deck" ? " selected" : ""}>Full Count</option></select>
       <p class="status" id="dkeMsg" style="min-height:18px;margin:10px 0 0">${rs.length} card${rs.length === 1 ? "" : "s"}, ${rs.reduce((t, x) => t + qtyOf(x), 0)} copies.</p>
       <div class="acts dk-exp-acts"><button class="btn ghost" type="button" id="dkeNo">Close</button>
         <button class="btn ghost" type="button" data-eto="csv"${rs.length ? "" : " disabled"} title="A spreadsheet file: quantity, name, set, number, finish, price, status">Download CSV</button>
@@ -6641,7 +6641,7 @@ async function dkExportGo(to, rs, st, qtyOf, deckName){
   const btns = document.querySelectorAll("[data-eto]"); btns.forEach(b => b.disabled = true);
   try{
     const ps = await dkExportPrints(rs, st);
-    const status = x => x.covered ? "Covered" + (x.r.mark_note ? " (" + x.r.mark_note + ")" : "") : x.proxy ? "Proxy" : x.need > 0 ? "Need" : x.open ? "You own one, not in a deck yet" : "In deck";
+    const status = x => x.covered ? "Covered" + (x.r.mark_note ? " (" + x.r.mark_note + ")" : "") : x.proxy ? "Proxy" : x.need > 0 ? "Need" : x.open ? "You Own" : "In Deck";
     if (to === "copy"){
       const txt = ps.map(p => `${qtyOf(p.x)} ${p.name}${p.set ? ` (${p.set.toUpperCase()})${p.num ? " " + p.num : ""}` : ""}${p.finish === "foil" ? " *F*" : p.finish === "etched" ? " *E*" : ""}`).join("\n");
       try{ await navigator.clipboard.writeText(txt); $("#dkeMsg").innerHTML = `Copied ${ps.length} lines. Paste into Moxfield, Archidekt or <a href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">TCGplayer Mass Entry</a>.`; }
