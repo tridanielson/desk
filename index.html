@@ -658,7 +658,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:33 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:39 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1243,6 +1243,7 @@ async function startApp(){
     // one loading screen, not two: stay on it until the page you're on has its data too (collection, Secret Lair...)
     for (let i = 0; i < 120; i++){ await new Promise(r => setTimeout(r, 250)); if (!BUSY.n && !COL.loading && !SL.loading) break; }
     document.body.classList.remove("booting");
+    if (document.querySelector("#tab-decks.on") && typeof renderDECKS === "function") renderDECKS();   // drawn while hidden: draw again now it shows
     try{ const y = +sessionStorage.getItem("pd_scroll"); sessionStorage.removeItem("pd_scroll"); if (y && !/^#deal=/.test(location.hash)) requestAnimationFrame(() => setTimeout(() => scrollTo(0, y), 50)); }catch(e){}   // back to where you were, not the top
     openDealFromHash();
   }catch(e){
@@ -4898,7 +4899,7 @@ async function loadCOL(force){
     await loadSDFiles();   // sealed product (accounts keep their own, like the collection)
     COL.loaded = true;
   }catch(e){ COL.error = e.message; }
-  COL.loading = false; renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); if (document.querySelector("#tab-sealed.on")) renderSD();
+  COL.loading = false; renderCOL(); if (document.querySelector("#tab-sets.on")) renderSETS(); if (document.querySelector("#tab-sealed.on")) renderSD(); if (document.querySelector("#tab-decks.on") && typeof renderDECKS === "function") renderDECKS();
   if (SL.ordersOpen && typeof renderSLOrders === "function") renderSLOrders();
 }
 // how many of a line have arrived (a line can arrive in parts: "1 of 2")
@@ -6247,7 +6248,7 @@ const dkFront = n => String(n || "").split(" // ")[0].trim().toLowerCase();
 
 async function loadDECKS(){
   if (!MYCOL()) return renderDECKS();
-  if (!COL.loaded && typeof loadCOL === "function") loadCOL().then(() => renderDECKS());   // "have" comes from every binder
+  if (!COL.loaded && typeof loadCOL === "function") loadCOL();   // "have" comes from every binder - loadCOL redraws the deck when it's in
   if (!DK.loaded && !DK.loading){ DK.loading = true; renderDECKS();
     try{ const f = (await GH.readFiles(["collection/decks.csv"]))["collection/decks.csv"] || {};
       DK.rows = f.text ? parseCSV(f.text).filter(r => r.deck_id && r.name) : []; DK.sha = f.sha || null;
@@ -6533,7 +6534,7 @@ function dkRowHTML(x){
     + (x.covered && h && h.free ? ` <span class="chip" title="Your own copy stays free for other decks">you also own ${h.free}</span>` : "") + markBtn;
   return `<div class="dk-row">
     ${dkQtyHTML(x)}
-    <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-dkview="${x.idx}" alt="" title="See it big - flip through every printing">
+    <img class="dk-th" src="${esc(dkImg(c, "small"))}" data-dkview="${x.idx}" alt="" title="See it big - flip through every printing">
     <div class="dk-nm"><b data-dkview="${x.idx}" title="See it big - flip through every printing">${esc(r.name)} <span class="dk-cost">${dkCost(c)}</span></b><small>${esc(tl)} · ${esc(c.set_name)} #${esc(c.collector_number)}${r.finish !== "nonfoil" ? " · " + esc(r.finish) : ""}</small>${badge ? `<div>${badge}</div>` : ""}</div>
     <div class="dk-pr">${money(x.price)}${x.qty > 1 ? `<small>×${x.qty} ${money((x.price || 0) * x.qty)}</small>` : ""}</div>
     <div class="dk-acts">${DK_EDIT() ? `<button class="btn small ghost dk-more" type="button" data-dkmark="${x.idx}" title="Move to another section, mark Covered or Proxy, or remove">⋯</button>` : ""}<button class="btn small" type="button" data-dkprints="${x.idx}">All Printings</button><a class="btn small ghost" href="${esc(c.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(c))}" target="_blank" rel="noopener">TCGplayer</a>${ROLE === "owner" && x.open && !x.wanted ? `<button class="btn small ghost" type="button" data-dkwant="${x.idx}" title="${r.set && r.collector_number ? `Adds ${esc(r.set.toUpperCase())} #${esc(r.collector_number)}${r.finish !== "nonfoil" ? " " + esc(r.finish) : ""} (the printing on the list) to your Want List` : "Adds the cheapest printing to your Want List - pick one in All Printings to want that instead"}">Want</button>` : ""}</div>
