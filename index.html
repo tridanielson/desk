@@ -479,6 +479,9 @@ body.cs-open{overflow:hidden}
 .dk-flash{animation:dkFlash 1.6s ease}@keyframes dkFlash{0%,40%{background:var(--chip)}100%{background:transparent}}
 .cv-mini{all:unset;box-sizing:border-box;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 14px;margin:6px 0 10px;cursor:pointer;font-size:14px;color:var(--ink)}
 .cv-mini b{font-size:16px}.cv-mini:hover{border-color:var(--accent)}.cv-mini-more{margin-left:auto;font-size:12.5px;color:var(--accent);font-weight:600}
+.wl-only{all:unset;display:inline-flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-left:10px;color:var(--ink)}.wl-only b{color:var(--muted);font-weight:600}
+.wl-box-chk{width:15px;height:15px;border:1.5px solid var(--line);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1}
+.wl-only.on .wl-box-chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.wl-only:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -651,7 +654,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 10:55 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 11:03 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -709,7 +712,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   </div>
   <div class="panel row" id="wlBar">
     <span class="seg" id="wlKind" role="group" aria-label="Show"></span>
-    <button type="button" class="btn small ghost" id="wlDeals">Has a deal now</button>
+    <button type="button" class="wl-only" id="wlDeals" aria-pressed="false" title="An extra filter on top of All / Cards / Sets / Searches: only what has a deal on eBay right now">Only With a Deal Now</button>
     <input id="wlQ" placeholder="Find on your list…" style="flex:1;min-width:160px;max-width:280px;margin-left:auto">
   </div>
   <div class="panel wl-box"><div class="wl-row wl-headrow"><span></span><span>What</span><span>Watching for</span><span>Right now</span><span></span></div><div id="wlList"></div></div>
@@ -4406,7 +4409,7 @@ function renderWant(){
   const all = wlItems(), n = k => all.filter(x => k === "all" || x.kind === k).length;
   $("#wlKind").innerHTML = [["all", "All"], ["card", "Cards"], ["set", "Sets"], ["search", "Searches"]].map(([k, l]) => `<button type="button" class="btn small${WL.kind === k ? "" : " ghost"}" data-wlk="${k}">${l} ${n(k)}</button>`).join("");
   const nd = all.filter(x => x.deals.length).length;
-  $("#wlDeals").textContent = `Has a deal now · ${nd}`; $("#wlDeals").classList.toggle("ghost", !WL.deals);
+  $("#wlDeals").innerHTML = `<span class="wl-box-chk">${WL.deals ? "✓" : ""}</span>Only With a Deal Now <b>${nd}</b>`; $("#wlDeals").classList.toggle("on", !!WL.deals); $("#wlDeals").setAttribute("aria-pressed", !!WL.deals);
   $("#wlAdd").hidden = READONLY;
   const q = WL.q.trim().toLowerCase();
   const rows = all.filter(x => (WL.kind === "all" || x.kind === WL.kind) && (!WL.deals || x.deals.length) && (!q || x.find.toLowerCase().includes(q)));
