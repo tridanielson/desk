@@ -483,6 +483,9 @@ body.cs-open{overflow:hidden}
 .wl-box-chk{width:15px;height:15px;border:1.5px solid var(--line);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1}
 .wl-only.on .wl-box-chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.wl-only:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 .dk-exp-p{grid-template-columns:repeat(3,1fr)}.dk-exp-acts{flex-wrap:wrap}#colModalBody select#dkeNone,#colModalBody select#dkeQty{width:auto!important;padding:4px 8px}
+.loud-tog{all:unset;box-sizing:border-box;display:flex;gap:12px;align-items:center;width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:0 0 12px;cursor:pointer}.loud-tog.on{border-color:var(--down)}
+.loud-sw{flex:none;width:40px;height:22px;border-radius:11px;background:var(--line);position:relative;transition:background .15s}.loud-sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.loud-tog.on .loud-sw{background:var(--down)}.loud-tog.on .loud-sw i{left:21px}.loud-tog:focus-visible{outline:2px solid var(--accent)}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -655,7 +658,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 11:25 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:04 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1044,7 +1047,7 @@ const GH = {
 const AUTH = {token: store.get("pd_session") || "", device: store.get("pd_device") || ""};
 if (!AUTH.device){ AUTH.device = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); store.set("pd_device", AUTH.device); }
 // ---- 🔔 mute button + quiet-hours indicator (collection/mute.csv for the scans, setMute for the sniper)
-const MUTE = {until: "", sha: null};
+const MUTE = {until: "", sha: null, loud: "yes"};   // loud: the Pushover alarm rings through silent and repeats until acknowledged
 function quietNow(){
   const A = S.ini.alerts || {}, on = !/^(no|false|0|off)$/i.test(A.quiet_hours || "yes"), mode = (A.quiet_mode || "silent").toLowerCase();
   if (!on || mode === "off") return false;
@@ -1058,16 +1061,25 @@ const mutedNow = () => MUTE.until === "forever" || (MUTE.until && new Date(MUTE.
 function renderMute(){
   const b = $("#muteBtn"); if (!b || READONLY) return; b.hidden = false;
   const m = mutedNow(), q = quietNow();
-  b.textContent = m ? "🔕 Muted" : q ? "🌙 Quiet" : "🔔";
+  b.textContent = m ? "🔕 Muted" : q ? "🌙 Quiet" : MUTE.loud !== "no" ? "🚨 Loud" : "🔔";
   b.title = m ? (MUTE.until === "forever" ? "Alerts muted until you turn them back on" : "Alerts muted until " + whenAZ(MUTE.until)) : q ? "Quiet hours - alerts are " + ((S.ini.alerts || {}).quiet_mode === "hold" ? "held for a morning summary" : "silent") : "Phone alerts are on - tap to mute";
 }
 async function setMuteUntil(until){
   try{
-    MUTE.sha = await GH.putFile("collection/mute.csv", "until\n" + (until || "") + "\n", MUTE.sha, until ? "Mute alerts (Price Desk)" : "Unmute alerts (Price Desk)");
+    MUTE.sha = await GH.putFile("collection/mute.csv", "until,loud\n" + (until || "") + "," + MUTE.loud + "\n", MUTE.sha, until ? "Mute alerts (Price Desk)" : "Unmute alerts (Price Desk)");
     try{ await server("setMute", until || ""); }catch(e){ if (/UPDATE|Unknown request/.test(e.message)) toast("Muted for the scans. Paste the latest Code.gs to mute the every-minute sniper too.", 7000); else throw e; }
     MUTE.until = until || ""; renderMute();
     toast(until ? (until === "forever" ? "Alerts muted until you turn them back on." : "Alerts muted until " + whenAZ(until) + ".") : "Alerts are back on.", 5000);
   }catch(e){ toast("Couldn't change mute: " + e.message, 6000); }
+}
+async function setLoud(on){
+  const was = MUTE.loud; MUTE.loud = on ? "yes" : "no"; renderMute();
+  try{
+    MUTE.sha = await GH.putFile("collection/mute.csv", "until,loud\n" + (MUTE.until || "") + "," + MUTE.loud + "\n", MUTE.sha, on ? "Loud alarm on (Price Desk)" : "Loud alarm off (Price Desk)");
+    try{ await server("setLoud", on); }catch(e){ if (/UPDATE|Unknown request/.test(e.message)) toast("Saved for the 3-hour scan. Sign in as admin to update the server so the sniper follows it too.", 7000); else throw e; }
+    toast(on ? "🚨 Loud alarm on: MUST BUYs ring through silent until you acknowledge them." : "Loud alarm off: MUST BUYs come as a normal notification that follows your silent switch.", 6000);
+  }catch(e){ MUTE.loud = was; renderMute(); toast("Couldn't change the loud alarm: " + e.message, 6000); }
+  if ($("#loudTog")) openMute();
 }
 function openMute(){
   const A = S.ini.alerts || {}, [eh, em] = String(A.quiet_end || "07:00").split(":").map(Number);
@@ -1079,10 +1091,12 @@ function openMute(){
   const inH = h => new Date(Date.now() + h * 36e5).toISOString();
   openModal(`<h3>Phone Alerts</h3><p class="mut" style="font-size:13px;margin:4px 0 12px">${mutedNow() ? (MUTE.until === "forever" ? "Muted until you turn them back on." : "Muted until " + esc(whenAZ(MUTE.until)) + ".") : "Alerts are on."}
     Quiet hours: ${esc(A.quiet_start || "22:00")}-${esc(A.quiet_end || "07:00")} (${esc((A.quiet_mode || "silent") === "hold" ? "held for a summary" : (A.quiet_mode === "off" ? "off" : "silent"))}) - change them in Settings.</p>
+    <button type="button" class="loud-tog${MUTE.loud !== "no" ? " on" : ""}" id="loudTog" aria-pressed="${MUTE.loud !== "no"}"><span class="loud-sw"><i></i></span><span><b>🚨 Loud Alarm ${MUTE.loud !== "no" ? "On" : "Off"}</b><br><span class="mut" style="font-size:12.5px">${MUTE.loud !== "no" ? "MUST BUYs ring through silent and repeat until you tap Acknowledge in Pushover." : "MUST BUYs come as a normal Pushover notification - quiet when your phone is on silent."}</span></span></button>
     <div style="display:grid;gap:8px">${mutedNow() ? opt("🔔 Turn alerts back on", "") : ""}${opt("🔕 Mute for 1 hour", inH(1))}${opt("🔕 Mute for 4 hours", inH(4))}${opt("🌙 Mute until morning (" + esc(A.quiet_end || "07:00") + ")", morning)}${opt("🔕 Mute until I turn them back on", "forever")}</div>
     <p class="mut" style="font-size:12px;margin-top:10px">While muted, alerts follow your quiet-hours choice: delivered silently, or held for one summary when the mute ends.</p>
     <div class="acts"><button class="btn ghost" type="button" id="muteClose">Close</button></div>`);
   $("#muteClose").addEventListener("click", closeModal);
+  $("#loudTog").addEventListener("click", () => setLoud(MUTE.loud === "no"));
   document.querySelectorAll("#colModalBody [data-mute]").forEach(b => b.addEventListener("click", () => { closeModal(); setMuteUntil(b.dataset.mute); }));
 }
 $("#muteBtn").addEventListener("click", openMute);
@@ -7597,7 +7611,7 @@ async function loadAll(){
   $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
   renderUpdated(d0.dashboard ? null : "No price data yet - run the update once");
-  if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; MUTE.until = m.text ? ((parseCSV(m.text).slice(-1)[0] || {}).until || "") : ""; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
+  if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; const mr = m.text ? (parseCSV(m.text).slice(-1)[0] || {}) : {}; MUTE.until = mr.until || ""; MUTE.loud = mr.loud || "yes"; renderMute(); const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
   if (document.querySelector("#tab-quick.on, #tab-audit.on")) renderAudit();
