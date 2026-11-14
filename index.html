@@ -440,6 +440,7 @@ body.cs-open{overflow:hidden}
 .dk-fmt.ok{border-left-color:var(--up)}.dk-fmt.ok span{color:var(--up);font-weight:600}.dk-fmt.bad{border-left-color:var(--gold)}.dk-fmt.bad span{color:var(--gold);font-weight:600}
 .dk-fmt select{padding:4px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:600 13px inherit;font-family:inherit}
 .dk-fmt ul{flex-basis:100%;margin:2px 0 0;padding-left:20px;color:var(--ink)}.dk-fmt li{margin:1px 0}
+.dk-q-in{flex:1 1 220px;min-width:0;padding:7px 11px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);font:inherit}
 .dk-tools{gap:8px;flex-wrap:wrap;margin:0 0 10px}.dk-tools .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
 .dk-tools .seg button{border:0;background:none;color:var(--ink);padding:6px 11px;font:600 12.5px/1 inherit;font-family:inherit;cursor:pointer}.dk-tools .seg button.on{background:var(--accent);color:var(--accent-ink)}
 .dk-grp{padding:0;overflow:hidden;margin-bottom:10px}.dk-grp h3{margin:0;padding:9px 14px;background:var(--soft);font-size:14px;display:flex;justify-content:space-between;gap:8px}.dk-grp h3 .mut{font-weight:500}
@@ -627,7 +628,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:34 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:37 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6382,14 +6383,17 @@ function renderDECKS(){
       ${freeN ? `<div class="stat"><span>Own, not tagged yet</span><b>${freeN}</b></div>` : ""}
       ${covN ? `<div class="stat"><span title="Marked Covered: someone else's or borrowed - off the buy list, not in your collection">Covered</span><b>${covN}</b></div>` : ""}
       <div class="stat"><span>Still need</span><b>${haveN == null || loading ? "…" : needN ? `${needN} <span class="mut" style="font-size:14px;font-weight:500">· ${money(needCost)}</span>` : "Nothing 🎉"}${proxN ? `<span class="mut" style="display:block;font-size:12px;font-weight:500">${proxN} proxied for now</span>` : ""}</b></div></div></div>`;
-  const tools = `<div class="row dk-tools">
+  const tools = `<div class="row dk-tools"><input type="search" id="dkQ" class="dk-q-in" placeholder="Find in deck: name, type, set or code" value="${esc(DK.q || "")}" aria-label="Find a card in this deck">
     <div class="seg" id="dkShow">${[["all", "All"], ["need", "Need"], ["have", "Have"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.show === k ? "on" : ""}">${l}</button>`).join("")}</div>
     <div class="seg" id="dkSort">${[["type", "By Type"], ["price", "By Price"], ["cmc", "By Mana"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.sort === k ? "on" : ""}">${l}</button>`).join("")}</div>
     ${DK_EDIT() && freeN ? `<button class="btn small" type="button" id="dkPutAll" title="Tags a free copy you own for every card that's short - nothing moves, they just show 'in ${esc((decks.find(d => d[0] === id) || [, ""])[1])}'">Put All I Own in Deck</button>` : ""}
     ${ROLE === "owner" && needN ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cheapest printing of every card you still need to your Want List, so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
   // Need = not settled yet: short of tagged copies and not Covered - whether it's to buy or a copy you own that isn't tagged yet
   const open = x => !x.basic && x.r.zone !== "maybe" && !x.covered && (!x.have || x.have.here < x.qty);
-  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? open(x) : x.covered || (x.have && x.have.here > 0)));
+  const q = (DK.q || "").trim().toLowerCase();
+  const hit = x => !q || [x.r.name, x.c && x.c.type_line, x.c && x.c.set_name, x.c && x.c.set, x.c && `${x.c.set} ${x.c.collector_number}`, x.c && `${x.c.set}#${x.c.collector_number}`, x.r.mark_note]
+    .some(v => v && String(v).toLowerCase().includes(q));
+  const shown = rows.filter(hit).filter(x => DK.show === "all" || (DK.show === "need" ? open(x) : x.covered || (x.have && x.have.here > 0)));
   const byPrice = (a, b) => (b.price || 0) - (a.price || 0), byCmc = (a, b) => ((a.c || {}).cmc ?? 99) - ((b.c || {}).cmc ?? 99) || a.r.name.localeCompare(b.r.name);
   let groups = [];
   const zone = z => shown.filter(x => x.r.zone === z);
@@ -6401,7 +6405,7 @@ function renderDECKS(){
   groups.push(["Sideboard", zone("side")], ["Maybeboard", zone("maybe")]);
   groups = groups.filter(g => g[1].length);
   const list = groups.length ? groups.map(([title, xs]) => `<div class="panel dk-grp"><h3>${esc(title)} <span class="mut">${xs.reduce((t, x) => t + x.qty, 0)} · ${money(xs.reduce((t, x) => t + (x.price || 0) * x.qty, 0))}</span></h3>${xs.map(dkRowHTML).join("")}</div>`).join("")
-    : `<p class="empty">${DK.show === "need" ? "Nothing left - every card is in the deck or covered." : "No cards here."}</p>`;
+    : `<p class="empty">${q ? `No cards match "${esc(DK.q)}".` : DK.show === "need" ? "Nothing left - every card is in the deck or covered." : "No cards here."}</p>`;
   const chk = dkCheck(id, rows);
   const fmt = `<div class="dk-fmt${loading ? "" : chk.ok ? " ok" : " bad"}">${DK_EDIT() ? `<select id="dkFmt" aria-label="Format">${FORMATS.filter(f => f.game === "mtg").map(f => `<option value="${f.id}"${f.id === chk.f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : `<b>${esc(chk.f.name)}</b>`}
     <span>${loading ? "Checking…" : !chk.f.size ? "No deck rules checked." : chk.ok ? `✓ ${chk.count} of ${chk.f.size}${chk.f.exact ? "" : "+"} · every card legal${chk.f.cmdr ? " · in the commander's colors" : ""}` : `⚠ ${chk.out.length} problem${chk.out.length === 1 ? "" : "s"}`}</span>
@@ -6448,6 +6452,7 @@ function wireDecks(box){
   box.querySelectorAll("[data-dkmark]").forEach(b => b.addEventListener("click", () => dkMark(DK.rows[+b.dataset.dkmark])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
   box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
+  const qi = box.querySelector("#dkQ"); if (qi) qi.addEventListener("input", () => { DK.q = qi.value; const pos = qi.selectionStart; renderDECKS(); const n = $("#dkQ"); if (n){ n.focus(); n.setSelectionRange(pos, pos); } });
   const fs = box.querySelector("#dkFmt"); if (fs) fs.addEventListener("change", () => { DK.rows.filter(r => r.deck_id === DK.cur).forEach(r => r.format = fs.value); markDirty("decks"); renderDECKS(); });
   const pa = box.querySelector("#dkPutAll"); if (pa) pa.addEventListener("click", () => {
     const n = DK.rows.filter(r => r.deck_id === DK.cur && (r.zone === "cmdr" || r.zone === "main")).reduce((t, r) => t + dkPutIn(r, true), 0);
@@ -6508,9 +6513,11 @@ async function dkPrints(r){
   const tok = ++DKP.token; DKP.list = []; DKP.r = r; DKP.sel = {};
   openModal(`<div class="dk-ph"><h3 style="margin:0;flex:1">${esc(c.name)} <span class="mut" style="font-weight:500">- every printing</span></h3>
     <select id="dkpSort" aria-label="Sort printings">${[["new", "Newest first"], ["old", "Oldest first"], ["cheap", "Cheapest first"], ["dear", "Priciest first"]].map(([k, l]) => `<option value="${k}"${DKP.sort === k ? " selected" : ""}>${l}</option>`).join("")}</select>
-    <button class="btn ghost small" type="button" id="dkpClose">Close</button></div><div id="dkpBody"><p class="empty loadmsg">Finding every printing…</p></div>`, true);
+    <button class="btn ghost small" type="button" id="dkpClose">Close</button></div>
+    <input type="search" id="dkpQ" class="dk-q-in" style="width:100%;margin:6px 0 2px" placeholder="Find a printing: set name, set code (MH3), number or year" aria-label="Find a printing"><div id="dkpBody"><p class="empty loadmsg">Finding every printing…</p></div>`, true);
   $("#dkpClose").addEventListener("click", () => { DKP.token++; closeModal(); });
   $("#dkpSort").addEventListener("change", e => { DKP.sort = e.target.value; dkPrintsDraw(false); });
+  DKP.q = ""; $("#dkpQ").addEventListener("input", e => { DKP.q = e.target.value; dkPrintsDraw(false); });
   let path = "/cards/search?unique=prints&include_extras=true&include_variations=true&order=released&dir=desc&q=" + encodeURIComponent(`oracleid:${c.oracle_id} game:paper`);
   try{
     for (let k = 0; k < 20 && path && tok === DKP.token; k++){
@@ -6537,13 +6544,15 @@ function dkPrintGroups(list){
 function dkPrintsDraw(more){
   const b = $("#dkpBody"); if (!b || !DKP.r) return;
   const r = DKP.r, cur = DK.cards.get(dkKey(r)) || {}, s = DKP.sort, sel = DKP.sel || (DKP.sel = {});
-  const groups = dkPrintGroups(DKP.list).sort((a, z) => s === "old" ? a.p.released_at.localeCompare(z.p.released_at) : s === "cheap" ? (a.sortPrice ?? 1e9) - (z.sortPrice ?? 1e9)
+  const pq = (DKP.q || "").trim().toLowerCase();
+  const groups = dkPrintGroups(DKP.list).filter(g => !pq || g.cards.some(c => [c.set_name, c.set, `${c.set} ${c.collector_number}`, `${c.set}#${c.collector_number}`, c.collector_number, (c.released_at || "").slice(0, 4), c.lang]
+    .some(v => v && String(v).toLowerCase() === pq || (v && pq.length > 1 && String(v).toLowerCase().includes(pq))))).sort((a, z) => s === "old" ? a.p.released_at.localeCompare(z.p.released_at) : s === "cheap" ? (a.sortPrice ?? 1e9) - (z.sortPrice ?? 1e9)
     : s === "dear" ? (z.sortPrice ?? -1) - (a.sortPrice ?? -1) : z.p.released_at.localeCompare(a.p.released_at));
   const pr = groups.map(g => g.sortPrice).filter(v => v != null), lo = pr.length ? Math.min(...pr) : null, hi = pr.length ? Math.max(...pr) : null;
   const isCur = g => g.cards.some(c => c.id === cur.id);
   const pick = g => { const want = sel[g.k] || (isCur(g) ? r.finish || "nonfoil" : (g.fins.find(x => x.f === "nonfoil" && x.price != null) || g.fins.find(x => x.price != null) || g.fins[0]).f);
     return g.fins.find(x => x.f === want) || g.fins[0]; };
-  b.innerHTML = `<p class="mut" style="font-size:12.5px;margin:6px 0 10px">${groups.length} printing${groups.length === 1 ? "" : "s"}${more ? " so far…" : ""}${lo != null ? ` · ${money(lo)} to ${money(hi)}` : ""}. Pick the finish under a card. The outlined one is on the list.</p>
+  b.innerHTML = `<p class="mut" style="font-size:12.5px;margin:6px 0 10px">${pq ? `${groups.length} matching "${esc(DKP.q)}" of ` : ""}${dkPrintGroups(DKP.list).length} printing${dkPrintGroups(DKP.list).length === 1 ? "" : "s"}${more ? " so far…" : ""}${lo != null ? ` · ${money(lo)} to ${money(hi)}` : ""}. Pick the finish under a card. The outlined one is on the list.</p>
     <div class="dk-pgrid">${groups.map((g, i) => { const p = g.p, f = pick(g), onList = isCur(g) && f.card.id === cur.id && f.f === (r.finish || "nonfoil");
       const tags = [p.lang && p.lang !== "en" ? p.lang.toUpperCase() : "", p.border_color && !["black", "borderless"].includes(p.border_color) ? p.border_color + " border" : "", p.border_color === "borderless" ? "borderless" : "", p.full_art ? "full art" : "", p.promo ? "promo" : ""].filter(Boolean).join(" · ");
       const nums = [...new Set(g.cards.map(c => c.collector_number))].join(" / ");
