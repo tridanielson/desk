@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 01:30 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 02:14 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1373,7 +1373,8 @@ async function saveAll(){
   const ok0 = S.dirty.delete.bind(S.dirty); S.dirty.delete = f => { done.add(f); return ok0(f); };
   try{
     if (S.dirty.has("watchlist")){ S.dirty.delete("watchlist");
-      S.watchSha = await putIfChanged("watchlist.csv", toCSV(S.watchCols, S.watch.filter(w => (w.name || "").trim())), S.watchSha, "Update watchlist (Price Desk)"); }
+      S.watchSha = await putIfChanged("watchlist.csv", toCSV(S.watchCols, S.watch.filter(w => (w.name || "").trim())), S.watchSha, "Update watchlist (Price Desk)");
+      if (S.watchAdded && ROLE === "owner"){ S.watchAdded = false; rawServer("queueNewCards", AUTH.token).catch(() => {}); } }   // new cards: a mini price run (at most every 30 min)
     if (S.dirty.has("rules")){ S.dirty.delete("rules"); const cols = ["label","query","finish","drop_pct","deal_pct","alert_low"];
       S.rulesSha = await putIfChanged("rules.csv", toCSV(cols, S.rules.filter(r => (r.query || "").trim())), S.rulesSha, "Update auto lists (Price Desk)"); }
     if (S.dirty.has("dice")){ S.dirty.delete("dice");   // its own file, saved on its own (never touches the collection files)
@@ -1667,7 +1668,7 @@ function watchMatch(w){
 function isWatched(c){ return S.watch.some(w => watchMatch(w) === c); }
 function addWatch(row){
   if (S.watch.some(w => w.name.toLowerCase() === row.name.toLowerCase() && (w.set || "").toLowerCase() === (row.set || "").toLowerCase() && (w.collector_number || "") === (row.collector_number || "") && (w.finish || "nonfoil") === (row.finish || "nonfoil"))){ toast("Already on your watchlist."); return; }
-  S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); markDirty("watchlist"); renderMine(); renderAll(); toast(`Added ${row.name}. It starts being tracked on the next morning run.`);
+  S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); S.watchAdded = true; markDirty("watchlist"); renderMine(); renderAll(); toast(`Added ${row.name}. It's priced and hunted on eBay within about 15 minutes.`);
 }
 
 // ---------------------------------------------------------------- My cards
@@ -6658,7 +6659,7 @@ async function dkExportGo(to, rs, st, qtyOf, deckName){
         if (!p.set){ anyN++; return; }   // the Want List tracks a printing - "any printing" names can't go there
         const n0 = S.watch.length; dkAddWatch(p.card, p.finish || "nonfoil", true); if (S.watch.length > n0) added++; else had++; });
       renderMine(); renderAll(); renderDECKS();
-      $("#dkeMsg").textContent = `Added ${added} to your Want List${had ? ` · ${had} already there` : ""}${anyN ? ` · ${anyN} skipped (no printing - pick Keep the Deck's Printing or Cheapest)` : ""}. Tracking starts on the next morning run.`;
+      $("#dkeMsg").textContent = `Added ${added} to your Want List${had ? ` · ${had} already there` : ""}${anyN ? ` · ${anyN} skipped (no printing - pick Keep the Deck's Printing or Cheapest)` : ""}. Priced and hunted on eBay within about 15 minutes.`;
     }
   } finally { btns.forEach(b => b.disabled = false); }
 }
@@ -6680,12 +6681,12 @@ async function dkWantCheapest(rows){
   }
   renderDECKS();
   renderMine(); renderAll();
-  toast(`Added ${added} to your Want List${rows.length - added - miss.length ? ` (${rows.length - added - miss.length} already there)` : ""}${miss.length ? ` · no price found for ${miss.slice(0, 3).join(", ")}${miss.length > 3 ? "…" : ""}` : ""}. Tracking starts on the next morning run.`, 6000);
+  toast(`Added ${added} to your Want List${rows.length - added - miss.length ? ` (${rows.length - added - miss.length} already there)` : ""}${miss.length ? ` · no price found for ${miss.slice(0, 3).join(", ")}${miss.length > 3 ? "…" : ""}` : ""}. Priced and hunted on eBay within about 15 minutes.`, 6000);
 }
 function dkAddWatch(p, fin, quiet){
   const row = {name: p.name, set: p.set, collector_number: p.collector_number, finish: fin};
   if (S.watch.some(w => w.name.toLowerCase() === row.name.toLowerCase() && (w.set || "").toLowerCase() === row.set && (w.collector_number || "") === row.collector_number && (w.finish || "nonfoil") === fin)){ if (!quiet) toast("Already on your Want List."); return; }
-  if (quiet){ S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); markDirty("watchlist"); }
+  if (quiet){ S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); S.watchAdded = true; markDirty("watchlist"); }
   else addWatch(row);
 }
 
