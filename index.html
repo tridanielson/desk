@@ -450,7 +450,11 @@ body.cs-open{overflow:hidden}
 .dk-tag{background:rgba(138,59,18,.12);color:var(--accent)}.dk-pktag{color:var(--accent)!important;font-weight:600}
 .dk-x{all:unset;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px}.dk-x:hover{color:var(--down)}.dk-put{padding:2px 8px!important;font-size:11.5px!important;margin-left:2px}
 .dk-cov{background:rgba(60,110,170,.14);color:#3c6eaa}.dk-prx{background:rgba(120,90,170,.14);color:#7a5aaa}.dk-mk{font-weight:600;color:var(--accent)!important}
-.dk-opt{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13.5px}.dk-opt input{margin-top:3px}
+.dk-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 12px}
+.dk-opt{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:3px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13.5px;color:var(--ink);background:var(--panel)}
+.dk-opt span{font-size:12px;color:var(--muted);line-height:1.35}.dk-opt:hover{border-color:var(--accent)}.dk-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dk-opt.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--chip)}.dk-opt.on b{color:var(--accent)}
+@media (max-width:520px){.dk-opts{grid-template-columns:1fr}}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -621,7 +625,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:04 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:06 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6482,14 +6486,14 @@ function dkAddWatch(p, fin, quiet){
 // Proxy: a stand-in to play with for now - stays on the buy list. Optional short note ("Sarah's", "printed").
 function dkMark(r){
   openModal(`<h3>${esc(r.name)}</h3>
-    <div style="display:grid;gap:8px;margin:10px 0">
-      <label class="dk-opt"><input type="radio" name="dkm" value="covered"${r.mark === "covered" ? " checked" : ""}> <span><b>Covered</b><br><span class="mut">Someone else's or borrowed. Off the buy list - never added to your collection.</span></span></label>
-      <label class="dk-opt"><input type="radio" name="dkm" value="proxy"${r.mark === "proxy" ? " checked" : ""}> <span><b>Proxy</b><br><span class="mut">A stand-in to play with for now. Stays on the buy list.</span></span></label>
-      <label class="dk-opt"><input type="radio" name="dkm" value=""${!r.mark ? " checked" : ""}> <span><b>No mark</b></span></label></div>
+    <div class="dk-opts" role="radiogroup" aria-label="Mark">
+      ${[["covered", "Covered", "Someone else's or borrowed. Off the buy list, never added to your collection."], ["proxy", "Proxy", "A stand-in for now. Stays on the buy list."], ["", "No Mark", ""]]
+        .map(([v, t, d]) => `<button type="button" class="dk-opt${(r.mark || "") === v ? " on" : ""}" role="radio" aria-checked="${(r.mark || "") === v}" data-v="${v}"><b>${t}</b>${d ? `<span>${d}</span>` : ""}</button>`).join("")}</div>
     <label for="dkmNote">Note <span class="mut">(optional)</span></label><input id="dkmNote" maxlength="30" value="${esc(r.mark_note || "")}" placeholder="e.g. Sarah's, borrowed from Mike" style="width:100%">
     <div class="acts"><button class="btn ghost" type="button" id="dkmNo">Cancel</button><button class="btn" type="button" id="dkmOk">Save</button></div>`);
   $("#dkmNo").addEventListener("click", closeModal);
-  $("#dkmOk").addEventListener("click", () => { const v = (document.querySelector('input[name="dkm"]:checked') || {}).value || "";
+  document.querySelectorAll(".dk-opt").forEach(b => b.addEventListener("click", () => document.querySelectorAll(".dk-opt").forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); })));
+  $("#dkmOk").addEventListener("click", () => { const v = (document.querySelector(".dk-opt.on") || {dataset: {v: ""}}).dataset.v;
     r.mark = v; r.mark_note = v ? $("#dkmNote").value.replace(/[\r\n|]/g, " ").trim() : ""; markDirty("decks"); closeModal(); renderDECKS(); });
 }
 
