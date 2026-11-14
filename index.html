@@ -596,7 +596,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 11:54 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 13, 09:40 PM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -962,11 +962,14 @@ const rawServer = (fn, ...args) => new Promise((resolve, reject) => {
 const GH = {
   branch: "main", repo: "",
   async load(){   // prices come squeezed (gzip) when the browser can unsqueeze them - 8 MB becomes under 1 MB
-    const can = typeof DecompressionStream === "function", d = await server("loadAll", can ? {gz: 1} : undefined);
+    const can = typeof DecompressionStream === "function", d = await server("loadAll", can ? {gz: 1, lite: 1} : undefined);   // lite: no price history yet - see HIST
     for (const k of (d && d.gz) || []){ if (typeof d[k] !== "string") continue;
       const bin = atob(d[k]), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
       d[k] = await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text(); }
     return d; },
+  async history(){ const r = await rawServer("priceHistory", AUTH.token);   // background: never covers the screen
+    const bin = atob(r.gz), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return JSON.parse(await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream("gzip"))).text()); },
   putFile(path, text, sha, message){ return server("saveFile", path, text, sha, message); },
   runWorkflow(mode){ return server("runWorkflow", mode || "both"); },
   loadSL(){ return server("loadSecretLair"); },
@@ -1658,7 +1661,7 @@ function filteredAll(){
   const q = $("#allSearch").value.trim().toLowerCase(), g = $("#allGroup").value, pre = $("#allPreset").value;
   let rows = S.cards.filter(c => c.p != null && (!q || (c.n + " " + c.sn + " " + c.s).toLowerCase().includes(q)) && (!g || c.g === g));
   if (pre === "drop") rows = rows.filter(c => (c.c30 ?? 0) <= -10);
-  if (pre === "low") rows = rows.filter(c => c.lo && c.p <= c.lo * 1.05 && c.h.length >= 30);
+  if (pre === "low") rows = rows.filter(c => c.lo && c.p <= c.lo * 1.05 && histN(c) >= 30);
   if (pre === "buy") rows = rows.filter(c => c.ck && c.ck / c.p >= 0.65);
   const k = pre === "vol" ? "v1y" : allSort.k, dir = pre === "vol" ? -1 : allSort.dir;
   rows.sort((a, b) => { const x = a[k], y = b[k]; if (x == null) return 1; if (y == null) return -1; return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir; });
@@ -1739,7 +1742,7 @@ function renderMarket(){
   const sets = [...bySet.values()].filter(a => a.n >= 5).map(a => Object.assign(a, {ch: a.x / a.w}));
   const setRow = a => `<div class="mk-row" style="cursor:default"><div class="mk-n"><b>${esc(a.sn)}</b><span class="mut" style="font-size:12px">${a.n} tracked cards · ${money(a.w)} together</span></div><div class="mk-p">${pct(a.ch)}</div></div>`;
   const setsUp = sets.filter(a => a.ch > 0.2).sort((a, b) => b.ch - a.ch).slice(0, 6), setsDown = sets.filter(a => a.ch < -0.2).sort((a, b) => a.ch - b.ch).slice(0, 6);
-  const low = S.cards.filter(c => (+c.p || 0) >= 10 && c.lo && c.hi >= c.lo * 1.15 && +c.p <= c.lo * 1.05 && (c.h || []).length >= 30).sort((a, b) => b.p - a.p).slice(0, 10);
+  const low = S.cards.filter(c => (+c.p || 0) >= 10 && c.lo && c.hi >= c.lo * 1.15 && +c.p <= c.lo * 1.05 && histN(c) >= 30).sort((a, b) => b.p - a.p).slice(0, 10);
   const panel = (t, sub, body) => `<div class="panel"><b>${t}</b><div class="mut" style="font-size:12.5px;margin-bottom:4px">${sub}</div>${body || '<p class="mut" style="font-size:13px">Nothing moved enough.</p>'}</div>`;
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end;gap:10px"><div><h2>Market</h2><p class="sub" style="margin:0">What's moving among the ${S.cards.length.toLocaleString()} cards you track (TCGplayer market, cards $5 and up). Tap a card for its chart.</p></div>
     <div class="row" role="tablist"><button type="button" class="btn small${MKT.span === "7" ? "" : " ghost"}" data-mk="7">This Week</button><button type="button" class="btn small${MKT.span === "30" ? "" : " ghost"}" data-mk="30">30 Days</button></div></div>
@@ -1757,9 +1760,28 @@ function closeCardSheet(){ $("#cardSheet").hidden = true; document.body.classLis
 $("#csClose").addEventListener("click", closeCardSheet);
 $("#cardSheet").addEventListener("click", e => { if (e.target.id === "cardSheet") closeCardSheet(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#cardSheet").hidden) closeCardSheet(); });
+// Price history loads only when something needs it (a chart): the desk opens with the prices alone, a tenth of the size.
+// Nothing is dropped - the full history stays in data/dashboard.json and comes down here on first use.
+const HIST = {map: null, at: "", loading: null};
+const histN = c => c.hn ?? (c.h || []).length;   // how many history points a card has, with or without the history loaded
+function histAttach(){
+  if (HIST.map && HIST.at && S.updatedAt && HIST.at !== S.updatedAt){ HIST.map = null; HIST.loading = null; }   // new prices came in: fetch the matching history next time
+  if (HIST.map) S.cards.forEach(c => { if (!c.h) c.h = HIST.map[c.k] || []; }); }
+function needHistory(){
+  if (!S.cards.length || S.cards.every(c => c.h)) return Promise.resolve();
+  if (!HIST.loading) HIST.loading = GH.history().then(j => { HIST.map = j.h || {}; HIST.at = j.updated_at || ""; histAttach(); })
+    .catch(e => { HIST.loading = null; throw e; });
+  return HIST.loading;
+}
 const CHARTS = {};
 function drawChart(c, w, range, slot){
+  if (!c.h){ const cv0 = $(slot ? "#" + slot + "Chart" : "#chart"), box = cv0 && cv0.parentElement;
+    if (box && !box.querySelector(".hist-wait")) box.insertAdjacentHTML("beforeend", '<p class="empty hist-wait" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;margin:0">Loading price history…</p>');
+    needHistory().then(() => { box && box.querySelectorAll(".hist-wait").forEach(x => x.remove()); const c2 = S.byKey.get(c.k) || c; if (!c2.h) c2.h = []; drawChart(c2, w, range, slot); })
+      .catch(() => { box && box.querySelectorAll(".hist-wait").forEach(x => { x.textContent = "Couldn't load the price history - try again in a moment."; }); });
+    return; }
   const rid = slot ? "#" + slot + "Ranges" : "#ranges", cv = $(slot ? "#" + slot + "Chart" : "#chart");
+  if (!cv) return;
   document.querySelectorAll(rid + " button").forEach(b => b.classList.toggle("on", b.dataset.r === range));
   document.querySelectorAll(rid + " button").forEach(b => b.style.background = b.dataset.r === range ? "var(--soft)" : "");
   const days = {"3M": 92, "6M": 183, "1Y": 366, "All": 1e9}[range];
@@ -6766,7 +6788,7 @@ async function loadAll(){
   $("#updated").textContent = "Loading…"; $("#connStatus").textContent = "Loading from GitHub…";
   const d0 = await GH.load(); GH.branch = d0.branch; GH.repo = d0.repo;
   const d = d0.dashboard ? JSON.parse(d0.dashboard) : {cards: [], updated: ""};
-  S.cards = d.cards || []; S._sfByLabel = null; S._cardsByLabel = null; S._cardByLabel = null; S._floorBy = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || "";
+  S.cards = d.cards || []; S._sfByLabel = null; S._cardsByLabel = null; S._cardByLabel = null; S._floorBy = null; S.byKey = new Map(S.cards.map(c => [c.k, c])); S.updated = d.updated || ""; S.updatedAt = d.updated_at || ""; histAttach();
   S.watch = d0.watch.text ? parseCSV(d0.watch.text) : []; S.watchSha = d0.watch.sha;
   S.rules = d0.rules.text ? parseCSV(d0.rules.text) : []; S.rulesSha = d0.rules.sha;
   S.ini = parseINI(d0.ini.text); S.iniSha = d0.ini.sha;
