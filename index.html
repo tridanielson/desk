@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:50 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 12:54 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6777,7 +6777,11 @@ async function dkPrints(r){
   $("#dkpClose").addEventListener("click", () => { DKP.token++; closeModal(); });
   $("#dkpSort").addEventListener("change", e => { DKP.sort = e.target.value; dkPrintsDraw(false); });
   DKP.q = ""; $("#dkpQ").addEventListener("input", e => { DKP.q = e.target.value; dkPrintsDraw(false); });
-  try{ await dkFetchPrints(c, (list, more) => { if (tok !== DKP.token) return; DKP.list = list.slice(); dkPrintsDraw(more); }, () => tok === DKP.token); }
+  try{ await dkFetchPrints(c, (list, more) => { if (tok !== DKP.token) return; DKP.list = list.slice();
+      const gs = !more ? dkPrintGroups(list) : null;
+      if (gs && gs.length === 1 && !(r.set && r.collector_number) && DK_EDIT()){   // only one printing exists: that's the one (finish as listed - switch it here)
+        dkUsePrint(r, gs[0].fins.find(x => x.f === (r.finish || "nonfoil")) || gs[0].fins[0]); }
+      dkPrintsDraw(more); }, () => tok === DKP.token); }
   catch(e){ const b = $("#dkpBody"); if (b && tok === DKP.token) b.insertAdjacentHTML("beforeend", `<p class="empty">Couldn't load more printings (${esc(e.message || e)}).</p>`); }
 }
 // one tile per printing: Scryfall lists some foil-only / etched versions as their own card (own number) with the same set and
@@ -6806,7 +6810,7 @@ function dkPrintsDraw(more){
   const pick = g => { const want = sel[g.k] || (isCur(g) ? r.finish || "nonfoil" : (g.fins.find(x => x.f === "nonfoil" && x.price != null) || g.fins.find(x => x.price != null) || g.fins[0]).f);
     return g.fins.find(x => x.f === want) || g.fins[0]; };
   b.innerHTML = `<p class="mut" style="font-size:12.5px;margin:6px 0 10px">${pq ? `${groups.length} matching "${esc(DKP.q)}" of ` : ""}${dkPrintGroups(DKP.list).length} printing${dkPrintGroups(DKP.list).length === 1 ? "" : "s"}${more ? " so far…" : ""}${lo != null ? ` · ${money(lo)} to ${money(hi)}` : ""}. Pick the finish under a card. The outlined one is on the list.</p>
-    <div class="dk-pgrid">${groups.map((g, i) => { const p = g.p, f = pick(g), onList = isCur(g) && f.card.id === cur.id && f.f === (r.finish || "nonfoil");
+    <div class="dk-pgrid">${groups.map((g, i) => { const p = g.p, f = pick(g), onList = !!(r.set && r.collector_number) && isCur(g) && f.card.id === cur.id && f.f === (r.finish || "nonfoil");   // shown but never picked: still offer Use in Deck
       const tags = [p.lang && p.lang !== "en" ? p.lang.toUpperCase() : "", p.border_color && !["black", "borderless"].includes(p.border_color) ? p.border_color + " border" : "", p.border_color === "borderless" ? "borderless" : "", p.full_art ? "full art" : "", p.promo ? "promo" : ""].filter(Boolean).join(" · ");
       const nums = [...new Set(g.cards.map(c => c.collector_number))].join(" / ");
       return `<div class="dk-pp"><img class="${isCur(g) ? "cur" : ""}" loading="lazy" src="${esc(dkImg(f.card))}" data-pbig="${esc(dkImg(f.card, "large"))}" alt="${esc(p.set_name)}">
@@ -6859,7 +6863,7 @@ function dkViewDraw(){
   const isCur = g.cards.some(c => c.id === cur.id);
   const f = (() => { const want = DKV.sel[g.k] || (DKV.pick ? DKV.pick(g).f : isCur ? r.finish || "nonfoil" : (g.fins.find(x => x.f === "nonfoil" && x.price != null) || g.fins.find(x => x.price != null) || g.fins[0]).f);
     return g.fins.find(x => x.f === want) || g.fins[0]; })();
-  const p = f.card, onList = isCur && f.card.id === cur.id && f.f === (r.finish || "nonfoil"), n = DKV.groups.length;
+  const p = f.card, onList = !!(r.set && r.collector_number) && isCur && f.card.id === cur.id && f.f === (r.finish || "nonfoil"), n = DKV.groups.length;
   const tags = [p.lang && p.lang !== "en" ? p.lang.toUpperCase() : "", p.border_color && !["black", "borderless"].includes(p.border_color) ? p.border_color + " border" : "", p.border_color === "borderless" ? "borderless" : "", p.full_art ? "full art" : "", p.promo ? "promo" : ""].filter(Boolean).join(" · ");
   v.innerHTML = `<button class="dkv-x" type="button" aria-label="Close">✕</button>
     ${n > 1 ? `<button class="dkv-nav prev" type="button" aria-label="Previous printing">‹</button><button class="dkv-nav next" type="button" aria-label="Next printing">›</button>` : ""}
