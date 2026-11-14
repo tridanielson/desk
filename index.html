@@ -449,6 +449,8 @@ body.cs-open{overflow:hidden}
 .dk-nm .chip{margin-top:3px}.dk-have{background:rgba(31,122,77,.14);color:var(--up)}.dk-need{background:rgba(179,38,30,.12);color:var(--down)}.dk-part{background:rgba(168,123,19,.15);color:var(--gold)}
 .dk-tag{background:rgba(138,59,18,.12);color:var(--accent)}.dk-pktag{color:var(--accent)!important;font-weight:600}
 .dk-x{all:unset;cursor:pointer;color:var(--muted);font-size:12px;padding:0 4px}.dk-x:hover{color:var(--down)}.dk-put{padding:2px 8px!important;font-size:11.5px!important;margin-left:2px}
+.dk-cov{background:rgba(60,110,170,.14);color:#3c6eaa}.dk-prx{background:rgba(120,90,170,.14);color:#7a5aaa}.dk-mk{font-weight:600;color:var(--accent)!important}
+.dk-opt{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;font-size:13.5px}.dk-opt input{margin-top:3px}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph select{padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -619,7 +621,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:58 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:04 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6155,7 +6157,7 @@ function goalProgress(g, b){
 async function loadSETS(){ if (!MYCOL()) return renderSETS(); if (!COL.loaded) await loadCOL(); renderSETS(); }
 // ---------------- Decks: paste a list, see every printing, what you have (any binder) and what you still need ----------------
 // Saved in collection/decks.csv (each account its own). Card details and prices come from Scryfall in the browser.
-const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added", "claim", "format"];   // claim: your copies sleeved in this deck, "inventory id:count|..."
+const DECK_COLS = ["deck_id", "deck", "zone", "qty", "name", "set", "collector_number", "finish", "added", "claim", "format", "mark", "mark_note"];   // mark: covered (someone else's / borrowed - off the buy list) or proxy (stand-in - still to buy)   // claim: your copies sleeved in this deck, "inventory id:count|..."
 const DK = {rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", cur: "", cards: new Map(), fetching: new Set(),
   show: "all", sort: "type"};
 try{ DK.cur = store.get("pd_deck") || ""; DK.show = store.get("pd_deck_show") || "all"; DK.sort = store.get("pd_deck_sort") || "type"; }catch{}
@@ -6285,8 +6287,9 @@ function dkPutIn(row, quiet){   // claim free copies: the printing on the list f
 function dkRows(id){
   return DK.rows.filter(r => r.deck_id === id).map((r, i) => {
     const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name, r), basic = c ? dkBasic(c) : false;
-    const need = h == null || basic || r.zone === "maybe" ? 0 : Math.max(0, qty - h.here - h.free);   // to buy: not in the deck and no free copy
-    return {r, c, qty, have: h, need, basic, price: c ? dkPrice(c, r.finish) : null, idx: DK.rows.indexOf(r), i};
+    const covered = r.mark === "covered";
+    const need = h == null || basic || covered || r.zone === "maybe" ? 0 : Math.max(0, qty - h.here - h.free);   // to buy: not in the deck, no free copy, not covered
+    return {r, c, qty, have: h, need, basic, covered, proxy: r.mark === "proxy", price: c ? dkPrice(c, r.finish) : null, idx: DK.rows.indexOf(r), i};
   });
 }
 
@@ -6360,6 +6363,8 @@ function renderDECKS(){
   const count = inDeck.reduce((t, x) => t + x.qty, 0), value = inDeck.reduce((t, x) => t + (x.price || 0) * x.qty, 0);
   const needRows = inDeck.filter(x => x.need > 0), needN = needRows.reduce((t, x) => t + x.need, 0), needCost = needRows.reduce((t, x) => t + (x.price || 0) * x.need, 0);
   const haveN = COL.loaded ? inDeck.reduce((t, x) => t + (x.basic ? x.qty : Math.min(x.qty, x.have ? x.have.here : 0)), 0) : null;
+  const covN = inDeck.filter(x => x.covered && !x.basic).reduce((t, x) => t + Math.max(0, x.qty - (x.have ? x.have.here : 0)), 0);
+  const proxN = inDeck.filter(x => x.proxy && x.need).reduce((t, x) => t + x.need, 0);
   const freeN = COL.loaded ? inDeck.reduce((t, x) => t + (x.basic || !x.have ? 0 : Math.min(x.have.free, Math.max(0, x.qty - x.have.here))), 0) : 0;
   const cmdr = rows.find(x => x.r.zone === "cmdr" && x.c);
   const loading = missing.length > 0;
@@ -6369,13 +6374,14 @@ function renderDECKS(){
       <div class="stat"><span>Deck value</span><b>${loading ? "…" : money(value)}</b></div>
       <div class="stat"><span title="Copies of yours tagged to this deck (basic lands count as in)">In the deck</span><b>${haveN == null ? "…" : `${haveN} <span class="mut" style="font-size:14px;font-weight:500">of ${count}</span>`}</b></div>
       ${freeN ? `<div class="stat"><span>Own, not tagged yet</span><b>${freeN}</b></div>` : ""}
-      <div class="stat"><span>Still need</span><b>${haveN == null || loading ? "…" : needN ? `${needN} <span class="mut" style="font-size:14px;font-weight:500">· ${money(needCost)}</span>` : "Nothing 🎉"}</b></div></div></div>`;
+      ${covN ? `<div class="stat"><span title="Marked Covered: someone else's or borrowed - off the buy list, not in your collection">Covered</span><b>${covN}</b></div>` : ""}
+      <div class="stat"><span>Still need</span><b>${haveN == null || loading ? "…" : needN ? `${needN} <span class="mut" style="font-size:14px;font-weight:500">· ${money(needCost)}</span>` : "Nothing 🎉"}${proxN ? `<span class="mut" style="display:block;font-size:12px;font-weight:500">${proxN} proxied for now</span>` : ""}</b></div></div></div>`;
   const tools = `<div class="row dk-tools">
     <div class="seg" id="dkShow">${[["all", "All"], ["need", "Need"], ["have", "Have"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.show === k ? "on" : ""}">${l}</button>`).join("")}</div>
     <div class="seg" id="dkSort">${[["type", "By Type"], ["price", "By Price"], ["cmc", "By Mana"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.sort === k ? "on" : ""}">${l}</button>`).join("")}</div>
     ${DK_EDIT() && freeN ? `<button class="btn small" type="button" id="dkPutAll" title="Tags a free copy you own for every card that's short - nothing moves, they just show 'in ${esc((decks.find(d => d[0] === id) || [, ""])[1])}'">Put All I Own in Deck</button>` : ""}
     ${ROLE === "owner" && needN ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cheapest printing of every card you still need to your Want List, so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
-  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? x.need > 0 : x.have && (x.have.here > 0 || x.have.free > 0)));
+  const shown = rows.filter(x => DK.show === "all" || (DK.show === "need" ? x.need > 0 : x.covered || (x.have && (x.have.here > 0 || x.have.free > 0))));
   const byPrice = (a, b) => (b.price || 0) - (a.price || 0), byCmc = (a, b) => ((a.c || {}).cmc ?? 99) - ((b.c || {}).cmc ?? 99) || a.r.name.localeCompare(b.r.name);
   let groups = [];
   const zone = z => shown.filter(x => x.r.zone === z);
@@ -6403,13 +6409,18 @@ function dkRowHTML(x){
   const other = h && h.other.length ? h.other.map(([d, n]) => `${n > 1 ? n + " " : ""}in ${d}`).join(", ") : "";
   const short = h ? Math.max(0, x.qty - h.here) : 0;
   let badge = "";
+  const short0 = h ? Math.max(0, x.qty - h.here - h.free) : x.qty;
+  const markBtn = DK_EDIT() && !x.basic && r.zone !== "maybe" && (short0 > 0 || r.mark) ? ` <button class="dk-x dk-mk" type="button" data-dkmark="${x.idx}" title="Covered (someone else's or borrowed - off the buy list) or Proxy (a stand-in you still plan to buy)">${r.mark ? "✎" : "Mark…"}</button>` : "";
+  const markChip = r.mark === "covered" ? ` <span class="chip dk-cov" title="Not in your collection - off the buy list">Covered${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>`
+    : r.mark === "proxy" ? ` <span class="chip dk-prx" title="A stand-in for now - still on the buy list">Proxy${r.mark_note ? " · " + esc(r.mark_note) : ""}</span>` : "";
   if (x.basic) badge = `<span class="chip">Basic land</span>`;
   else if (h && r.zone !== "maybe"){
     if (h.here) badge += `<span class="chip dk-have" title="Your copy: ${esc(where(h.hereItems))}">✓ In Deck${x.qty > 1 ? ` ${h.here} of ${x.qty}` : ""} · ${esc(where(h.hereItems))}</span>${DK_EDIT() ? ` <button class="dk-x" type="button" data-dkout="${x.idx}" title="Untag - the card stays in your collection">✕</button>` : ""}`;
     if (short && h.free) badge += ` <span class="chip dk-part">Own ${Math.min(h.free, short)}${h.free > short ? "+" : ""} free</span>${DK_EDIT() ? ` <button class="btn small dk-put" type="button" data-dkput="${x.idx}" title="Tag your copy as sleeved in this deck - it stays in your collection">Put in Deck</button>` : ""}`;
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
-    else if (other && !h.here && !h.free) badge += ` <span class="chip">${esc(other)}</span>`;
+    else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
+  if (!x.basic) badge = (x.covered ? badge.replace(/ ?<span class="chip dk-need">[^<]*<\/span>/, "") : badge) + markChip + markBtn;
   return `<div class="dk-row">
     <span class="dk-q">${x.qty}</span>
     <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-big="${esc(dkImg(c, "large"))}" alt="">
@@ -6426,6 +6437,7 @@ function wireDecks(box){
   box.querySelectorAll("#dkSort [data-v]").forEach(b => b.addEventListener("click", () => { DK.sort = b.dataset.v; store.set("pd_deck_sort", DK.sort); renderDECKS(); }));
   box.querySelectorAll("[data-big]").forEach(i => i.addEventListener("click", () => { $("#lightboxImg").src = i.dataset.big; $("#lightbox").classList.add("on"); }));
   box.querySelectorAll("[data-dkprints]").forEach(b => b.addEventListener("click", () => dkPrints(DK.rows[+b.dataset.dkprints])));
+  box.querySelectorAll("[data-dkmark]").forEach(b => b.addEventListener("click", () => dkMark(DK.rows[+b.dataset.dkmark])));
   box.querySelectorAll("[data-dkput]").forEach(b => b.addEventListener("click", () => { dkPutIn(DK.rows[+b.dataset.dkput]); renderDECKS(); }));
   box.querySelectorAll("[data-dkout]").forEach(b => b.addEventListener("click", () => { const r = DK.rows[+b.dataset.dkout]; r.claim = ""; DK._idx = null; markDirty("decks"); renderDECKS(); toast(`${r.name}: untagged. Still in your collection.`); }));
   const fs = box.querySelector("#dkFmt"); if (fs) fs.addEventListener("change", () => { DK.rows.filter(r => r.deck_id === DK.cur).forEach(r => r.format = fs.value); markDirty("decks"); renderDECKS(); });
@@ -6464,6 +6476,21 @@ function dkAddWatch(p, fin, quiet){
   if (S.watch.some(w => w.name.toLowerCase() === row.name.toLowerCase() && (w.set || "").toLowerCase() === row.set && (w.collector_number || "") === row.collector_number && (w.finish || "nonfoil") === fin)){ if (!quiet) toast("Already on your Want List."); return; }
   if (quiet){ S.watch.push(Object.assign(Object.fromEntries(S.watchCols.map(c => [c, ""])), row)); markDirty("watchlist"); }
   else addWatch(row);
+}
+
+// Covered: you have it but it isn't yours to track (your partner's, borrowed) - off the buy list, never in your collection.
+// Proxy: a stand-in to play with for now - stays on the buy list. Optional short note ("Sarah's", "printed").
+function dkMark(r){
+  openModal(`<h3>${esc(r.name)}</h3>
+    <div style="display:grid;gap:8px;margin:10px 0">
+      <label class="dk-opt"><input type="radio" name="dkm" value="covered"${r.mark === "covered" ? " checked" : ""}> <span><b>Covered</b><br><span class="mut">Someone else's or borrowed. Off the buy list - never added to your collection.</span></span></label>
+      <label class="dk-opt"><input type="radio" name="dkm" value="proxy"${r.mark === "proxy" ? " checked" : ""}> <span><b>Proxy</b><br><span class="mut">A stand-in to play with for now. Stays on the buy list.</span></span></label>
+      <label class="dk-opt"><input type="radio" name="dkm" value=""${!r.mark ? " checked" : ""}> <span><b>No mark</b></span></label></div>
+    <label for="dkmNote">Note <span class="mut">(optional)</span></label><input id="dkmNote" maxlength="30" value="${esc(r.mark_note || "")}" placeholder="e.g. Sarah's, borrowed from Mike" style="width:100%">
+    <div class="acts"><button class="btn ghost" type="button" id="dkmNo">Cancel</button><button class="btn" type="button" id="dkmOk">Save</button></div>`);
+  $("#dkmNo").addEventListener("click", closeModal);
+  $("#dkmOk").addEventListener("click", () => { const v = (document.querySelector('input[name="dkm"]:checked') || {}).value || "";
+    r.mark = v; r.mark_note = v ? $("#dkmNote").value.replace(/[\r\n|]/g, " ").trim() : ""; markDirty("decks"); closeModal(); renderDECKS(); });
 }
 
 // ---- every printing of one card: switch the one on the list, or want a specific one
@@ -6533,7 +6560,7 @@ function dkEditor(id){
     const keep = c => old.find(o => o.name.toLowerCase() === c.name.toLowerCase() && o.zone === c.zone);   // re-saved list: keep printings you picked
     const fresh = cards.map(c => { const o = keep(c);
       return {deck_id: did, deck: nm, zone: c.zone, qty: String(c.qty), name: c.name, set: c.set || (o ? o.set : ""), collector_number: c.collector_number || (o && !c.set ? o.collector_number : ""),
-        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today, claim: o ? o.claim || "" : "", format: fmtSel}; });
+        finish: c.set ? c.finish : (o ? o.finish : c.finish), added: o ? o.added : today, claim: o ? o.claim || "" : "", format: fmtSel, mark: o ? o.mark || "" : "", mark_note: o ? o.mark_note || "" : ""}; });
     const at = DK.rows.findIndex(r => r.deck_id === did);
     DK.rows = DK.rows.filter(r => r.deck_id !== did);
     DK.rows.splice(at < 0 ? DK.rows.length : at, 0, ...fresh);
