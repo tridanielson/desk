@@ -647,7 +647,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:34 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 09:44 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -773,7 +773,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <div class="row" id="dMore" hidden style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
     <span class="msel" id="dSetWrap"><button type="button" class="btn ghost" id="dSetBtn" aria-haspopup="true">All Sets ▾</button><div class="msel-pop" id="dSetPop" hidden></div><input type="hidden" id="dSet" value=""></span>
     <select id="dShow" aria-label="Show"><option value="">Show: Active Deals</option><option value="ended">Show: Ended, Bought &amp; Ignored Too</option><option value="hidden" class="owner-only">Show: Only Hidden &amp; SlaveAI-Rejected</option><option value="all">Show: Everything</option></select>
-    <select id="dOnly" aria-label="Only"><option value="">All Deals</option><option value="top">★ Top Picks Only</option><option value="buy">Below Buylist Only</option><option value="sus">Hide "Too Cheap?" Listings</option></select>
+    <select id="dOnly" aria-label="Only"><option value="">All Deals</option><option value="top">★ Top Picks Only</option><option value="buy">Below Buylist Only</option><option value="sus">Hide "Too Cheap?" Listings</option><option value="stock">📷 Stock Photos Only</option><option value="nostock">Hide Stock Photos</option></select>
+    <select id="dStock" hidden aria-hidden="true"><option value=""></option><option value="only"></option><option value="hide"></option></select>
     <span hidden><input type="checkbox" id="dBuy" aria-label="Below Buylist Only"><input type="checkbox" id="dSus" aria-label="Hide Too Cheap? Listings"></span>
     <select id="dRej" class="owner-only" hidden title="Audit what your rules, ratings and SlaveAI removed"><option value="">Active Deals</option><option value="only">Only Hidden &amp; SlaveAI-Rejected (Audit)</option><option value="all">Everything</option></select>
     <select id="dWhy" class="owner-only" title="Filter hidden deals by reason" hidden><option value="">All Reasons</option></select>
@@ -1431,6 +1432,7 @@ const SETTINGS = [
     ["prefer_min_grade", "Minimum Grade (Graded Cards)", "num", 0, "1-10. 0 = any."]]},
   {sec: "deals", title: "What the eBay scanner catches", fields: [
     ["default_deal_pct", "Deal Threshold %", "num", 20, "How far under fair value a listing must be (price + shipping)."],
+    ["stock_cheap_pct", "Stock Photo: Cheap Even Blind At (% Off)", "num", 50, "Stock-photo listings never ring your phone. At or past this % under fair value they get a 💰 Cheap Even Blind tag in the Stock Photo bucket."],
     ["min_market_value", "Only Scan Cards Worth at Least ($)", "num", 20, "Raise this to scan fewer, pricier cards."],
     ["max_cards_per_scan", "Max Cards per Scan", "num", 400, "Bigger lists rotate across scans. eBay allows about 5,000 searches a day."],
     ["include_auctions", "Include Auctions", "bool", true, "Only auctions ending soon are alerted."],
@@ -2114,7 +2116,9 @@ function qualityHTML(d){
   const p0 = +d.price;
   if (d._priceMoved) h += `<span class="flag ${d._priceMoved === "up" ? "sus" : "buy"}" title="The seller changed the price since we found it (was ${money(p0)}). Price + ship, fair value and % off use the new price.">price ${d._priceMoved === "up" ? "raised" : "cut"} from ${money(p0)}</span> `;
   if (langOf(d)) h += `<span class="flag sus" title="${d.language ? "Language from the listing's item details" : "The title mentions a language other than English"}">🌐 ${esc(langOf(d))}</span> `;
-  if (d.stock) h += `<span class="flag sus" title="The listing says: “${esc(d.stock)}”. The photo isn't the actual card, so condition and edition can't be checked - no loud alert.">🖼️ stock photo</span> `;
+  if (isStock(d)){ const why = stockWhy(d), cheap = stockCheap(d);
+    h += `<span class="flag sus" title="${/^photo:/.test(why) ? "Loupe: the photo is a stock image (" + esc(why.slice(6).trim()) + ")" : "The listing says: “" + esc(why) + "”"}. Not the actual card, so condition and edition can't be checked - it sits in the Stock Photo bucket and never rings your phone.">📷 Stock</span> `;
+    if (cheap) h += `<span class="flag buy" title="${Math.round(+d.discount_pct)}% under fair value - at or past your ${stockPct()}% line, cheap enough to be worth a look even sight-unseen">💰 Cheap Even Blind</span> `; }
   { const bk = (audOf(d) || {}).back, n = String(d.images || "").split(/\s+/).filter(u => /^https?:/.test(u)).length;
     if (bk === "missing" || bk === "unclear") h += `<span class="flag" title="You checked the photos: the back of the card isn't shown (or can't be made out) - the condition was judged from the front only.">no back photo</span> `;
     else if (!bk && backSays(d) === "no") h += `<span class="flag" title="${d.photo_back === "no" ? "Loupe" : "SlaveAI"} looked at every photo and none shows the back of the card - the condition is from the front only.">no back photo</span> `;
@@ -2297,16 +2301,21 @@ document.addEventListener("click", e => {
   if (e.target.closest("#dSetBtn")){ const pop = $("#dSetPop"); pop.hidden = !pop.hidden;
     placeSetPop(); return; }
   if (!e.target.closest("#dSetWrap") && $("#dSetPop")) $("#dSetPop").hidden = true; });
+// the Stock Photo bucket: the listing says so, or Loupe's picture checks / photo model say the photo isn't the real card
+const stockWhy = d => d.stock || (d.photo_kind === "stock" ? "photo: looks like a stock image" : "");
+const isStock = d => !!stockWhy(d);
+const stockPct = () => +((S.ini.deals || {}).stock_cheap_pct ?? 50);
+const stockCheap = d => isStock(d) && +d.discount_pct >= stockPct();
 function renderDeals_(){
   fillSetFilter();
   const days = +$("#dDays").value, min = +$("#dMin").value || 0, onlyBuy = $("#dBuy").checked, hideSus = $("#dSus").checked, q = $("#dSearch").value.trim().toLowerCase();
   const cutoff = Date.now() - days * 86400000;
   const when = d => Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z");
-  const view = $("#dRej") ? $("#dRej").value : "", sg = $("#dSigned") ? $("#dSigned").value : "";
+  const view = $("#dRej") ? $("#dRej").value : "", sg = $("#dSigned") ? $("#dSigned").value : "", stk = $("#dStock") ? $("#dStock").value : "";
   const removed = d => d.ai_verdict === "reject" || !!d.hidden;
   const why = view && $("#dWhy") ? $("#dWhy").value : "", byF = view && $("#dBy") ? $("#dBy").value : "";
   if ($("#dWhy")){ $("#dWhy").hidden = !view; $("#dBy").hidden = !view; }
-  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
+  const rows = S.deals.filter(d => (view === "all" || (view === "only" ? removed(d) : !removed(d))) && (!why || (whyKind(d) || {}).cat === why) && (!byF || (whyKind(d) || {}).by === byF) && (!sg || (sg === "hide" ? !isSigned(d) : isSigned(d))) && (!stk || (stk === "only" ? isStock(d) : !isStock(d))) && when(d) >= cutoff && (+d.discount_pct >= min || d._adj) && (!onlyBuy || d.below_buylist) && (!hideSus || !d.suspicious) && (!q || d.card.toLowerCase().includes(q)) && dealExtraOK(d))
     .sort((a, b) => (DSORT.k ? 0 : isNewDeal(b) - isNewDeal(a)) || dealCompare(a, b) || (!DSORT.k && $("#dType") && /auction|sniped/.test($("#dType").value) ? (endAt(a) ?? 9e15) - (endAt(b) ?? 9e15) : 0) || (prefOK(b) - prefOK(a)) || b.found_at.localeCompare(a.found_at));
   if (DFREEZE.order){   // hold the order you were looking at
     const O = DFREEZE.order, inRows = new Set(rows), byUrl = new Map(S.deals.map(d => [d.url, d]));
@@ -2330,7 +2339,7 @@ function renderDeals_(){
   t.querySelectorAll("[data-unsnipe]").forEach(b => b.addEventListener("click", () => setSnipe(rows.find(x => x.url === b.dataset.unsnipe), null)));
   wireFB(t, rows);
 }
-const DEAL_FILTERS = ["#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dRvw", "#dType", "#dEnded", "#dLang", "#dSet"];
+const DEAL_FILTERS = ["#dStock", "#dBuy", "#dSus", "#dRej", "#dBy", "#dSigned", "#dSearch", "#dPref", "#dUSA", "#dCond", "#dGraded", "#dRvw", "#dType", "#dEnded", "#dLang", "#dSet"];
 try{ const saved = JSON.parse(store.get("pd_dealfilters") || "{}"); DEAL_FILTERS.forEach(s => { if (saved[s] == null) return; const el = $(s); if (el.type === "checkbox") el.checked = saved[s]; else el.value = saved[s]; if (el.tagName === "SELECT" && el.selectedIndex < 0) el.selectedIndex = 0; }); }catch{}
 // which filters are hiding things, with a one-tap reset (filters are remembered between visits, so they're easy to forget)
 const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
@@ -2366,14 +2375,14 @@ function dealCombosSync(){
   const sh = $("#dShow"), on = $("#dOnly"); if (!sh || !on) return;
   const rej = $("#dRej").value, ended = $("#dEnded").checked;
   sh.value = rej === "all" ? "all" : rej === "only" ? "hidden" : ended ? "ended" : "";
-  on.value = $("#dPref").checked ? "top" : $("#dBuy").checked ? "buy" : $("#dSus").checked ? "sus" : "";
+  on.value = $("#dPref").checked ? "top" : $("#dBuy").checked ? "buy" : $("#dSus").checked ? "sus" : $("#dStock").value === "only" ? "stock" : $("#dStock").value === "hide" ? "nostock" : "";
   const lbl = $("#dUSAlbl"); if (lbl){ const c = String((S.ini.alerts || {}).home_country || "US").toUpperCase(); lbl.textContent = c === "US" ? "USA Sellers Only" : "My Country Only (" + c + ")"; }
 }
 $("#dShow").addEventListener("change", e => { const v = e.target.value;
   $("#dRej").value = v === "hidden" ? "only" : v === "all" ? "all" : ""; $("#dEnded").checked = v === "ended" || v === "all";
   $("#dRej").dispatchEvent(new Event("change")); $("#dEnded").dispatchEvent(new Event("input")); });
 $("#dOnly").addEventListener("change", e => { const v = e.target.value;
-  $("#dPref").checked = v === "top"; $("#dBuy").checked = v === "buy"; $("#dSus").checked = v === "sus"; $("#dPref").dispatchEvent(new Event("input")); });
+  $("#dPref").checked = v === "top"; $("#dBuy").checked = v === "buy"; $("#dSus").checked = v === "sus"; $("#dStock").value = v === "stock" ? "only" : v === "nostock" ? "hide" : ""; $("#dPref").dispatchEvent(new Event("input")); });
 dealCombosSync();
 DEAL_FILTERS.forEach(s => $(s).addEventListener("input", () => {
   store.set("pd_dealfilters", JSON.stringify(Object.fromEntries(DEAL_FILTERS.filter(x => x !== "#dSearch").map(x => [x, $(x).type === "checkbox" ? $(x).checked : $(x).value]))));
@@ -2918,7 +2927,7 @@ function reviewHTML(d, mode){
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
   // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
-  if (s.stock === undefined) s.stock = !!(d.stock || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
+  if (s.stock === undefined) s.stock = !!((d.stock && !/^photo:/.test(d.stock)) || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
   if (!s.back) s.back = ((audOf(d) || {}).back !== "skip" && (audOf(d) || {}).back) || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";
   if (s.back === "missing" && !d._graded){ s.condition = "unclear"; s.cfault = ""; }   // one side only: the condition can't be graded   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
@@ -3754,6 +3763,8 @@ function renderTrain(){
   const corners = (cnN.square || cnN.round || cnN.alpha) ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📐 Corners measured on listings you've answered: ${["square", "round", "alpha"].filter(g => cnN[g]).map(g => `${cnName[g]} ${CN.median[g]}mm (${cnN[g]})`).join(" · ")}${cnLines.some(l => CN.adopted[l]) ? ` - <b>using corners to tell ${cnLines.filter(l => CN.adopted[l]).map(l => l === "square" ? "CE/IE from Beta" : "Alpha from Beta").join(" and ")}</b>${CN.used && CN.used.n ? ` (right ${CN.used.right} of ${CN.used.n})` : ""}` : " - not reliable yet (needs 5+ of each kind and 90% on listings it didn't fit on)"}</p>` : "";
   const K = D.photo_kinds || {}, kc = K.counts || {};
   const kinds = K.counts ? `<p class="mut" style="font-size:12px;margin:6px 0 0">📷 Photo problems Loupe is learning from: ${kc.stock || 0} stock photos · ${kc.lot || 0} lots · ${kc.verify || 0} can't-see${K.adopted ? ` - <b>spotting them on its own</b> (${Object.entries(K.recall || {}).map(([k, v]) => k + " " + v + "%").join(", ")})` : ` - ${esc(K.why || "")}`}</p>` : "";
+  const SCK = D.stock_check || {};
+  const stockLine = SCK.recall != null || SCK.false_pct != null ? `<p class="mut" style="font-size:12px;margin:4px 0 0">📷 Stock photo check (picture size, edge to edge, pixelated): caught <b>${SCK.stock_found}</b> of ${SCK.stock_found + SCK.stock_missed} you marked Stock${SCK.recall != null ? ` (${SCK.recall}%)` : ""} · called ${SCK.real_called_stock} of ${SCK.real_called_stock + SCK.real_ok} real photos stock${SCK.false_pct != null ? ` (${SCK.false_pct}%)` : ""}.${(SCK.missed_examples || []).length ? ` Missed e.g. ${esc(SCK.missed_examples.slice(0, 3).join(", "))}.` : ""}</p>` : "";
   const loupe = !sc.all ? `<p class="mut">Loupe's numbers appear after its next scan.</p>` : `<div class="stats aud-stats">
       ${tile(`${sc.all.pct}% <span class="mut" style="font-size:13px">of ${sc.all.n}</span>`, "Right printing", "Of the listings where the true printing is known (your answers, slabs, titles), how often Loupe's pick matched")}
       ${sc.same && sc.same.n ? tile(`${sc.same.pct}% <span class="mut" style="font-size:13px">of ${sc.same.n}</span>`, "When it IS your printing", "Listings that really are the printing you track: how often Loupe agreed (its weak spot - it says 'not yours' too often)") : ""}
@@ -3765,7 +3776,7 @@ function renderTrain(){
       ${tile(v.n ? `${v.matcher_pct}% <span class="mut" style="font-size:13px">vs ${v.ai_pct}%</span>` : "–", `Loupe vs SlaveAI <span class="mut">(${v.n || 0})</span>`, "Same listings, both checked: how often each got the edition right. Loupe ahead for long enough = it can take over")}
       ${tile(L.adopted ? `On <span class="mut" style="font-size:13px">${L.learned_pct}% vs ${L.plain_pct}%</span>` : `Off <span class="mut" style="font-size:13px">${L.learned_pct != null ? L.learned_pct + "% vs " + L.plain_pct + "%" : ""}</span>`, "Learning", "On only when the retrained version beats the plain one by 2+ points on listings it never trained on. Re-tried weekly")}
       ${tile(`${L.examples || 0} <span class="mut" style="font-size:13px">+ ${P.total || L.practice || 0} practice</span>`, "Training examples", "Your labelled listings + practice photos made from Scryfall pictures")}</div>
-    <p class="mut" style="font-size:12px;margin:6px 0 0">Your answers so far: ${quickN} Quick · ${fullN} Full. ${sc.cant_tell ? `${sc.cant_tell} listing(s) where every printing looks alike aren't counted. ` : ""}${sc.partial ? "<b>The last run ran out of time and only checked part of the labels</b> - the next scans finish it. " : ""}${D.updated ? "Updated " + esc(whenAZ(D.updated)) + "." : ""}</p>${kinds}${corners}${trend()}`;
+    <p class="mut" style="font-size:12px;margin:6px 0 0">Your answers so far: ${quickN} Quick · ${fullN} Full. ${sc.cant_tell ? `${sc.cant_tell} listing(s) where every printing looks alike aren't counted. ` : ""}${sc.partial ? "<b>The last run ran out of time and only checked part of the labels</b> - the next scans finish it. " : ""}${D.updated ? "Updated " + esc(whenAZ(D.updated)) + "." : ""}</p>${kinds}${stockLine}${corners}${trend()}`;
   const alerts = (sc.alerts || []).length ? `<div class="panel" style="border-color:var(--gold)"><b>⚠ Early warning</b> <span class="mut" style="font-size:12px">- a pattern on one card usually means something to fix, not more reviewing</span>
     <ul style="margin:6px 0 0">${sc.alerts.map(a => `<li>${esc(a.text)}</li>`).join("")}</ul><p class="mut" style="font-size:12px;margin:4px 0 0">Ask Claude to look into it - paste this list.</p></div>` : "";
   // the easy read first: is Loupe getting better? everything else folds away underneath
