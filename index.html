@@ -456,6 +456,8 @@ body.cs-open{overflow:hidden}
 .dk-opt span{font-size:12px;color:var(--muted);line-height:1.35}.dk-opt:hover{border-color:var(--accent)}.dk-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .dk-opt.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--chip)}.dk-opt.on b{color:var(--accent)}
 @media (max-width:520px){.dk-opts{grid-template-columns:1fr}}
+.dk-wanted{background:rgba(168,123,19,.15);color:var(--gold)}
+.dk-chk{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;cursor:pointer}.dk-chk input{width:auto!important;height:auto!important;margin:3px 0 0;flex:none}
 .dk-sym{width:14px;height:14px;vertical-align:-2px;margin-left:1px}.dk-pr{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;min-width:60px}.dk-pr small{display:block;color:var(--muted);font-weight:400;font-size:11px}
 .dk-acts{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .dk-ph{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px}.dk-ph h3{min-width:0}.dk-ph select{width:auto!important;flex:none;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit}
@@ -628,7 +630,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:37 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:46 AM</b></p>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
     <div class="panel owner-only" style="margin-top:14px"><b>Accounts &amp; Sharing</b><div id="acctBody"><p class="mut loadmsg">Loading…</p></div></div>
@@ -6291,12 +6293,15 @@ function dkPutIn(row, quiet){   // claim free copies: the printing on the list f
   if (!quiet) toast(`${row.name}: ${got} cop${got === 1 ? "y" : "ies"} tagged "in ${row.deck}". It stays in your collection.`);
   return got;
 }
+// on your Want List already (any printing of the card)
+function dkWanted(name){ const n = dkFront(name); return (S.watch || []).some(w => dkFront(w.name) === n); }
 function dkRows(id){
   return DK.rows.filter(r => r.deck_id === id).map((r, i) => {
     const c = DK.cards.get(dkKey(r)), qty = parseInt(r.qty) || 1, h = dkHave(r.name, r), basic = c ? dkBasic(c) : false;
     const covered = r.mark === "covered";
     const need = h == null || basic || covered || r.zone === "maybe" ? 0 : Math.max(0, qty - h.here - h.free);   // to buy: not in the deck, no free copy, not covered
-    return {r, c, qty, have: h, need, basic, covered, proxy: r.mark === "proxy", price: c ? dkPrice(c, r.finish) : null, idx: DK.rows.indexOf(r), i};
+    const open = !basic && r.zone !== "maybe" && !covered && (!h || h.here < qty);
+    return {r, c, qty, have: h, need, basic, covered, open, wanted: dkWanted(c ? c.name : r.name), proxy: r.mark === "proxy", price: c ? dkPrice(c, r.finish) : null, idx: DK.rows.indexOf(r), i};
   });
 }
 
@@ -6387,7 +6392,7 @@ function renderDECKS(){
     <div class="seg" id="dkShow">${[["all", "All"], ["need", "Need"], ["have", "Have"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.show === k ? "on" : ""}">${l}</button>`).join("")}</div>
     <div class="seg" id="dkSort">${[["type", "By Type"], ["price", "By Price"], ["cmc", "By Mana"]].map(([k, l]) => `<button type="button" data-v="${k}" class="${DK.sort === k ? "on" : ""}">${l}</button>`).join("")}</div>
     ${DK_EDIT() && freeN ? `<button class="btn small" type="button" id="dkPutAll" title="Tags a free copy you own for every card that's short - nothing moves, they just show 'in ${esc((decks.find(d => d[0] === id) || [, ""])[1])}'">Put All I Own in Deck</button>` : ""}
-    ${ROLE === "owner" && needN ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cheapest printing of every card you still need to your Want List, so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
+    ${ROLE === "owner" && inDeck.some(x => x.open && !x.wanted) ? `<button class="btn small" type="button" id="dkWantAll" title="Adds the cards this deck still needs to your Want List - the printing on the list, or the cheapest - so the deal finder hunts for them">Want All Missing</button>` : ""}</div>`;
   // Need = not settled yet: short of tagged copies and not Covered - whether it's to buy or a copy you own that isn't tagged yet
   const open = x => !x.basic && x.r.zone !== "maybe" && !x.covered && (!x.have || x.have.here < x.qty);
   const q = (DK.q || "").trim().toLowerCase();
@@ -6431,6 +6436,7 @@ function dkRowHTML(x){
     if (x.need) badge += ` <span class="chip dk-need">${other && !h.free ? `Own ${h.other.reduce((t, o) => t + o[1], 0)} · ${esc(other)} · need ${x.need}` : `Need${x.need > 1 ? " " + x.need : ""}`}</span>`;
     else if (other && !h.here && !h.free && !x.covered) badge += ` <span class="chip">${esc(other)}</span>`;
   }
+  if (x.wanted && x.open) badge += ` <span class="chip dk-wanted" title="On your Want List - the deal finder is hunting it">★ Wanted</span>`;
   if (!x.basic) badge = (x.covered ? badge.replace(/ ?<span class="chip dk-need">[^<]*<\/span>/, "") : badge) + markChip
     + (x.covered && h && h.free ? ` <span class="chip" title="Your own copy stays free for other decks">you also own ${h.free}</span>` : "") + markBtn;
   return `<div class="dk-row">
@@ -6438,7 +6444,7 @@ function dkRowHTML(x){
     <img class="dk-th" loading="lazy" src="${esc(dkImg(c, "small"))}" data-big="${esc(dkImg(c, "large"))}" alt="">
     <div class="dk-nm"><b data-big="${esc(dkImg(c, "large"))}">${esc(r.name)} <span class="dk-cost">${dkCost(c)}</span></b><small>${esc(tl)} · ${esc(c.set_name)} #${esc(c.collector_number)}${r.finish !== "nonfoil" ? " · " + esc(r.finish) : ""}</small>${badge ? `<div>${badge}</div>` : ""}</div>
     <div class="dk-pr">${money(x.price)}${x.qty > 1 ? `<small>×${x.qty} ${money((x.price || 0) * x.qty)}</small>` : ""}</div>
-    <div class="dk-acts"><button class="btn small" type="button" data-dkprints="${x.idx}">All Printings</button><a class="btn small ghost" href="${esc(c.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(c))}" target="_blank" rel="noopener">TCGplayer</a>${ROLE === "owner" && x.need > 0 ? `<button class="btn small ghost" type="button" data-dkwant="${x.idx}" title="Adds the cheapest printing to your Want List">Want Cheapest</button>` : ""}</div>
+    <div class="dk-acts"><button class="btn small" type="button" data-dkprints="${x.idx}">All Printings</button><a class="btn small ghost" href="${esc(c.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(c))}" target="_blank" rel="noopener">TCGplayer</a>${ROLE === "owner" && x.open && !x.wanted ? `<button class="btn small ghost" type="button" data-dkwant="${x.idx}" title="${r.set && r.collector_number ? `Adds ${esc(r.set.toUpperCase())} #${esc(r.collector_number)}${r.finish !== "nonfoil" ? " " + esc(r.finish) : ""} (the printing on the list) to your Want List` : "Adds the cheapest printing to your Want List - pick one in All Printings to want that instead"}">Want</button>` : ""}</div>
   </div>`;
 }
 function wireDecks(box){
@@ -6459,12 +6465,20 @@ function wireDecks(box){
     renderDECKS(); toast(`Tagged ${n} of your cards "in ${(dkDecks().find(d => d[0] === DK.cur) || [, ""])[1]}". Nothing moved - they stay in your collection.`, 5000); });
   box.querySelectorAll("[data-dkwant]").forEach(b => b.addEventListener("click", async () => { b.disabled = true; await dkWantCheapest([DK.rows[+b.dataset.dkwant]]); b.disabled = false; }));
   const wa = box.querySelector("#dkWantAll"); if (wa) wa.addEventListener("click", () => {
-    const rs = dkRows(DK.cur).filter(x => x.need > 0 && (x.r.zone === "cmdr" || x.r.zone === "main"));
-    openModal(`<h3>Want All Missing</h3><p>Add the cheapest printing of the <b>${rs.length}</b> card${rs.length === 1 ? "" : "s"} you still need to your Want List? The deal finder then hunts eBay for them.</p>
-      <p class="mut" style="font-size:12.5px">Already on your Want List: skipped. To pick a specific printing instead, use <b>All Printings</b> on that card.</p>
-      <div class="acts"><button class="btn ghost" type="button" id="dkwNo">Cancel</button><button class="btn" type="button" id="dkwYes">Add ${rs.length}</button></div>`);
+    const all = dkRows(DK.cur).filter(x => x.open && !x.wanted && (x.r.zone === "cmdr" || x.r.zone === "main"));
+    const needR = all.filter(x => x.need > 0), freeR = all.filter(x => x.need === 0), skip = dkRows(DK.cur).filter(x => x.open && x.wanted).length;
+    const pick = () => [...(($("#dkwNeed") || {}).checked ? needR : []), ...(($("#dkwFree") || {}).checked ? freeR : [])];
+    const sum = () => { const rs = pick(), ex = rs.filter(x => x.r.set && x.r.collector_number).length;
+      $("#dkwSum").textContent = rs.length ? `${ex ? `${ex} use the printing on the list` : ""}${ex && rs.length - ex ? " · " : ""}${rs.length - ex ? `${rs.length - ex} the cheapest printing` : ""}` : "Nothing selected.";
+      $("#dkwYes").textContent = `Add ${rs.length}`; $("#dkwYes").disabled = !rs.length; };
+    openModal(`<h3>Want All Missing</h3><p class="mut" style="font-size:13px;margin:4px 0 10px">Adds them to your Want List so the deal finder hunts eBay for them. Covered cards are never added.</p>
+      <label class="dk-chk"><input type="checkbox" id="dkwNeed"${needR.length ? " checked" : " disabled"}> <span><b>Need - nobody has it</b> <span class="mut">(${needR.length}${needR.some(x => x.proxy) ? `, ${needR.filter(x => x.proxy).length} proxied` : ""})</span></span></label>
+      <label class="dk-chk"><input type="checkbox" id="dkwFree"${freeR.length ? " checked" : " disabled"}> <span><b>You own a free copy</b> <span class="mut">(${freeR.length}) - when your copy is yours and the deck needs its own</span></span></label>
+      <p class="mut" id="dkwSum" style="font-size:12.5px;margin:10px 0 0"></p>${skip ? `<p class="mut" style="font-size:12.5px;margin:2px 0 0">${skip} already on your Want List - skipped.</p>` : ""}
+      <div class="acts"><button class="btn ghost" type="button" id="dkwNo">Cancel</button><button class="btn" type="button" id="dkwYes">Add</button></div>`);
+    sum(); ["#dkwNeed", "#dkwFree"].forEach(k => $(k).addEventListener("change", sum));
     $("#dkwNo").addEventListener("click", closeModal);
-    $("#dkwYes").addEventListener("click", async () => { closeModal(); await dkWantCheapest(rs.map(x => x.r)); });
+    $("#dkwYes").addEventListener("click", async () => { const rs = pick(); closeModal(); await dkWantCheapest(rs.map(x => x.r)); });
   });
 }
 // the cheapest real paper printing (no oversized, gold-bordered or digital), non-foil if it has a price
@@ -6472,15 +6486,18 @@ async function dkCheapest(name){
   const j = await sf("/cards/search?unique=prints&order=usd&dir=asc&q=" + encodeURIComponent(`!"${name}" game:paper -is:oversized -border:gold -st:memorabilia usd>0`));
   return (j.data || [])[0] || null;
 }
+// the printing on the deck list when one was picked (Use in Deck, or a set and number in the pasted list), else the cheapest
 async function dkWantCheapest(rows){
   let added = 0, miss = [];
   for (const [k, r] of rows.entries()){
-    if (rows.length > 1) toast(`Finding the cheapest printings… ${k + 1} of ${rows.length}`, 60000);
     const c = DK.cards.get(dkKey(r)), name = c ? c.name : r.name;
+    if (r.set && r.collector_number && c){ const n0 = S.watch.length; dkAddWatch(c, r.finish || "nonfoil", true); if (S.watch.length > n0) added++; continue; }
+    if (rows.length > 1) toast(`Finding the cheapest printings… ${k + 1} of ${rows.length}`, 60000);
     try{ const p = await dkCheapest(name); if (!p){ miss.push(name); continue; }
       const n0 = S.watch.length; dkAddWatch(p, "nonfoil", true); if (S.watch.length > n0) added++; }catch{ miss.push(name); }
     await new Promise(res => setTimeout(res, 110));
   }
+  renderDECKS();
   renderMine(); renderAll();
   toast(`Added ${added} to your Want List${rows.length - added - miss.length ? ` (${rows.length - added - miss.length} already there)` : ""}${miss.length ? ` · no price found for ${miss.slice(0, 3).join(", ")}${miss.length > 3 ? "…" : ""}` : ""}. Tracking starts on the next morning run.`, 6000);
 }
@@ -6562,7 +6579,7 @@ function dkPrintsDraw(more){
         <div class="dk-pacts">${DK_EDIT() && !onList ? `<button class="btn small" type="button" data-puse="${i}" title="Put this printing and finish on the deck list">Use in Deck</button>` : onList ? `<span class="chip">On the list</span>` : ""}${ROLE === "owner" ? `<button class="btn small ghost" type="button" data-pwant="${i}" title="Add this exact printing and finish to your Want List">Want This One</button>` : ""}<a class="btn small ghost" href="${esc(f.card.scryfall_uri)}" target="_blank" rel="noopener">Scryfall</a><a class="btn small ghost" href="${esc(dkTcg(f.card))}" target="_blank" rel="noopener">TCGplayer</a></div></div>`; }).join("")}</div>`;
   b.querySelectorAll("[data-pbig]").forEach(i => i.addEventListener("click", () => { $("#lightboxImg").src = i.dataset.pbig; $("#lightbox").classList.add("on"); }));
   b.querySelectorAll(".dk-fin").forEach(x => x.addEventListener("click", () => { const g = groups[+x.dataset.g]; sel[g.k] = x.dataset.f; const keep = b.scrollTop; dkPrintsDraw(more); b.scrollTop = keep; }));
-  b.querySelectorAll("[data-pwant]").forEach(x => x.addEventListener("click", () => { const f = pick(groups[+x.dataset.pwant]); dkAddWatch(f.card, f.f, false); x.textContent = "✓ Wanted"; x.disabled = true; }));
+  b.querySelectorAll("[data-pwant]").forEach(x => x.addEventListener("click", () => { const f = pick(groups[+x.dataset.pwant]); dkAddWatch(f.card, f.f, false); x.textContent = "✓ Wanted"; x.disabled = true; renderDECKS(); }));
   b.querySelectorAll("[data-puse]").forEach(x => x.addEventListener("click", () => { const f = pick(groups[+x.dataset.puse]), p = f.card;
     r.set = p.set; r.collector_number = p.collector_number; r.finish = f.f;
     DK.cards.set(dkKey(r), p); markDirty("decks"); renderDECKS(); dkPrintsDraw(false);
