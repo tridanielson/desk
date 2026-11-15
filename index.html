@@ -663,7 +663,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:01 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:03 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -2368,7 +2368,15 @@ document.addEventListener("click", e => {
     placeSetPop(); return; }
   if (!e.target.closest("#dSetWrap") && $("#dSetPop")) $("#dSetPop").hidden = true; });
 // the Stock Photo bucket: the listing says so, or Loupe's picture checks / photo model say the photo isn't the real card
-const stockWhy = d => d.stock || (d.photo_kind === "stock" ? "photo: looks like a stock image" : "");
+// Your review wins: "Stock photo? No", or reviewing it as the real card (printing or condition answered), clears the tag.
+function notStockByYou(d){
+  const rs = fbRows(d), st = rs.filter(r => r.verdict === "fact" && /^(stock|notstock)$/.test(r.reason)).slice(-1)[0];
+  if (st) return st.reason === "notstock";
+  if (rs.some(r => r.verdict === "bad" && r.reason === "stock")) return false;
+  const a = audOf(d);
+  return !!a && !/photo problem: stock/.test(a.note || "") && (a.edition === "matches" || a.edition === "wrong" || COND_LIST.includes(a.condition));
+}
+const stockWhy = d => notStockByYou(d) ? "" : d.stock || (d.photo_kind === "stock" ? "photo: looks like a stock image" : "");
 const isStock = d => !!stockWhy(d);
 const stockPct = () => +((S.ini.deals || {}).stock_cheap_pct ?? 50);
 const stockCheap = d => isStock(d) && +d.discount_pct >= stockPct();
@@ -3300,6 +3308,9 @@ function saveReview(d, sel, note, done, agreeAI){
   sel = Object.assign({}, sel, {reasons: (sel.reasons || []).slice()});
   if (sel.back === "missing" && sel.condition === "unclear" && !sel.stock && !/both sides/.test(note)) note = [note, "condition can't be graded - only one side of the card is shown"].filter(Boolean).join(" · ");
   // stock photo: nothing in the photos is the real card - the same facts Quick Review's 📷 Photo Problem saves
+  if (sel.stock === false && (d.stock || d.photo_kind === "stock") && !fbRows(d).some(r => r.verdict === "fact" && r.reason === "notstock")){   // "Stock photo? No": a fact - the tag goes
+    FB.rows.push({at: new Date().toISOString().slice(0, 16), url: d.url, card: d.card, key: d.key || "", seller: String(d.seller || "").split(" (")[0], verdict: "fact", reason: "notstock", note: "real photo of the card", title: (d.title || "").slice(0, 150), fault: "app"});
+    markDirty("feedback"); }
   if (sel.stock) sel = Object.assign(sel, {edition: "", condition: "unclear", back: "skip", reason: "stock", reasons: ["stock"], good: "down", cfault: "", fault: "", variant: "",
     factNote: "photo problem: stock"});
   const lgPick = sel.stock ? "" : sel.eng === "no" ? (sel.langpick || "OTHER") : sel.eng === "yes" ? "EN" : "";   // "Is it in English?" (a fact, like condition)
