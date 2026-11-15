@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 06:23 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 07:41 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -2048,7 +2048,7 @@ const agoTxt = ms => { const m = Math.max(0, Math.round(ms / 60000)); return m <
 function listedHTML(d, short){
   const t = listedMs(d); if (t == null) return '<span class="mut" title="Not recorded (deals found before Nov 14 by the 3-hour scan)">–</span>';
   const f = foundMs(d), lag = isNaN(f) ? null : f - t;
-  return `<span title="Listed ${esc(whenAZ(new Date(t).toISOString()))}${lag != null ? ` · found ${agoTxt(lag)} after it went live` : ""}">${short === "lag" && lag != null ? (lag < 6e4 ? "listed just before" : "listed " + agoTxt(lag) + " before") : short ? "listed " + agoTxt(Date.now() - t) + " ago" : esc(whenAZ(new Date(t).toISOString()))}${!short && lag != null ? `<br><span class="mut" style="font-size:11px">found +${agoTxt(lag)}</span>` : ""}</span>`;
+  return `<span title="Listed ${esc(whenAZ(new Date(t).toISOString()))}${lag != null ? ` · found ${agoTxt(lag)} after it went live` : ""}">${short === "lag" && lag != null ? (lag < 6e4 ? "listed just before it was found" : lag < 2 * 864e5 ? "listed " + agoTxt(lag) + " before it was found" : "listed " + new Date(t).toLocaleDateString("en-US", {month: "short", day: "numeric", year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : "numeric"}) + " · older listing") : short ? "listed " + agoTxt(Date.now() - t) + " ago" : esc(whenAZ(new Date(t).toISOString()))}${!short && lag != null ? `<br><span class="mut" style="font-size:11px">found +${agoTxt(lag)}</span>` : ""}</span>`;
 }
 const dealWhen = d => { const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(d.found_at) ? d.found_at : d.found_at + "Z"); return isNaN(t) ? d.found_at : whenAZ(new Date(t).toISOString()); };
 // quality badges: damage words, look-alike reprints, SlaveAI verdict
