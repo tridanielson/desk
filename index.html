@@ -108,6 +108,12 @@ td.r,th.r{text-align:right}
 .dc-die .k{font-size:11.5px;line-height:1.25;margin-top:4px;color:var(--mut);min-height:15px}.dc-die.on .k{color:var(--ink)}
 .dc-die .ck{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;line-height:20px;display:none}.dc-die.on .ck{display:block}
 .dc-die:disabled{cursor:default}
+.cm-it{display:flex;flex-direction:column;gap:4px}.cm-die{flex:1}.cm-die img{aspect-ratio:488/680;object-fit:cover}
+.cm-cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:488/680;border-radius:6px;background:linear-gradient(160deg,#3a2a1c,#1b1410);color:#c9a26b;font-family:Georgia,serif;font-size:22px;font-weight:700;opacity:.5}.cm-die.on .cm-cover{opacity:1}
+.cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--mut);text-align:left}.cm-ins{font-size:11px;color:var(--mut);text-align:left;line-height:1.25;margin-top:2px}
+.cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--mut);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
+.cm-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+@media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #dcPop{position:fixed;z-index:2000;pointer-events:none;width:300px;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45);background:#fff}
 #dcPop img{display:block;width:100%;aspect-ratio:1;object-fit:contain}#dcPop div{font-size:12px;padding:6px 8px;color:#333;background:#f4f1ea}
 @media (max-width:700px){.dc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}}
@@ -633,6 +639,7 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
     <button data-tab="sealed" data-group="mine" title="Unopened product you hold: Secret Lairs, booster boxes, packs, decks">Sealed</button>
     <button data-tab="dice" data-group="mine" title="Every Magic spindown life counter, with pictures, and which ones you have">Dice</button>
+    <button data-tab="comics" data-group="mine" title="Every Magic comic, and which ones you have">Comics</button>
     <button data-tab="train" data-group="train" class="owner-only" title="How Loupe and SlaveAI are doing against your answers - always up to date">Results</button>
     <button data-tab="quick" data-group="train" class="owner-only" title="One question, 3 seconds each: is this the printing? Teaches Loupe fastest">Quick Review</button>
     <button data-tab="audit" data-group="train" class="owner-only" title="The complete check - card, condition, back, damage - on a random sample (keeps the scores honest)">Full Review</button>
@@ -663,7 +670,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:03 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:08 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -913,6 +920,10 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <section class="tab" id="tab-dice">
   <div id="diceBody"><p class="empty loadmsg">Loading…</p></div>
+</section>
+
+<section class="tab" id="tab-comics">
+  <div id="comicsBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
 <section class="tab" id="tab-sealed">
@@ -1396,6 +1407,7 @@ async function saveAll(){
   const want = new Set(S.dirty), done = new Set();   // on an error, retry only what was actually waiting to save
   if (!COL.loaded) S.dirty.delete("collection");      // never write files this page hasn't loaded
   if (!DICE.loaded) S.dirty.delete("dice");
+  if (!COMICS.loaded) S.dirty.delete("comics");
   if (!DK.loaded) S.dirty.delete("decks");
   if (ROLE === "peek"){ S.dirty.clear(); return; }   // look-only: nothing is ever saved (the server refuses too)
   if (!(SL.upcoming && SL.upcoming.length) && !SL.upSha) S.dirty.delete("upcoming");
@@ -1410,6 +1422,10 @@ async function saveAll(){
       DICE.sha = await putMerged("collection/dice.csv", DICE.sha, () => toCSV(DICE_COLS, DICE.rows),
         rows => rows.forEach(r => { if (r.id && !DICE.rows.some(x => x.id === r.id) && !DICE.base.has(r.id)) DICE.rows.push(r); }), "Update spindown dice (Price Desk)");
       DICE.base = new Set(DICE.rows.map(r => r.id)); }
+    if (S.dirty.has("comics")){ S.dirty.delete("comics");   // its own file, like the dice
+      COMICS.sha = await putMerged("collection/comics.csv", COMICS.sha, () => toCSV(COMIC_COLS, COMICS.rows),
+        rows => rows.forEach(r => { if (r.id && !COMICS.rows.some(x => x.id === r.id) && !COMICS.base.has(r.id)) COMICS.rows.push(r); }), "Update comics (Price Desk)");
+      COMICS.base = new Set(COMICS.rows.map(r => r.id)); }
     if (S.dirty.has("decks")){ S.dirty.delete("decks");   // its own file: decks edited elsewhere are kept, deleted ones stay deleted
       DK.sha = await putMerged("collection/decks.csv", DK.sha, () => toCSV(DECK_COLS, DK.rows),
         rows => rows.forEach(r => { if (r.deck_id && !DK.base.has(r.deck_id)) DK.rows.push(r); }), "Update decks (Price Desk)");
@@ -7054,6 +7070,88 @@ function dkEditor(id){
   setTimeout(() => (id ? $("#dkText") : $("#dkName")).focus(), 30);
 }
 
+// ---------------- Comics: every Magic comic (Armada first - magazines can join later), and which ones you have ----------------
+const COMIC_COLS = ["id", "qty", "insert", "acquired", "notes"];
+const COMICS = {cat: null, rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all"};
+try{ COMICS.show = store.get("pd_comics_show") || "all"; }catch{}
+async function loadCOMICS(){
+  if (!MYCOL()) return renderCOMICS();
+  if (!COMICS.loaded && !COMICS.loading){ COMICS.loading = true; renderCOMICS();
+    try{ const f = await GH.readFiles(["data/comics.json", "collection/comics.csv"]);
+      const c = f["data/comics.json"] || {}; COMICS.cat = c.text ? JSON.parse(c.text) : null;
+      const m = f["collection/comics.csv"] || {}; COMICS.rows = m.text ? parseCSV(m.text) : []; COMICS.sha = m.sha || null;
+      COMICS.base = new Set(COMICS.rows.map(r => r.id)); COMICS.loaded = true; COMICS.error = "";
+    }catch(e){ COMICS.error = "Couldn't load the comics: " + (e.message || e); }
+    COMICS.loading = false; }
+  renderCOMICS();
+}
+// the insert card's picture straight from Scryfall (no lookup first): the comic came with this card
+const comicImg = c => { const k = (c.cards || [])[0]; return k ? `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(k.name)}${k.set ? "&set=" + k.set : ""}&format=image&version=normal` : ""; };
+const comicName = c => c.series + (c.issue ? " #" + c.issue : "");
+function comicGroups(){
+  const have = new Map(COMICS.rows.filter(r => (parseInt(r.qty) || 0) > 0).map(r => [r.id, r]));
+  const q = COMICS.q.trim().toLowerCase(), m = new Map();
+  for (const c of (COMICS.cat && COMICS.cat.items) || []){
+    const ser = c.issue ? c.series : "One-Shots", k = c.line + "|" + ser; if (!m.has(k)) m.set(k, {series: ser, line: c.line, date: c.date, items: []});
+    const g = m.get(k); g.items.push(c); if ((c.date || "") < (g.date || "9999")) g.date = c.date;
+  }
+  let gs = [...m.values()].map(g => { g.items.sort((a, b) => (a.issue || 0) - (b.issue || 0) || (a.date || "").localeCompare(b.date || "")); g.have = g.items.filter(c => have.has(c.id)).length; return g; });
+  if (q) gs = gs.map(g => g.series.toLowerCase().includes(q) ? g : Object.assign({}, g, {items: g.items.filter(c => [c.title, c.insert, c.setting].join(" ").toLowerCase().includes(q))})).filter(g => g.items.length);
+  if (COMICS.show === "have") gs = gs.filter(g => g.have > 0);
+  if (COMICS.show === "need") gs = gs.filter(g => g.have < g.items.length);
+  if (COMICS.show === "done") gs = gs.filter(g => g.have === g.items.length);
+  return {groups: gs.sort((a, b) => (a.series === "One-Shots") - (b.series === "One-Shots") || (a.date || "").localeCompare(b.date || "") || a.series.localeCompare(b.series)), have};
+}
+function comicHTML(c, have){
+  const on = have.has(c.id), r = have.get(c.id), img = comicImg(c), ro = READONLY && ROLE !== "user";
+  const ins = c.insert ? (r && r.insert === "no" ? "no" : r && r.insert === "yes" ? "yes" : "") : "";
+  return `<div class="cm-it${on ? " on" : ""}"><button class="dc-die cm-die${on ? " on" : ""}" type="button" data-comic="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc(comicName(c) + (c.title ? " - " + c.title : "") + (on ? " · you have it" : " · tap if you have it"))}">
+    <span class="ck">✓</span>${img ? `<img src="${esc(img)}" alt="${esc(comicName(c))}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : `<span class="cm-cover">${c.issue ? "#" + c.issue : "One-Shot"}</span>`}
+    <div class="k"><b>${esc(c.issue ? "#" + c.issue : c.series)}</b>${c.title ? " · " + esc(c.title) : ""}</div>
+    <div class="cm-d">${esc(diceMonth(c.date))}</div>
+    ${c.insert ? `<div class="cm-ins">Came with: ${esc(c.insert)}</div>` : ""}</button>
+    ${on && c.insert && !ro ? `<button type="button" class="cm-insb${ins ? " " + ins : ""}" data-cins="${esc(c.id)}" title="Does your copy still have what came with it?">${ins === "yes" ? "✓ Still Has It" : ins === "no" ? "✗ Missing" : "Still Has It?"}</button>` : ""}</div>`;
+}
+function renderCOMICS(){
+  const box = $("#comicsBody"); if (!box) return;
+  if (!MYCOL()){ box.innerHTML = joinHTML("comics"); wireJoin(box); return; }
+  if (COMICS.error){ box.innerHTML = `<p class="empty">${esc(COMICS.error)}</p>`; return; }
+  if (!COMICS.loaded){ box.innerHTML = '<p class="empty loadmsg">Loading comics…</p>'; return; }
+  if (!COMICS.cat){ box.innerHTML = '<p class="empty">The comics list appears after the next update.</p>'; return; }
+  const all = COMICS.cat.items, {groups, have} = comicGroups();
+  const nHave = all.filter(c => have.has(c.id)).length, bySeries = new Map(); all.filter(c => c.issue).forEach(c => bySeries.set(c.line + "|" + c.series, (bySeries.get(c.line + "|" + c.series) || []).concat(c)));
+  const done = [...bySeries.values()].filter(cs => cs.every(c => have.has(c.id))).length;
+  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Comics</h2>
+    <p class="sub" style="margin:0">Every Magic comic Armada published (1995–96)${READONLY && ROLE !== "user" ? "." : ". Tap a comic you have; tap again to undo."} List courtesy of <a href="${esc(COMICS.cat.source)}" target="_blank" rel="noopener">${esc(COMICS.cat.source_name || "MTG Wiki")}</a>; pictures are the card each issue came with.</p></div></div>
+    <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 14px">
+      <div class="stat"><span>You have</span><b>${nHave} <span class="mut" style="font-size:14px;font-weight:500">of ${all.length}</span></b></div>
+      <div class="stat"><span>Complete series</span><b>${done} <span class="mut" style="font-size:14px;font-weight:500">of ${bySeries.size}</span></b></div></div>
+    <div class="panel row"><input id="cmQ" placeholder="Search a series, title or card…" value="${esc(COMICS.q)}" style="flex:1;min-width:180px">
+      <select id="cmShow"><option value="all">All comics</option><option value="have">Series I've started</option><option value="need">Still missing some</option><option value="done">Complete series</option></select></div>
+    <div id="cmList">${groups.map(g => `<div class="dc-set"><div class="dc-head"><b>${esc(g.series)}</b><span class="mut" style="font-size:13px">${esc(g.line)} · ${esc(diceMonth(g.date))}</span>
+      <span style="font-size:13px;margin-left:auto">${g.have} / ${g.items.length}</span><span class="dc-bar"><i style="width:${Math.round(100 * g.have / g.items.length)}%"></i></span></div>
+      <div class="dc-grid cm-grid">${g.items.map(c => comicHTML(c, have)).join("")}</div></div>`).join("") || '<p class="empty">No comics match.</p>'}</div>
+    <p class="mut" style="font-size:12px;margin-top:6px">${esc(COMICS.cat.note || "")}</p>`;
+  $("#cmShow").value = COMICS.show;
+  $("#cmQ").addEventListener("input", e => { COMICS.q = e.target.value; const keep = COMICS.q; renderCOMICS(); const q = $("#cmQ"); if (q){ q.focus(); q.setSelectionRange(keep.length, keep.length); } });
+  $("#cmShow").addEventListener("change", e => { COMICS.show = e.target.value; try{ store.set("pd_comics_show", COMICS.show); }catch{} renderCOMICS(); });
+  box.querySelectorAll("[data-comic]").forEach(b => b.addEventListener("click", () => { if (READONLY && ROLE !== "user") return; toggleComic(b.dataset.comic); }));
+  box.querySelectorAll("[data-cins]").forEach(b => b.addEventListener("click", () => comicInsert(b.dataset.cins)));
+}
+function toggleComic(id){
+  const c = COMICS.cat.items.find(x => x.id === id); if (!c) return;
+  const i = COMICS.rows.findIndex(r => r.id === id);
+  if (i >= 0) COMICS.rows.splice(i, 1);
+  else COMICS.rows.push({id, qty: "1", insert: "", acquired: todayAZ(), notes: ""});
+  markDirty("comics");
+  const y = window.scrollY; renderCOMICS(); window.scrollTo(0, y);
+}
+function comicInsert(id){   // Still Has It? -> yes -> missing -> not answered
+  const r = COMICS.rows.find(x => x.id === id); if (!r) return;
+  r.insert = r.insert === "yes" ? "no" : r.insert === "no" ? "" : "yes";
+  markDirty("comics");
+  const y = window.scrollY; renderCOMICS(); window.scrollTo(0, y);
+}
 // ---------------- Spindown dice: dicecollector.com's list of every Magic spindown, and which ones you have ----------------
 const DICE_COLS = ["id", "qty", "set", "kind", "acquired", "notes"];
 const DICE = {cat: null, rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all", recolor: false};
@@ -7629,8 +7727,8 @@ if (!$("#login").hidden) loginArt();
 const waitHTML = () => '<div style="min-height:260px"></div>';   // the big "Refreshing… please wait" card covers the page meanwhile - one message, not two
 function joinHTML(what){
   if (!ROLE && AUTH.token) return waitHTML();
-  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : what === "sealed" ? "Track Your Sealed Product" : what === "dice" ? "Track Your Spindown Dice" : what === "decks" ? "Build and Track Your Decks" : "Track Your Own Collection"}</h3>
-    <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : what === "sealed" ? "Log the Secret Lairs, booster boxes, packs and decks you hold, see what they're worth today, and track profit when you open or sell them." : what === "dice" ? "Every Magic spindown life counter ever made, with pictures - tap the ones you have and see which you're still missing." : what === "decks" ? "Paste a deck list to see every printing and its price, which cards you already own, and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
+  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : what === "sealed" ? "Track Your Sealed Product" : what === "dice" ? "Track Your Spindown Dice" : what === "comics" ? "Track Your Magic Comics" : what === "decks" ? "Build and Track Your Decks" : "Track Your Own Collection"}</h3>
+    <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : what === "sealed" ? "Log the Secret Lairs, booster boxes, packs and decks you hold, see what they're worth today, and track profit when you open or sell them." : what === "dice" ? "Every Magic spindown life counter ever made, with pictures - tap the ones you have and see which you're still missing." : what === "comics" ? "Every Magic comic, with the card each one came with - tap the ones you have and see which you're still missing." : what === "decks" ? "Paste a deck list to see every printing and its price, which cards you already own, and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
     It's private to your account - nobody else sees it, and you see nobody else's.</p>
     <div class="row" style="justify-content:center"><button class="btn" data-join="up">Create Account</button><button class="btn ghost" data-join="in">Sign In</button></div>
     <p style="font-size:12px;margin:12px auto 0">You need an invite code from Havoth Cards to create an account.</p></div>`;
@@ -7729,6 +7827,7 @@ function switchTab(name){
   if (name === "connect" && !READONLY){ loadAccounts(); loadHours(); }
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "dice") loadDICE();
+  if (name === "comics") loadCOMICS();
   if (name === "decks") loadDECKS();
   if (name === "market") renderMarket();
   if ((name === "audit" || name === "quick") && !READONLY) renderAudit();
