@@ -663,7 +663,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 05:58 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:01 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3784,9 +3784,9 @@ function gradeHTML(d){
       <div class="qk-a-info"><div id="qkSide" hidden></div><div id="qkInfo">
         <div class="qk-name">${esc(name0)}</div><div class="mut" style="font-size:13px">${esc(c.sn || setOf(d) || "")}</div>
         <div class="qk-q2">What Condition Is It?</div>
-        <div class="qg-ans">${COND_LIST.map((g, k) => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]} (key ${k + 1})"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
+        <div class="qg-ans">${COND_LIST.map(g => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]}"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
         <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">📷 Can't See The Card</button><button class="btn ghost qk-skip" id="qkSkip" type="button" title="The photos don't show enough to grade it. Saved, so it won't come back.">Can't Tell</button></div>
-        <p class="mut" style="font-size:12px;margin:10px 0 0">Grade what the photos show - fronts and backs, corners and edges. Keys 1–5 work on a computer.</p></div></div></div>
+        <p class="mut" style="font-size:12px;margin:10px 0 0">Grade what the photos show - fronts and backs, corners and edges.</p></div></div></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the condition - the printing doesn't matter here.</span></div></div>`;
 }
@@ -3806,12 +3806,6 @@ function wireGrade(d){
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
-document.addEventListener("keydown", e => {   // 1-5 = NM..DMG in Condition mode
-  if (e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test((e.target || {}).tagName || "")) return;
-  const k = "12345".indexOf(e.key), it = document.querySelector("#tab-quick.on #qkItem[data-qg]");
-  if (k < 0 || !it || !$("#qkInfo") || $("#qkInfo").hidden) return;
-  const b = it.querySelector(`[data-cg="${COND_LIST[k]}"]`); if (b){ e.preventDefault(); b.click(); }
-});
 function audQueue(){
   const f = AUD.filter;
   if (f === "quick" && qgMode() === "cond") return gradePool();
