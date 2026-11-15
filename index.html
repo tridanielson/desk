@@ -105,13 +105,13 @@ td.r,th.r{text-align:right}
 .dc-die{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:6px 6px 5px;text-align:center;font:inherit;color:inherit;cursor:pointer;-webkit-touch-callout:none;user-select:none}
 .dc-die img{display:block;width:100%;aspect-ratio:1;object-fit:contain;border-radius:6px;filter:grayscale(1);opacity:.45;transition:opacity .15s,filter .15s}
 .dc-die.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}.dc-die.on img{filter:none;opacity:1}
-.dc-die .k{font-size:11.5px;line-height:1.25;margin-top:4px;color:var(--mut);min-height:15px}.dc-die.on .k{color:var(--ink)}
+.dc-die .k{font-size:11.5px;line-height:1.25;margin-top:4px;color:var(--muted);min-height:15px}.dc-die.on .k{color:var(--ink)}
 .dc-die .ck{position:absolute;top:5px;right:5px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;line-height:20px;display:none}.dc-die.on .ck{display:block}
 .dc-die:disabled{cursor:default}
 .cm-it{display:flex;flex-direction:column;gap:4px}.cm-die{flex:1}.cm-die img{aspect-ratio:488/680;object-fit:cover}
 .cm-cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:488/680;border-radius:6px;background:linear-gradient(160deg,#3a2a1c,#1b1410);color:#c9a26b;font-family:Georgia,serif;font-size:22px;font-weight:700;opacity:.5}.cm-die.on .cm-cover{opacity:1}
-.cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--mut);text-align:left}.cm-ins{font-size:11px;color:var(--mut);text-align:left;line-height:1.25;margin-top:2px}
-.cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--mut);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
+.cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--muted);text-align:left}.cm-ins{font-size:11px;color:var(--muted);text-align:left;line-height:1.25;margin-top:2px}
+.cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
 .cm-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
 @media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #dcPop{position:fixed;z-index:2000;pointer-events:none;width:300px;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45);background:#fff}
@@ -489,7 +489,7 @@ body.cs-open{overflow:hidden}
 .wl-box-chk{width:15px;height:15px;border:1.5px solid var(--line);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;line-height:1}
 .wl-only.on .wl-box-chk{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.wl-only:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 .dk-exp-p{grid-template-columns:repeat(3,1fr)}.dk-exp-acts{flex-wrap:wrap}#colModalBody select#dkeNone,#colModalBody select#dkeQty{width:auto!important;padding:4px 8px}
-.am-now{font-size:14px;margin:4px 0 6px}.am-h{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--mut);margin:16px 0 8px}
+.am-now{font-size:14px;margin:4px 0 6px}.am-h{font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:16px 0 8px}
 .am-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.am-row input[type=time]{width:auto;flex:none;font:inherit;padding:5px 8px;margin:0}.am-row select{flex:1;min-width:0;margin:0}.am-row .btn{flex:none}
 .am-modes{font-size:12.5px;line-height:1.45;margin-top:10px;display:grid;gap:4px}
 .am-help{margin-top:16px;font-size:13px;line-height:1.45}.am-help summary{cursor:pointer;font-weight:700}.am-help ol{margin:4px 0 10px;padding-left:20px}.am-help li{margin:3px 0}
@@ -507,7 +507,9 @@ body.cs-open{overflow:hidden}
 .binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed;justify-content:center}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
 .qk-mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 10px}.qk-mode button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;cursor:pointer}.qk-mode button.on{background:var(--accent);color:#fff}
-.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.qg-defs{margin-top:10px;font-size:13px;line-height:1.45}.qg-defs summary{cursor:pointer;font-weight:600}.qg-defs dl{margin:6px 0 0}.qg-defs dt{font-weight:700;margin-top:6px}.qg-defs dd{margin:1px 0 0}
+.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.tr-chart{margin-top:16px}.tr-h{font-size:14px;margin-bottom:4px}.tr-h .mut{font-size:12px}.tr-svg{width:100%;height:auto;display:block;max-width:900px}.tr-grid{stroke:var(--line);stroke-width:1}.tr-ax{fill:var(--muted);font-size:11px}
+.tr-leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}.tr-key{all:unset;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;padding:2px 0}.tr-key i{width:12px;height:4px;border-radius:2px;display:inline-block}.tr-key.off{opacity:.4;text-decoration:line-through}.tr-up{color:var(--up);font-size:11px}.tr-dn{color:var(--down);font-size:11px}
+.qg-defs{margin-top:10px;font-size:13px;line-height:1.45}.qg-defs summary{cursor:pointer;font-weight:600}.qg-defs dl{margin:6px 0 0}.qg-defs dt{font-weight:700;margin-top:6px}.qg-defs dd{margin:1px 0 0}
 .qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
 @media (max-width:560px){.qg-ans{grid-template-columns:repeat(3,1fr)}.qg-more{grid-template-columns:1fr}}
 .qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
@@ -671,7 +673,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:22 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:29 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3911,9 +3913,9 @@ function audQueue0(){
       : (a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
 }
 // ---- scoreboard
-function audStats(){
+function audStats(only){
   const cutoff = AUD.range === "30" ? Date.now() - 30 * 86400000 : 0;
-  const rows = Object.values(AUD.rows).filter(r => r.ai_verdict && (!cutoff || Date.parse(r.at + "Z") >= cutoff));
+  const rows = only || Object.values(AUD.rows).filter(r => r.ai_verdict && (!cutoff || Date.parse(r.at + "Z") >= cutoff));
   const R = {NM: 4, LP: 3, MP: 2, HP: 1, DMG: 0};
   const st = (list) => {
     const v = list.filter(r => r.verdict), e = list.filter(r => r.edition && r.edition !== "unclear" && r.ai_edition && r.ai_edition !== "unclear"),
@@ -3973,6 +3975,80 @@ function audBoard(noLoupe){
 }
 // ---- one listing at a time
 // ---- Training > Results: Loupe and SlaveAI against your answers (Loupe's file is re-read if it's more than 5 minutes old)
+// ---- Results page charts: % (up the side) over time (along the bottom), one line per thing being tested.
+// Loupe's lines come from data/photo_check.json "trends" (one point per scan, rebuilt back to Oct 30); SlaveAI's from your
+// reviews (each point = the 7 days of reviews up to that day). Tap a legend item to hide / show its line.
+const TR_COLORS = ["#e08a4f", "#5b9bd5", "#5cb87a", "#c77dba", "#d9b23a", "#e0716a", "#4fb8b8"];
+const TR_HIDE = new Set((() => { try{ return JSON.parse(store.get("pd_tr_hide") || "[]"); }catch{ return []; } })());
+const trDay = t => new Date(t).toLocaleDateString("en-US", {month: "short", day: "numeric", timeZone: "America/Phoenix"});
+function trendChart(id, title, sub, series){
+  series = series.map((s, i) => Object.assign({color: TR_COLORS[i % TR_COLORS.length]}, s, {pts: s.pts.filter(p => p.v != null && isFinite(p.t)).sort((a, b) => a.t - b.t)})).filter(s => s.pts.length);
+  if (!series.length) return "";
+  const shown = series.filter(s => !TR_HIDE.has(id + ":" + s.key));
+  const all = shown.flatMap(s => s.pts), W = 720, H = 240, L = 38, R = 12, T = 10, B = 28;
+  const t0 = all.length ? Math.min(...all.map(p => p.t)) : 0, t1 = all.length ? Math.max(...all.map(p => p.t)) : 1;
+  const lo0 = all.length ? Math.max(0, Math.min(...all.map(p => p.v)) - 5) : 0, step = 100 - lo0 > 50 ? 20 : 10, lo = Math.floor(lo0 / step) * step, hi = 100;
+  const x = t => L + (t1 === t0 ? (W - L - R) / 2 : (t - t0) / (t1 - t0) * (W - L - R)), y = v => T + (hi - v) / ((hi - lo) || 1) * (H - T - B);
+  const yt = []; for (let v = lo; v <= hi; v += step) yt.push(v);
+  const days = Math.max(1, (t1 - t0) / 864e5), nx = Math.min(6, Math.max(2, Math.round(days))), xt = [];
+  for (let i = 0; i < nx; i++) xt.push(t0 + (t1 - t0) * i / (nx - 1));
+  const svg = `<svg class="tr-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">
+    ${yt.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="tr-grid"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" class="tr-ax">${v}%</text>`).join("")}
+    ${all.length > 1 ? xt.map((t, i) => `<text x="${x(t)}" y="${H - 8}" text-anchor="${i === 0 ? "start" : i === xt.length - 1 ? "end" : "middle"}" class="tr-ax">${esc(trDay(t))}</text>`).join("") : ""}
+    ${shown.map(s => `<polyline points="${s.pts.map(p => x(p.t).toFixed(1) + "," + y(p.v).toFixed(1)).join(" ")}" fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`
+      + (s.pts.length < 40 ? s.pts.map(p => `<circle cx="${x(p.t).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.6" fill="${s.color}"><title>${esc(s.name)}: ${p.v}% · ${esc(trDay(p.t))}${p.n ? " · " + p.n + " checked" : ""}</title></circle>`).join("") : "")
+      + `<circle cx="${x(s.pts[s.pts.length - 1].t).toFixed(1)}" cy="${y(s.pts[s.pts.length - 1].v).toFixed(1)}" r="4" fill="${s.color}"><title>${esc(s.name)}: ${s.pts[s.pts.length - 1].v}% now</title></circle>`).join("")}
+    ${!shown.length ? `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" class="tr-ax">Every line is hidden - tap one below</text>` : ""}</svg>`;
+  const chg = s => { const a = s.pts[0].v, b = s.pts[s.pts.length - 1].v, d = b - a; return s.pts.length < 2 ? "" : d >= 1 ? ` <span class="tr-up">▲${d}</span>` : d <= -1 ? ` <span class="tr-dn">▼${-d}</span>` : ""; };
+  return `<div class="tr-chart" data-trc="${esc(id)}"><div class="tr-h"><b>${esc(title)}</b>${sub ? ` <span class="mut">- ${esc(sub)}</span>` : ""}</div>${svg}
+    <div class="tr-leg">${series.map(s => `<button type="button" class="tr-key${TR_HIDE.has(id + ":" + s.key) ? " off" : ""}" data-trk="${esc(id + ":" + s.key)}" title="${esc(s.tip || "")}"><i style="background:${s.color}"></i>${esc(s.name)} <b>${s.pts[s.pts.length - 1].v}%</b>${chg(s)}</button>`).join("")}</div></div>`;
+}
+function wireTrends(box, redraw){
+  box.querySelectorAll("[data-trk]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.trk; TR_HIDE.has(k) ? TR_HIDE.delete(k) : TR_HIDE.add(k); try{ store.set("pd_tr_hide", JSON.stringify([...TR_HIDE])); }catch{} redraw(); }));
+}
+function loupeSeries(keys){
+  const T = ((PC.data || {}).trends || []).map(p => Object.assign({t: Date.parse(p.at)}, p));
+  return keys.map(([key, name, tip]) => ({key, name, tip, pts: T.filter(p => p[key] != null).map(p => ({t: p.t, v: p[key]}))}));
+}
+function slaveSeries(){   // each day you reviewed: SlaveAI against your answers over that day and the 6 before it
+  const rows = Object.values(AUD.rows).filter(r => r.ai_verdict && r.at).map(r => Object.assign({}, r, {_t: Date.parse(r.at + "Z")})).filter(r => isFinite(r._t)).sort((a, b) => a._t - b._t);
+  const days = [...new Set(rows.map(r => r.at.slice(0, 10)))], out = {all: [], ed: [], c: [], c1: []};
+  for (const d of days){
+    const end = Date.parse(d + "T23:59Z"), win = rows.filter(r => r._t <= end && r._t > end - 7 * 864e5);
+    if (win.length < 5) continue;
+    const s = audStats(win).all;
+    out.all.push({t: end, v: Math.round(100 * s.all / s.n), n: s.n});
+    if (s.e >= 5) out.ed.push({t: end, v: Math.round(100 * s.eOk / s.e), n: s.e});
+    if (s.c >= 5){ out.c.push({t: end, v: Math.round(100 * s.cOk / s.c), n: s.c}); out.c1.push({t: end, v: Math.round(100 * s.c1 / s.c), n: s.c}); }
+  }
+  return [{key: "all", name: "Fully right", tip: "Verdict, edition and condition all match your review", pts: out.all},
+          {key: "ed", name: "Right edition", tip: "Its edition answer against yours", pts: out.ed},
+          {key: "c", name: "Exact condition", tip: "Its condition grade exactly matches yours", pts: out.c},
+          {key: "c1", name: "Condition within one grade", tip: "e.g. it said LP and you said NM or MP", pts: out.c1}];
+}
+function progressCharts(){
+  return trendChart("print", "Loupe: which printing it is", "one point per scan", loupeSeries([
+      ["never_seen", "Cards it has never seen", "Random cards from all of Magic it was never taught"],
+      ["yours", "Listings you checked", "Graded against your own reviews"],
+      ["all", "All listings it checked", "Your reviews, slabs and listing titles together"],
+      ["sure", "When it's sure", "Only when one printing clearly wins - this is when it decides on its own"],
+      ["read", "Reading the set code", "Times it read the code and number printed on newer cards"],
+      ["titles", "Listing titles", "Against what the seller's title says"],
+      ["paintings", "Right painting", "Cards with several paintings in one set (basic lands, alternate arts)"]]))
+    + trendChart("photo", "Loupe: photo checks", "", loupeSeries([
+      ["back", "Back of card shown", "Its 'is the back in the photos?' against your answers"],
+      ["kind_stock", "Spots stock photos", "Stock photos it recognizes, from the ones you've marked"],
+      ["kind_card", "Spots real photos", "Real photos it correctly calls real"],
+      ["stock_new", "Stock photos on new listings", "Picture-size / edge-to-edge check on new listings"],
+      ["border", "Border color", "Reading black vs white borders on test pictures"]]))
+    + trendChart("vs", "Loupe vs SlaveAI - same listings", "both checked the same ones", loupeSeries([
+      ["vs_loupe", "Loupe: printing"], ["vs_slaveai", "SlaveAI: printing"],
+      ["cond_loupe", "Loupe: condition"], ["cond_slaveai", "SlaveAI: condition"]]))
+    + trendChart("cond", "Loupe: condition grader", "learning - not used yet", loupeSeries([
+      ["cond_exact", "Exact grade", "NM / LP / MP / HP / DMG exactly right, on answers it didn't learn from"],
+      ["cond_near", "Within one grade", "e.g. it said LP and the answer was NM or MP"]]))
+    + trendChart("slave", "SlaveAI against your reviews", "each point = the 7 days of reviews up to that day", slaveSeries());
+}
 function renderTrain(){
   const box = $("#trainBody"); if (!box) return;
   if (!FB.loaded){ box.innerHTML = `<p class="empty loadmsg">Loading…</p>`; loadFB(); return; }
@@ -4030,16 +4106,18 @@ function renderTrain(){
       ${big(AC.n ? newPct : null, "right on <b>cards it has never seen</b>", AC.n ? `random cards from all of Magic · ${AC.new_n || AC.n} checked so far` : "first numbers after the next scan")}
       ${big(yp != null ? yp : null, "right on <b>listings you checked</b>", yp != null ? `graded against your own reviews · ${yn} listings` : "after the next scan")}</div>
     <div style="margin-top:12px"><b>Is it getting better?</b> ${dirN ? `<span style="color:${dirN[2]};font-weight:700">${dirN[0]} ${dirN[1]}</span> <span class="mut">on cards it has never seen</span>` : '<span class="mut">Not enough runs yet to tell - check back in a day or two.</span>'}
-      ${line(NS, "pct")}</div>
+</div>
     ${(sc.alerts || []).length ? `<p style="margin:10px 0 0">⚠ <b>${sc.alerts.length} early warning${sc.alerts.length > 1 ? "s" : ""}</b> - a pattern on one card. Details below.</p>` : ""}
     <p class="mut" style="font-size:12px;margin:10px 0 0">The more listings you review, the better it gets - and the more honest the second number is.</p></div>
     ${(() => { const {random: rs} = audStats(); return `<div class="panel"><b style="font-size:16px">🤖 How SlaveAI is doing</b> <span class="mut" style="font-size:12px">- the paid Claude check</span>
-      <p style="margin:8px 0 0">${rs.n ? `Fully right on <b>${rs.n ? Math.round(10 * rs.all / rs.n) : "–"} out of 10</b> randomly picked listings you reviewed <span class="mut">(${rs.all} of ${rs.n})</span>` : 'Review some deals in <b>Full Review → Random Sample</b> to get its score.'}</p></div>`; })()}`;
+      <p style="margin:8px 0 0">${rs.n ? `Fully right on <b>${rs.n ? Math.round(10 * rs.all / rs.n) : "–"} out of 10</b> randomly picked listings you reviewed <span class="mut">(${rs.all} of ${rs.n})</span>` : 'Review some deals in <b>Full Review → Random Sample</b> to get its score.'}</p></div>`; })()}
+    <div class="panel"><b style="font-size:16px">📈 Progress Over Time</b> <span class="mut" style="font-size:12px">- what's being tested and how it's improving · tap a name to hide or show its line</span>${progressCharts() || '<p class="mut">Charts appear after the next scan.</p>'}</div>`;
   box.innerHTML = simple + `<details class="panel" id="trDeep"${store.get("pd_tr_deep") === "1" ? " open" : ""}><summary style="cursor:pointer"><b>More detail</b> <span class="mut" style="font-size:12px">- every number, trends and warnings</span></summary>
     ${alerts}<div style="margin-top:10px"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span>${YH.length >= 2 ? `<div style="margin:8px 0">Right on listings you checked, run by run ${dirY ? `<span style="color:${dirY[2]};font-weight:700">${dirY[0]} ${dirY[1]}</span>` : ""}${line(YH, "yours")}</div>` : ""}<div style="margin-top:8px">${loupe}</div></div>
     <div style="margin-top:16px"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div></details>`;
   const dp = $("#trDeep"); dp.addEventListener("toggle", () => store.set("pd_tr_deep", dp.open ? "1" : "0"));
+  wireTrends(box, () => { const y = scrollY; renderTrain(); scrollTo(0, y); });
   $("#audRange").value = AUD.range; $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderTrain(); });
 }
 function renderAudit(){
