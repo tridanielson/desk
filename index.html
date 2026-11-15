@@ -507,7 +507,8 @@ body.cs-open{overflow:hidden}
 .binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed;justify-content:center}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
 .qk-mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 10px}.qk-mode button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;cursor:pointer}.qk-mode button.on{background:var(--accent);color:#fff}
-.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
+.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.qg-defs{margin-top:10px;font-size:13px;line-height:1.45}.qg-defs summary{cursor:pointer;font-weight:600}.qg-defs dl{margin:6px 0 0}.qg-defs dt{font-weight:700;margin-top:6px}.qg-defs dd{margin:1px 0 0}
+.qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
 @media (max-width:560px){.qg-ans{grid-template-columns:repeat(3,1fr)}.qg-more{grid-template-columns:1fr}}
 .qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
 .qk-cmp{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.qk-cmp img{width:120px;height:167px;object-fit:contain;border-radius:6px;flex:none;background:var(--soft)}.qk-cmp #qkCmpCap{min-height:167px}.qk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
@@ -670,7 +671,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:17 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:22 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3844,7 +3845,15 @@ function gradeHTML(d){
         <div class="qk-q2">What Condition Is It?</div>
         <div class="qg-ans">${COND_LIST.map(g => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]}"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
         <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">📷 Can't See The Card</button><button class="btn ghost qk-skip" id="qkSkip" type="button" title="The photos don't show enough to grade it. Saved, so it won't come back.">Can't Tell</button></div>
-        <p class="mut" style="font-size:12px;margin:10px 0 0">Grade what the photos show - fronts and backs, corners and edges.</p></div></div></div>
+        <details class="qg-defs"><summary>What Each Condition Means</summary>
+          <dl>
+            <dt>NM · Near Mint</dt><dd>Looks unplayed. At most a tiny speck of whitening on an edge or corner, or a very faint mark you'd only see up close. No scratches, scuffs or bends.</dd>
+            <dt>LP · Lightly Played</dt><dd>Small, light wear: a little whitening on edges or corners, a few faint scratches or scuffs. Nothing that stands out at arm's length. No bends, creases or water damage.</dd>
+            <dt>MP · Moderately Played</dt><dd>Clearly used: obvious whitening on the edges and corners, noticeable scratches or scuffs, some corner wear or small dings, maybe a slight bend that lies flat.</dd>
+            <dt>HP · Heavily Played</dt><dd>A lot of wear: heavy whitening, rounded or frayed corners, deep scratches, scuffing across the card, or a clear bend. Still whole and readable.</dd>
+            <dt>DMG · Damaged</dt><dd>Beyond wear: creases, tears, holes, water damage, peeling, writing, missing pieces, or a bend that won't lie flat.</dd>
+          </dl>
+          <p class="mut" style="font-size:12px;margin:6px 0 0">Grade the worst thing the photos show - one crease makes a clean card Damaged. Check the back too: whitening shows there first.</p></details></div></div></div>
     <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
       <span class="mut" style="font-size:12px">Only the condition - the printing doesn't matter here.</span></div></div>`;
 }
