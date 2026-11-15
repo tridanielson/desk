@@ -670,7 +670,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:15 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:17 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1129,7 +1129,7 @@ async function saveSched(sc){
 }
 async function testAlert(mode, btn){
   btn.disabled = true; const t0 = btn.textContent; btn.textContent = "Sending…";
-  try{ await server("testAlert", mode); toast("Sent the " + ALERT_MODES[mode].name + " test to your phone." + (mode === "alarm" ? " Tap Acknowledge in Pushover to stop it." : ""), 6000); }
+  try{ await server("testAlert", mode, alertSounds()); toast("Sent the " + ALERT_MODES[mode].name + " test to your phone." + (mode === "alarm" ? " Tap Acknowledge in Pushover to stop it." : ""), 6000); }
   catch(e){ toast(/UPDATE|Unknown request/.test(e.message) ? "Sign in as admin first so the server updates - then the tests work." : "Test not sent: " + e.message, 7000); }
   btn.disabled = false; btn.textContent = t0;
 }
