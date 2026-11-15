@@ -670,7 +670,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:08 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 06:20 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3833,7 +3833,24 @@ function wireGrade(d){
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
+// Quick Review: one card's listings arrive together (its turn in the scan rotation), so the same card could come up 10 times
+// in a row. Keep the order (best next first) but never more than 2 of one card in a row - the rest mix in later.
+function spreadCards(list, max = 2, look = 300){
+  const head = list.slice(0, look), out = [], key = d => String(d.card || "").toLowerCase();
+  while (head.length){
+    const last = out.slice(-max).map(key), full = last.length === max && last.every(k => k === last[0]);
+    let i = full ? head.findIndex(d => key(d) !== last[0]) : 0;
+    if (i < 0) i = 0;   // only that card left
+    out.push(head.splice(i, 1)[0]);
+  }
+  return out.concat(list.slice(look));
+}
 function audQueue(){
+  const f = AUD.filter;
+  if (f === "quick") return spreadCards(audQueue0());
+  return audQueue0();
+}
+function audQueue0(){
   const f = AUD.filter;
   if (f === "quick" && qgMode() === "cond") return gradePool();
   const m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
