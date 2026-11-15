@@ -660,7 +660,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 08:07 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 05:41 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3464,7 +3464,19 @@ function openPhotoBig(d, i){
 document.addEventListener("click", e => { const a = e.target.closest("[data-phbig]"); if (!a || e.ctrlKey || e.metaKey || e.button > 0) return;   // Ctrl-click still opens eBay
   const d = S.deals.find(x => x.url === a.dataset.phurl); if (!d) return; e.preventDefault(); openPhotoBig(d, +a.dataset.phbig); });
 // where SlaveAI saw each problem: [{photo (1 = first), x, y, w, h (0-1 of the photo), what}] - drawn on the review photos
-function aiSpots(d){ if (d._spots) return d._spots; let a = []; try{ a = JSON.parse(d.ai_spots || "[]"); }catch(e){} return d._spots = (Array.isArray(a) ? a : []).filter(p => p && p.photo >= 1); }
+// SlaveAI's boxes, each on the photo it was drawn on: matched by the photo's address (the AI only sees some photos - the
+// first few and the last - so its "photo 6" can be the listing's photo 13). Boxes saved before that are only trusted when
+// the listing has 4 photos or fewer (then its numbering and the listing's are the same).
+function aiSpots(d){
+  if (d._spots) return d._spots;
+  let a = []; try{ a = JSON.parse(d.ai_spots || "[]"); }catch(e){}
+  const pid = u => (String(u || "").match(/\/images\/g\/([^/]+)\//) || [])[1] || u;
+  const ids = String(d.images || "").split(/\s+/).filter(Boolean).map(pid);
+  return d._spots = (Array.isArray(a) ? a : []).filter(p => p && p.photo >= 1).map(p => {
+    if (p.u){ const k = ids.indexOf(pid(p.u)); return k >= 0 ? Object.assign({}, p, {photo: k + 1}) : null; }
+    return ids.length <= 4 ? p : null;
+  }).filter(Boolean);
+}
 const AUD_COLS = ["url", "card", "at", "ai_verdict", "ai_edition", "ai_condition", "ai_model", "ai_reason", "verdict", "edition", "condition", "note", "listed", "title", "how", "fault", "back", "images"];
 const COND_GUIDE = [["NM", "Near Mint", "Looks almost unplayed: crisp corners, at most a tiny edge flaw or a couple of small scratches."],
   ["LP", "Lightly Played", "Minor wear - edge nicks, light scuffs or scratches - but nothing severe or widespread."],
