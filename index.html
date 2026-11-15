@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:39 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:43 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1597,7 +1597,7 @@ const SETTINGS = [
     ["overstate_after", "Flag a Seller as Overstating After (Corrections)", "num", 2, "Their listings are valued one grade lower than they claim."],
     ["upside_checks_per_day", "Mislabeled-Bargain Photo Checks per Day", "num", 10, "New listings sold as Chronicles / Unlimited / Revised that would be a deal as the original printing get a SlaveAI check. 0 = off."],
     ["upside_min_value", "Only for Originals Worth at Least ($)", "num", 50, ""],
-    ["always_tell", "Always Tell SlaveAI", "note", "", "Lessons SlaveAI follows on every check, one per line - e.g. \"The white dot on Arabian Nights cards is printed, not damage.\" Kept until you remove them."]]},
+    ["always_tell", "Always Tell SlaveAI", "note", "", "Lessons SlaveAI follows on every check, one per line - e.g. \"A thin line on the back that is part of the printed design is not damage.\" Kept until you remove them."]]},
   {sec: "sniper", title: "Every-minute sniper (new listings)", fields: [
     ["enabled", "Sniper On", "bool", true, "Runs in your Google Apps Script (setupSniper / stopSniper)."],
     ["min_listing_price", "Ignore New Listings Under ($)", "num", 10, ""],
