@@ -500,6 +500,9 @@ body.cs-open{overflow:hidden}
 .binders{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 6px}.binder{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;font:inherit}
 .binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed;justify-content:center}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
+.qk-mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 10px}.qk-mode button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;cursor:pointer}.qk-mode button.on{background:var(--accent);color:#fff}
+.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
+@media (max-width:560px){.qg-ans{grid-template-columns:repeat(3,1fr)}.qg-more{grid-template-columns:1fr}}
 .qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
 .qk-cmp{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.qk-cmp img{width:120px;height:167px;object-fit:contain;border-radius:6px;flex:none;background:var(--soft)}.qk-cmp #qkCmpCap{min-height:167px}.qk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 #qkSide .qk-prints{max-height:520px;overflow:auto}
@@ -660,7 +663,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 05:41 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 05:58 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -811,7 +814,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <section class="tab" id="tab-quick">
   <h2 style="margin:0">Quick Review</h2>
-  <p class="sub">One question: is this the printing? About 3 seconds each - the cards Loupe is least sure about come first. Every answer teaches Loupe.</p>
+  <p class="sub" id="qkSub">One question: is this the printing? About 3 seconds each - the cards Loupe is least sure about come first. Every answer teaches Loupe.</p>
+  <div class="qk-mode" role="tablist"><button type="button" data-qkm="print">Printing</button><button type="button" data-qkm="cond">Condition</button></div>
   <div id="qkBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
@@ -3339,6 +3343,7 @@ function saveReview(d, sel, note, done, agreeAI){
     if (pp && pp.num){ note = `It's ${pp.sn || pp.s} #${pp.num}${pp.yr ? " (" + pp.yr + ")" : ""}`; autoNote = true; }
   }
   if (condChanged && !note && MK.marks.length) note = "Marked on the photos: " + markSummary(MK.marks);   // the boxes are the why
+  if (condChanged && !note && sel.quickGrade) note = "Quick Grade from the photos";   // Condition mode: the grade itself is the lesson
   if (condChanged && sel.condition !== (DC.map[d.url] || {}).c && !note && !agreeAI){ const n = $("#rvNote"); if (n){ n.focus(); n.placeholder = `Why is it ${sel.condition}? (required when you change the condition)`; } return toast("Say why you changed the condition - that's what teaches SlaveAI.", 4500); }
   if (sel.good === "down" && !sel.reason) sel.reason = condChanged ? "condition" : "other";
   const at = new Date().toISOString().slice(0, 16), seller = String(d.seller || "").split(" (")[0];
@@ -3422,7 +3427,7 @@ function wireCarousels(root){
 }
 function photoCheckLine(d){
   // same look as "Seller says": a titled box, one line per answer
-  const box = body => `<div class="rv-says"><div class="rv-says-h">Loupe (testing)</div>${body}</div>`;
+  const box = body => `<div class="rv-says"><div class="rv-says-h">Loupe (testing)</div>${body}${d.photo_cond ? `<div><span class="mut">Condition (still learning):</span> ${esc(d.photo_cond)}</div>` : ""}</div>`;
   const row = (k, v) => `<div><span class="mut">${k}:</span> ${v}</div>`;
   const note = t => `<div class="mut" style="font-size:12.5px">${t}</div>`;
   const vs = () => row("Printing", d.photo_says === "same" ? '<b class="up">the one it\'s priced as</b>' : '<b class="down">not the one it\'s priced as</b>');
@@ -3749,8 +3754,68 @@ function quickPool(){   // pool listings that aren't already deals and you haven
     .filter(d => { const ks = keys(d); if (ks.some(k => answered.has(k) || shown.has(k))) return false; ks.forEach(k => shown.add(k)); return true; })
     .sort((a, b) => likelyMiss(b) - likelyMiss(a) || loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
 }
+// ---- Condition mode: one listing, tap NM / LP / MP / HP / DMG. Each answer is a lesson for Loupe's condition grader.
+// The grades it has fewest of come first (by SlaveAI's / the seller's guess), never slabs (the grade is already known).
+const QG_DESC = {NM: "like new", LP: "light wear", MP: "clear wear", HP: "heavy wear", DMG: "damaged"};
+const qgMode = () => AUD.qmode || (AUD.qmode = store.get("pd_qk_mode") === "cond" ? "cond" : "print");
+function gradePool(){
+  loadPool();
+  const seen = new Set(), R = {DMG: 0, HP: 1, MP: 2, LP: 3, NM: 4};
+  return S.deals.concat(QP.items).filter(d => {
+    if (!d.url || seen.has(d.url)) return false; seen.add(d.url);
+    if (!/i\.ebayimg\.com/.test(d.images || "") || d._graded || /\b(psa|bgs|cgc|sgc|beckett)\b/i.test(d.title || "") || (DC.map[d.url] || {}).c) return false;
+    const a = audOf(d);
+    if (a && (COND_LIST.includes(a.condition) || a.edition === "wrong" || a.verdict === "reject" || /photo problem|can't grade/.test(a.note || ""))) return false;
+    const fb = fbLast(d);
+    return !(fb && fb.verdict === "bad" && ["edition", "wrongcard", "fake", "lot", "stock", "verify"].includes(fb.reason));
+  }).sort((a, b) => {
+    const g = d => { const c = condCode(String(d.ai_condition || "").toUpperCase()) || condCode(d._c0 || d.condition); return c in R ? R[c] : 3; };
+    return g(a) - g(b) || (!!a._pool - !!b._pool) || (b.found_at || "").localeCompare(a.found_at || "");
+  });
+}
+function gradeHTML(d){
+  const c = dealCard(d) || {}, name0 = String(d.card || "").replace(/ \[[A-Z0-9]+\].*$/, "");
+  const all = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)), ro = d.photo_roles || "";
+  return `<div class="panel aud qk" id="qkItem" data-qg="1">
+    <div class="qk-head"><span></span><a class="mut" style="font-size:12.5px" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay ↗</a></div>
+    <div class="qk-a"><div class="qk-a-ph"><div class="ph-car"><div class="aud-photos">${all.map((u, i) => `<a class="aud-ph" href="${esc(ebayLink(d))}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></div>${ro[i] === "B" ? '<span class="ph-role">Back</span>' : ""}</a>`).join("")}</div>
+        ${all.length > 1 ? `<button type="button" class="ph-arr l" data-phgo="-1" aria-label="Previous photo">‹</button><button type="button" class="ph-arr r" data-phgo="1" aria-label="Next photo">›</button><span class="ph-cnt">1 / ${all.length}</span></div>
+        <div class="ph-thumbs">${all.map((u, k) => `<button type="button" data-phto="${k}"${k ? "" : ' class="on"'}><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l140."))}" alt="" loading="lazy"></button>`).join("")}</div>` : "</div>"}</div>
+      <div class="qk-a-info"><div id="qkSide" hidden></div><div id="qkInfo">
+        <div class="qk-name">${esc(name0)}</div><div class="mut" style="font-size:13px">${esc(c.sn || setOf(d) || "")}</div>
+        <div class="qk-q2">What Condition Is It?</div>
+        <div class="qg-ans">${COND_LIST.map((g, k) => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]} (key ${k + 1})"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
+        <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">📷 Can't See The Card</button><button class="btn ghost qk-skip" id="qkSkip" type="button" title="The photos don't show enough to grade it. Saved, so it won't come back.">Can't Tell</button></div>
+        <p class="mut" style="font-size:12px;margin:10px 0 0">Grade what the photos show - fronts and backs, corners and edges. Keys 1–5 work on a computer.</p></div></div></div>
+    <div class="row" style="justify-content:space-between;margin-top:8px"><button class="btn ghost small" id="audPrev" type="button">← Back</button>${AUD.qkPos != null ? ` <button class="btn small" id="qkFwd" type="button">${AUD.qkPos + 1 < (AUD.qkHist || []).length ? "Forward →" : "Back to New Ones →"}</button>` : ""}
+      <span class="mut" style="font-size:12px">Only the condition - the printing doesn't matter here.</span></div></div>`;
+}
+function wireGrade(d){
+  wireCarousels($("#qkItem") || document);
+  const next = () => { renderAudit(); const it = $("#audItem"), head = document.querySelector("header"); if (it && it.getBoundingClientRect().top < 0) window.scrollTo({top: it.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 10}); };
+  const hist = AUD.qkHist = AUD.qkHist || [], pos = AUD.qkPos, back = pos != null;
+  const go = p => { AUD.qkPos = p; AUD.qkBack = p == null ? "" : hist[p]; next(); };
+  const onward = () => { if (back) go(pos + 1 < hist.length ? pos + 1 : null); else { hist.push(d.url); go(null); } };
+  const done = {how: "grade", after: onward};
+  d._phLoaded = true;   // keep the photos with the answer (practice-pool listings aren't in the deals log)
+  const keepEd = (audOf(d) || {}).edition || "";
+  $("#qkItem").querySelectorAll("[data-cg]").forEach(b => b.addEventListener("click", () => saveReview(d, {edition: keepEd, condition: b.dataset.cg, back: "skip", fault: "", quickGrade: true}, "", done)));
+  $("#qkCard").addEventListener("click", () => saveReview(d, {edition: "wrongcard", condition: "unclear", back: "skip", fault: "seller"}, "", done));
+  $("#qkSkip").addEventListener("click", () => saveReview(d, {edition: keepEd || "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't grade from the photos"}, "", done));
+  $("#qkCant").addEventListener("click", () => photoProblem(d, why => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
+  $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
+  if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
+}
+document.addEventListener("keydown", e => {   // 1-5 = NM..DMG in Condition mode
+  if (e.ctrlKey || e.metaKey || e.altKey || /input|textarea|select/i.test((e.target || {}).tagName || "")) return;
+  const k = "12345".indexOf(e.key), it = document.querySelector("#tab-quick.on #qkItem[data-qg]");
+  if (k < 0 || !it || !$("#qkInfo") || $("#qkInfo").hidden) return;
+  const b = it.querySelector(`[data-cg="${COND_LIST[k]}"]`); if (b){ e.preventDefault(); b.click(); }
+});
 function audQueue(){
-  const f = AUD.filter, m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
+  const f = AUD.filter;
+  if (f === "quick" && qgMode() === "cond") return gradePool();
+  const m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
   return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (!sq || [d.seller, d.card, d.title].join(" ").toLowerCase().includes(sq)) && (
     f === "todo" ? aiChecked(d) && !audOf(d) :
     f === "reject" ? d.ai_verdict === "reject" && !audOf(d) :
@@ -3801,7 +3866,16 @@ function pcBoard(){
     + (sc.back_check && sc.back_check.n ? ` · back shown right ${sc.back_check.pct}% of ${sc.back_check.n}` : "");
   return `<div class="honest" style="margin-top:8px"><b>🔍 Loupe vs SlaveAI</b> <span class="mut" style="font-size:12px">(which printing it is, against your answers)</span><br>
     ${v && v.n ? `On the same ${v.n} listings: Loupe right <b>${v.matcher_pct}%</b> · SlaveAI right <b>${v.ai_pct}%</b>` : "Not enough listings checked by both yet."}
-    <span class="mut" style="font-size:12px"> · Loupe overall ${sc.all && sc.all.pct != null ? sc.all.pct + "% of " + sc.all.n : "-"}${learn}</span></div>`;
+    <span class="mut" style="font-size:12px"> · Loupe overall ${sc.all && sc.all.pct != null ? sc.all.pct + "% of " + sc.all.n : "-"}${learn}</span>${condBoard()}</div>`;
+}
+function condBoard(){   // Loupe's condition grader (watch mode) - data/photo_check.json "condition"
+  const c = (PC.data || {}).condition; if (!c) return "";
+  const a = c.answers || {}, sum = o => Object.values(o || {}).reduce((x, y) => x + y, 0);
+  const counts = `${sum(a.you)} from you · ${sum(a.slab)} graded slabs · ${sum(a.ai)} SlaveAI reads`;
+  return `<br><b>🔍 Condition</b> <span class="mut" style="font-size:12px">(NM / LP / MP / HP / DMG from the photos - learning, not used yet)</span><br>`
+    + (c.n ? `Right grade <b>${c.exact}%</b>, within one grade <b>${c.within_one}%</b> on ${c.n} answers it didn't learn from`
+      + (c.vs_slaveai ? ` · same listings: Loupe <b>${c.vs_slaveai.loupe}%</b> vs SlaveAI <b>${c.vs_slaveai.slaveai}%</b>` : "") : esc(c.why || "Learning."))
+    + `<span class="mut" style="font-size:12px"> · ${counts} - Quick Review → Condition adds more</span>`;
 }
 function audBoard(noLoupe){
   const {all: a, random: rs, hand, models} = audStats();
@@ -3909,7 +3983,8 @@ function renderAudit(){
   else { AUD.qkBack = ""; AUD.qkPos = null; }
   audRemember(d);
   AUD._n = q.length;
-  const doneMsg = quick ? ["All caught up", "Nothing left for Quick Review. New listings arrive with every scan, every 3 hours."]
+  const doneMsg = quick && qgMode() === "cond" ? ["All caught up", "Every listing with photos has a condition from you. New ones arrive with every scan, every 3 hours."]
+    : quick ? ["All caught up", "Nothing left for Quick Review. New listings arrive with every scan, every 3 hours."]
     : AUD.q ? ["No matches", `Nothing in this list matches "${esc(AUD.q)}". Try another list above, or clear the search.`]
     : AUD.filter === "todo" ? ["All caught up", "Every deal SlaveAI checked has been reviewed. New ones show up after each scan, every 3 hours."]
     : ["Nothing to review here", "No deals in this list right now. Pick another list above, or check back after the next scan."];
@@ -3919,14 +3994,20 @@ function renderAudit(){
       <input id="audQ" type="search" placeholder="Search seller, card or title…" value="${esc(AUD.q || "")}" style="flex:1;min-width:180px" autocomplete="off">`}
       ${q.length ? `<span class="mut" style="font-size:13px">${AUD.i + 1} of ${q.length}</span>` : ""}
 </div></div>`}
-    <div id="audItem">${d ? (AUD.filter === "quick" ? quickHTML(d, q) : audItemHTML(d)) : `<div class="rv-done"><div class="rv-done-ic">✓</div><b>${doneMsg[0]}</b><span>${doneMsg[1]}</span></div>`}</div>`;
+    <div id="audItem">${d ? (AUD.filter === "quick" ? (qgMode() === "cond" ? gradeHTML(d) : quickHTML(d, q)) : audItemHTML(d)) : `<div class="rv-done"><div class="rv-done-ic">✓</div><b>${doneMsg[0]}</b><span>${doneMsg[1]}</span></div>`}</div>`;
   if ($("#audQ")){ const qi = $("#audQ");   // search by seller / card / title - the list re-draws as you type, so keep the cursor in the box
     qi.addEventListener("input", () => { AUD.q = qi.value; AUD.i = 0; AUD._qPos = qi.selectionStart; renderAudit(); });
     if (AUD._qPos != null){ qi.focus(); qi.setSelectionRange(AUD._qPos, AUD._qPos); AUD._qPos = null; } }
   if ($("#audFilter")){ $("#audFilter").value = AUD.filter; $("#audFilter").addEventListener("change", e => { AUD.filter = e.target.value; AUD.i = 0; renderAudit(); }); }
   if ($("#audModel")) $("#audModel").value = AUD.model;
   if ($("#audModel")) $("#audModel").addEventListener("change", e => { AUD.model = e.target.value; AUD.i = 0; renderAudit(); });
-  if (d) (AUD.filter === "quick" ? wireQuick : wireAudItem)(d, q);
+  if (d) (AUD.filter === "quick" ? (qgMode() === "cond" ? wireGrade : wireQuick) : wireAudItem)(d, q);
+  if (quick){
+    document.querySelectorAll("[data-qkm]").forEach(b => { b.classList.toggle("on", b.dataset.qkm === qgMode());
+      if (!b._w){ b._w = 1; b.addEventListener("click", () => { if (AUD.qmode === b.dataset.qkm) return; AUD.qmode = b.dataset.qkm; store.set("pd_qk_mode", AUD.qmode); AUD.qkHist = []; AUD.qkPos = null; AUD.qkBack = ""; AUD.i = 0; renderAudit(); }); } });
+    const sub = $("#qkSub"); if (sub) sub.textContent = qgMode() === "cond" ? "One question: what condition is it? About 3 seconds each - the grades Loupe has seen least come first. Every answer teaches Loupe's condition grader."
+      : "One question: is this the printing? About 3 seconds each - the cards Loupe is least sure about come first. Every answer teaches Loupe.";
+  }
 }
 const FULL_LISTS = [["random", "Random Sample (Keeps the Scores Honest)"], ["reject", "SlaveAI Rejected (Not Reviewed)"], ["warn", "SlaveAI Said \"Check It\" (Not Reviewed)"],
   ["todo", "Newest SlaveAI-Checked, Not Reviewed"], ["nocheck", "Not Checked by SlaveAI"], ["done", "Already Reviewed (last one first)"]];
