@@ -670,7 +670,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 08:57 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:15 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1073,6 +1073,7 @@ const ALERT_MODES = {
   silent: {icon: "🌙", name: "Silent", say: "No sound or buzz. Alerts still show up in Pushover for the morning."}};
 const DEFAULT_SCHED = [{at: "07:00", mode: "alarm"}, {at: "21:00", mode: "normal"}, {at: "22:00", mode: "silent"}];
 const MUTE = {until: "", sha: null, sched: null};
+const alertSounds = () => { const A = S.ini.alerts || {}; return String(A.sound_alarm || "persistent").toLowerCase().replace(/[^a-z]/g, "") + "," + String(A.sound_normal || "pushover").toLowerCase().replace(/[^a-z]/g, ""); };
 const schedStr = sc => sc.map(r => r.at + "=" + r.mode).join(";");
 function parseSched(raw){
   const out = String(raw || "").split(";").map(p => { const [at, m] = p.split("="); return {at: String(at || "").trim().padStart(5, "0"), mode: String(m || "").trim().toLowerCase()}; })
@@ -1120,7 +1121,7 @@ async function saveSched(sc){
   const was = MUTE.sched; MUTE.sched = sc.slice().sort((a, b) => a.at.localeCompare(b.at)); renderMute();
   try{
     MUTE.sha = await GH.putFile("collection/mute.csv", muteCSV(), MUTE.sha, "Alert schedule " + schedStr(MUTE.sched) + " (Price Desk)");
-    try{ await server("setAlertSchedule", schedStr(MUTE.sched), (S.ini.alerts || {}).timezone || "America/Phoenix"); }
+    try{ await server("setAlertSchedule", schedStr(MUTE.sched), (S.ini.alerts || {}).timezone || "America/Phoenix", alertSounds()); }
     catch(e){ if (/UPDATE|Unknown request/.test(e.message)) toast("Saved for the 3-hour scan. Sign in as admin to update the server so the every-minute sniper follows it too.", 7000); else throw e; }
     toast("Saved. Right now: " + ALERT_MODES[modeNow()].name + ".", 3500);
   }catch(e){ MUTE.sched = was; renderMute(); toast("Couldn't save the schedule: " + e.message, 6000); }
@@ -1463,7 +1464,8 @@ async function saveAll(){
       DK.sha = await putMerged("collection/decks.csv", DK.sha, () => toCSV(DECK_COLS, DK.rows),
         rows => rows.forEach(r => { if (r.deck_id && !DK.base.has(r.deck_id)) DK.rows.push(r); }), "Update decks (Price Desk)");
       DK.base = new Set([...DK.base, ...DK.rows.map(r => r.deck_id)]); }
-    if (S.dirty.has("settings")){ S.dirty.delete("settings"); S.iniSha = await putIfChanged("settings.ini", buildINI(), S.iniSha, "Update settings (Price Desk)"); }
+    if (S.dirty.has("settings")){ S.dirty.delete("settings"); S.iniSha = await putIfChanged("settings.ini", buildINI(), S.iniSha, "Update settings (Price Desk)");
+      if (ROLE === "owner" && MUTE.sched) rawServer("setAlertSchedule", AUTH.token, schedStr(MUTE.sched), (S.ini.alerts || {}).timezone || "America/Phoenix", alertSounds()).catch(() => {}); }   // sounds / time zone for the sniper
     if (S.dirty.has("collection")){ S.dirty.delete("collection");
       // changed on GitHub since this page loaded (another tab or device, an import, or a save whose reply got lost)? Merge, don't fail:
       // keep rows added elsewhere, keep yours, drop only the ones you removed here
@@ -1562,6 +1564,8 @@ const SETTINGS = [
     ["must_buy_auction_minutes", "MUST BUY Auctions: Ending Within (Minutes)", "num", 60, "Auctions only count near the end - before that the bid will still rise."],
     ["alert_home_only", "Phone Alerts: My Country Only", "bool", true, "Only listings shipping from your country ring your phone - shipping from abroad often isn't quoted and import fees are on top. They still show on the desk."],
     ["home_country", "My Country", "country", "US", "Where a listing ships from counts - not where the seller is."],
+    ["sound_alarm", "Alarm Sound", "sound", "cashregister", "MUST BUY / POSSIBLE MUST BUY during Alarm hours. It repeats every minute until you tap Acknowledge, so a short sound is fine. Hear them in the Pushover app → Settings → Sounds."],
+    ["sound_normal", "Normal Sound", "sound", "classical", "Alerts during Normal hours."],
     ["phone_app", "Phone App", "phoneapp", "pushover", "Pushover = everything goes to Pushover (the loud alarm), and ntfy only if Pushover can't be reached. ntfy = back to ntfy only. Both = every alert in both apps."],
     ["other_deals", "All Other Deals", "otherdeals", "off", "Off = Price Desk only, no phone alert. Summary = one quiet list per scan. Each = an alert for every top pick (the old way - lots of notifications)."]]},
   {sec: "alerts", title: "Phone alerts: quiet hours", fields: [
@@ -1629,7 +1633,7 @@ const SETTINGS_LAYOUT = [
     {title: "Sellers", f: [["deals", "min_seller_feedback_pct"], ["deals", "min_seller_feedback_score"]]},
     {title: "Listing Filters", f: [["filters", "exclude_words"], ["filters", "exclude_languages"], ["filters", "exclude_games"], ["deals", "ebay_game_filter"], ["deals", "check_full_listing"]]}]},
   {group: "Phone Alerts", note: "What buzzes your phone, and when.", panels: [
-    {title: "MUST BUY Deals", f: [["alerts", "must_buy_saving"], ["alerts", "must_buy_pct"], ["alerts", "must_buy_auction_minutes"], ["alerts", "alert_home_only"], ["alerts", "home_country"], ["alerts", "other_deals"], ["alerts", "timezone"], ["deals", "max_alerts_per_run"]]},
+    {title: "MUST BUY Deals", f: [["alerts", "must_buy_saving"], ["alerts", "must_buy_pct"], ["alerts", "must_buy_auction_minutes"], ["alerts", "alert_home_only"], ["alerts", "home_country"], ["alerts", "other_deals"], ["alerts", "sound_alarm"], ["alerts", "sound_normal"], ["alerts", "timezone"], ["deals", "max_alerts_per_run"]]},
     {title: "★ Top Picks", note: "Deals matching all of these get a ★ on the Deals tab (and their own alert if All Other Deals is set to 'An Alert for Every Top Pick').", f: [["preferences", "prefer_usa"], ["preferences", "prefer_min_condition"], ["preferences", "prefer_graded"], ["preferences", "prefer_min_grade"]]},
     {title: "Price Alerts (Watchlist)", f: [["prices", "default_drop_pct"], ["prices", "max_alert_lines"]]}]},
   {group: "Every-Minute Sniper", note: "Checks brand-new Buy It Now listings every minute.", panels: [
@@ -1709,6 +1713,7 @@ function renderSettings_(){
       else if (type === "graded") input = `<select id="${id}"><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option><option value="both">Both</option></select>`;
       else if (type === "aimode") input = `<select id="${id}"><option value="risky">Risky Deals Only (Saves Money)</option><option value="all">Every Deal</option></select>`;
       else if (type === "otherdeals") input = `<select id="${id}"><option value="off">Off - Price Desk Only</option><option value="summary">One Quiet Summary per Scan</option><option value="each">An Alert for Every Top Pick</option></select>`;
+      else if (type === "sound") input = `<select id="${id}"><option value="pushover">Pushover (standard)</option><option value="cashregister">Cash Register</option><option value="classical">Classical</option><option value="bike">Bike</option><option value="bugle">Bugle</option><option value="cosmic">Cosmic</option><option value="falling">Falling</option><option value="gamelan">Gamelan</option><option value="incoming">Incoming</option><option value="intermission">Intermission</option><option value="magic">Magic</option><option value="mechanical">Mechanical</option><option value="pianobar">Piano Bar</option><option value="siren">Siren</option><option value="spacealarm">Space Alarm</option><option value="tugboat">Tugboat</option><option value="alien">Alien Alarm (long)</option><option value="climb">Climb (long)</option><option value="persistent">Persistent (long)</option><option value="echo">Echo (long)</option><option value="updown">Up Down (long)</option><option value="vibrate">Vibrate Only</option></select>`;
       else if (type === "phoneapp") input = `<select id="${id}"><option value="pushover">Pushover (ntfy as Backup)</option><option value="ntfy">ntfy Only</option><option value="both">Both Apps</option></select>`;
       else if (type === "quiet") input = `<select id="${id}"><option value="silent">Deliver Silently (No Sound)</option><option value="hold">Hold for a Morning Summary</option><option value="off">Ring as Normal</option></select>`;
       else if (type === "signed") input = `<select id="${id}"><option value="any">Include Signed Cards</option><option value="hide">Hide Signed Cards</option><option value="only">Only Signed Cards</option></select>`;
@@ -1719,7 +1724,7 @@ function renderSettings_(){
       f.innerHTML = `<label for="${id}">${esc(label)}</label>${input}${help ? `<small>${esc(help)}</small>` : ""}`;
       grid.appendChild(f);
       const el = f.querySelector("#" + CSS.escape(id));
-      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals" || type === "phoneapp") ? val.toLowerCase() : val;
+      el.value = type === "bool" ? (/^(y|yes|true|1|on)$/i.test(val) ? "yes" : "no") : (type === "cond" || type === "mincond") ? val.toUpperCase() : (type === "graded" || type === "signed" || type === "quiet" || type === "aimode" || type === "otherdeals" || type === "phoneapp" || type === "sound") ? val.toLowerCase() : val;
       if (type === "note") el.value = val.split(/\s*\|\|\s*/).filter(Boolean).join("\n");   // saved on one line, lessons split by ||
       el.addEventListener("change", () => { (S.ini[rsec] = S.ini[rsec] || {})[k] = type === "note" ? el.value.split(/\n/).map(x => x.replace(/\|\|/g, "|").trim()).filter(Boolean).join(" || ") : el.value.replace(/\s*\n\s*/g, " ").trim(); markDirty("settings"); });
     }
@@ -7914,7 +7919,7 @@ async function loadAll(){
   $("#allGroup").innerHTML = `<option value="">All Groups</option>` + groups.map(g => `<option>${esc(g)}</option>`).join("");
   S.runs = S.updatedAt ? {prices: {at: S.updatedAt, cards: S.cards.length}} : {};
   renderUpdated(d0.dashboard ? null : "No price data yet - run the update once");
-  if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; const mr = m.text ? (parseCSV(m.text).slice(-1)[0] || {}) : {}; MUTE.until = mr.until || ""; MUTE.sched = parseSched(mr.schedule) || (m.text ? legacySched(mr) : null); renderMute(); if (ROLE === "owner" && MUTE.sched) rawServer("setAlertSchedule", AUTH.token, schedStr(MUTE.sched), (S.ini.alerts || {}).timezone || "America/Phoenix").catch(() => {}); /* keep the sniper on the same schedule */ const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
+  if (!GUESTVIEW()) GH.readFiles(["data/run_status.json", "collection/mute.csv"]).then(f => { const m = f["collection/mute.csv"] || {}; MUTE.sha = m.sha || null; const mr = m.text ? (parseCSV(m.text).slice(-1)[0] || {}) : {}; MUTE.until = mr.until || ""; MUTE.sched = parseSched(mr.schedule) || (m.text ? legacySched(mr) : null); renderMute(); if (ROLE === "owner" && MUTE.sched) rawServer("setAlertSchedule", AUTH.token, schedStr(MUTE.sched), (S.ini.alerts || {}).timezone || "America/Phoenix", alertSounds()).catch(() => {}); /* keep the sniper on the same schedule */ const t = f["data/run_status.json"].text; if (t){ S.runs = JSON.parse(t); renderUpdated(); } renderRuns(); }).catch(() => renderRuns());
   $("#connStatus").innerHTML = `Connected to <b>${esc(GH.repo)}</b> (branch ${esc(GH.branch)}). ${S.cards.length} cards, ${S.deals.length} logged deals.`;
   renderMine(); renderAll(); renderDeals(); renderRules(); renderSettings();
   if (document.querySelector("#tab-quick.on, #tab-audit.on")) renderAudit();
