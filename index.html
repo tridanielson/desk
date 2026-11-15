@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:43 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:54 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3364,6 +3364,17 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
   draw();
 }
 function saveReview(d, sel, note, done, agreeAI){
+  // "It's the printing" while Loupe read a different set code + number off the card (newer cards print them at the bottom):
+  // ask once before saving - a quick mis-tap teaches Loupe the wrong printing
+  const want = (String(d.hidden_detail || "").match(/you want #(\w+)/) || [])[1] || (dealCard(d) || {}).num || "";
+  if (sel && sel.edition === "matches" && !sel._loupeOk && d.photo_read && d.photo_says === "other" && d.photo_num && want && String(d.photo_num) !== String(want)){
+    openModal(`<h3>Double-Check the Printing</h3><p>🔍 Loupe read <b>${esc(d.photo_read)}</b> printed on the card. You track <b>#${esc(want)}</b>.</p>
+      <p class="mut" style="font-size:13px">Newer cards print the set code and number at the bottom left - worth a look before saving.</p>
+      <div class="acts"><button class="btn ghost" type="button" id="lrBack">Go Back</button><button class="btn" type="button" id="lrYes">Yes, It's #${esc(want)}</button></div>`);
+    $("#lrBack").addEventListener("click", closeModal);
+    $("#lrYes").addEventListener("click", () => { closeModal(); saveReview(d, Object.assign({}, sel, {_loupeOk: true}), note, done, agreeAI); });
+    return;
+  }
   note = String(note || "").replace(/\s+/g, " ").trim().slice(0, 300);
   sel = Object.assign({}, sel, {reasons: (sel.reasons || []).slice()});
   if (sel.back === "missing" && sel.condition === "unclear" && !sel.stock && !/both sides/.test(note)) note = [note, "condition can't be graded - only one side of the card is shown"].filter(Boolean).join(" · ");
