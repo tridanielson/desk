@@ -507,7 +507,17 @@ body.cs-open{overflow:hidden}
 .binder span{font-size:12px;color:var(--muted)}.binder-add{border-style:dashed;justify-content:center}.binder-add b{color:var(--muted)}.binder .brn{font-size:13px;margin-left:4px;opacity:.75;cursor:pointer}.binder .brn:hover{opacity:1}.binder.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.binder.on b{color:var(--accent)}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
 .qk-mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 10px}.qk-mode button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;cursor:pointer}.qk-mode button.on{background:var(--accent);color:#fff}
-.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.tr-chart{margin-top:16px}.tr-h{font-size:14px;margin-bottom:4px}.tr-h .mut{font-size:12px}.tr-svg{width:100%;height:auto;display:block;max-width:900px}.tr-grid{stroke:var(--line);stroke-width:1}.tr-ax{fill:var(--muted);font-size:11px}
+.qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.sc{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.sc-g{font-size:13px;font-weight:700;padding:12px 14px 4px}
+.sc-row{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:minmax(0,1fr) 64px 76px 300px 132px;gap:12px;align-items:center;padding:9px 14px;border-top:1px solid var(--soft)}
+.sc-row:hover,.sc-row.open{background:var(--soft)}.sc-row:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.sc-name{display:flex;flex-direction:column;gap:1px;min-width:0}.sc-name b{font-size:14.5px}.sc-name span{font-size:12px;color:var(--muted)}
+.sc-now{font-size:20px;font-weight:700}.sc-d{font-size:14px;font-weight:600;display:flex;flex-direction:column;line-height:1.15}.sc-d small{font-size:10.5px;font-weight:400;color:var(--muted)}.sc-d.up{color:var(--up)}.sc-d.dn{color:var(--down)}
+.sc-tr{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.sc-spark{width:170px;height:30px}.sc-a{font-size:11px;color:var(--muted)}.sc-since{font-size:10.5px;color:var(--muted);flex-basis:100%;margin-top:-2px}
+.sc-v{justify-self:start;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--soft);color:var(--muted)}.sc-v.up{color:var(--up);background:color-mix(in srgb,var(--up) 15%,transparent)}.sc-v.dn{color:var(--down);background:color-mix(in srgb,var(--down) 15%,transparent)}.sc-v.learn{color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,transparent)}
+.sc-open{padding:0 14px 12px;background:var(--soft)}.sc-open .tr-chart{margin-top:0;padding-top:8px}
+@media (max-width:760px){.sc-row{grid-template-columns:minmax(0,1fr) auto auto;row-gap:4px}.sc-tr{grid-column:1 / 3}.sc-v{grid-column:3;grid-row:2;justify-self:end}.sc-spark{width:140px}}
+.tr-chart{margin-top:16px}.tr-h{font-size:14px;margin-bottom:4px}.tr-h .mut{font-size:12px}.tr-svg{width:100%;height:auto;display:block;max-width:900px}.tr-grid{stroke:var(--line);stroke-width:1}.tr-ax{fill:var(--muted);font-size:11px}
 .tr-leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}.tr-key{all:unset;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;padding:2px 0}.tr-key i{width:12px;height:4px;border-radius:2px;display:inline-block}.tr-key.off{opacity:.4;text-decoration:line-through}.tr-up{color:var(--up);font-size:11px}.tr-dn{color:var(--down);font-size:11px}
 .qg-defs{margin-top:10px;font-size:13px;line-height:1.45}.qg-defs summary{cursor:pointer;font-weight:600}.qg-defs dl{margin:6px 0 0}.qg-defs dt{font-weight:700;margin-top:6px}.qg-defs dd{margin:1px 0 0}.qg-defs ul{margin:6px 0 0;padding-left:18px}.qg-defs li{margin:3px 0}
 .qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
@@ -673,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:30 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:38 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3854,11 +3864,11 @@ function gradeHTML(d){
             <li><b>No back photo?</b> Grade the front.</li>
             <li><b>Check the back</b> when it's there - whitening shows there first.</li>
             <li><b>Glare, sleeves, toploaders</b> - not damage. Grade the card under them.</li>
-            <li><b>Printed on the card</b> (Deckmaster, Arabian Nights dots, print lines) - not damage.</li>
+            <li><b>Made at the factory</b> (Deckmaster on the back, thin print lines, ink specks) - not damage.</li>
             <li><b>Off-center</b> - doesn't count.</li>
             <li><b>Stock photo, several cards, too blurry, or only the back?</b> 📷 Can't See The Card.</li>
             <li><b>Card is clear but you still can't decide</b> (edges cut off, heavy glare)? Can't Tell.</li>
-            <li><b>A different card?</b> 🃏 Not This Card. A different printing of the same card is fine.</li>
+            <li><b>A different card?</b> 🃏 Not This Card. <b>Same card, different edition?</b> Grade it anyway.</li>
           </ul></details>
         <details class="qg-defs"><summary>What Each Condition Means</summary>
           <dl>
@@ -3998,12 +4008,12 @@ function trendChart(id, title, sub, series){
   series = series.map((s, i) => Object.assign({color: TR_COLORS[i % TR_COLORS.length]}, s, {pts: s.pts.filter(p => p.v != null && isFinite(p.t)).sort((a, b) => a.t - b.t)})).filter(s => s.pts.length);
   if (!series.length) return "";
   const shown = series.filter(s => !TR_HIDE.has(id + ":" + s.key));
-  const all = shown.flatMap(s => s.pts), W = 720, H = 240, L = 38, R = 12, T = 10, B = 28;
+  const narrow = window.innerWidth < 640, all = shown.flatMap(s => s.pts), W = narrow ? 380 : 720, H = narrow ? 200 : 240, L = 38, R = 12, T = 10, B = 28;
   const t0 = all.length ? Math.min(...all.map(p => p.t)) : 0, t1 = all.length ? Math.max(...all.map(p => p.t)) : 1;
   const lo0 = all.length ? Math.max(0, Math.min(...all.map(p => p.v)) - 5) : 0, step = 100 - lo0 > 50 ? 20 : 10, lo = Math.floor(lo0 / step) * step, hi = 100;
   const x = t => L + (t1 === t0 ? (W - L - R) / 2 : (t - t0) / (t1 - t0) * (W - L - R)), y = v => T + (hi - v) / ((hi - lo) || 1) * (H - T - B);
   const yt = []; for (let v = lo; v <= hi; v += step) yt.push(v);
-  const days = Math.max(1, (t1 - t0) / 864e5), nx = Math.min(6, Math.max(2, Math.round(days))), xt = [];
+  const days = Math.max(1, (t1 - t0) / 864e5), nx = Math.min(narrow ? 3 : 6, Math.max(2, Math.round(days))), xt = [];
   for (let i = 0; i < nx; i++) xt.push(t0 + (t1 - t0) * i / (nx - 1));
   const svg = `<svg class="tr-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">
     ${yt.map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="tr-grid"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end" class="tr-ax">${v}%</text>`).join("")}
@@ -4039,28 +4049,72 @@ function slaveSeries(){   // each day you reviewed: SlaveAI against your answers
           {key: "c", name: "Exact condition", tip: "Its condition grade exactly matches yours", pts: out.c},
           {key: "c1", name: "Condition within one grade", tip: "e.g. it said LP and you said NM or MP", pts: out.c1}];
 }
-function progressCharts(){
-  return trendChart("print", "Loupe: which printing it is", "one point per scan", loupeSeries([
-      ["never_seen", "Cards it has never seen", "Random cards from all of Magic it was never taught"],
-      ["yours", "Listings you checked", "Graded against your own reviews"],
-      ["all", "All listings it checked", "Your reviews, slabs and listing titles together"],
-      ["sure", "When it's sure", "Only when one printing clearly wins - this is when it decides on its own"],
-      ["read", "Reading the set code", "Times it read the code and number printed on newer cards"],
-      ["titles", "Listing titles", "Against what the seller's title says"],
-      ["paintings", "Right painting", "Cards with several paintings in one set (basic lands, alternate arts)"]]))
-    + trendChart("photo", "Loupe: photo checks", "", loupeSeries([
-      ["back", "Back of card shown", "Its 'is the back in the photos?' against your answers"],
-      ["kind_stock", "Spots stock photos", "Stock photos it recognizes, from the ones you've marked"],
-      ["kind_card", "Spots real photos", "Real photos it correctly calls real"],
-      ["stock_new", "Stock photos on new listings", "Picture-size / edge-to-edge check on new listings"],
-      ["border", "Border color", "Reading black vs white borders on test pictures"]]))
-    + trendChart("vs", "Loupe vs SlaveAI - same listings", "both checked the same ones", loupeSeries([
-      ["vs_loupe", "Loupe: printing"], ["vs_slaveai", "SlaveAI: printing"],
-      ["cond_loupe", "Loupe: condition"], ["cond_slaveai", "SlaveAI: condition"]]))
-    + trendChart("cond", "Loupe: condition grader", "learning - not used yet", loupeSeries([
-      ["cond_exact", "Exact grade", "NM / LP / MP / HP / DMG exactly right, on answers it didn't learn from"],
-      ["cond_near", "Within one grade", "e.g. it said LP and the answer was NM or MP"]]))
-    + trendChart("slave", "SlaveAI against your reviews", "each point = the 7 days of reviews up to that day", slaveSeries());
+// ---- Progress Over Time as a scorecard: one row per test (now, last 7 days, since it started, a plain verdict);
+// tap a row for its full chart (dates along the bottom, % up the side).
+const SC_OPEN = new Set();
+function scoreRows(){
+  const L = (key, name, sub, extra) => Object.assign({key, name, sub, src: "loupe"}, extra || {});
+  const groups = [
+    ["Loupe · Which printing", "#e08a4f", [
+      L("sure", "When it's sure", "The times it decides on its own"),
+      L("never_seen", "Cards it has never seen", "Random cards from all of Magic it was never taught"),
+      L("all", "All listings it checked", "Your reviews, slabs and listing titles together"),
+      L("yours", "Listings you checked", "Graded against your own reviews"),
+      L("read", "Reading the set code", "Code and number printed on newer cards"),
+      L("titles", "Listing titles", "Against what the seller's title says"),
+      L("paintings", "Right painting", "Cards with several paintings in one set")]],
+    ["Loupe · Photo checks", "#5b9bd5", [
+      L("kind_stock", "Spots stock photos", "From the ones you've marked"),
+      L("kind_card", "Spots real photos", "Real photos it correctly calls real"),
+      L("stock_new", "Stock photos on new listings", "Picture size / edge-to-edge check"),
+      L("back", "Back of card shown", "Against your Back of Card answers"),
+      L("border", "Border color", "Black vs white borders on test pictures")]],
+    ["Head to head · Same listings", "#c77dba", [
+      L("vs_loupe", "Loupe: printing", "On listings SlaveAI also checked", {vs: "vs_slaveai"}),
+      L("vs_slaveai", "SlaveAI: printing", "The same listings", {vs: "vs_loupe"}),
+      L("cond_loupe", "Loupe: condition", "On listings SlaveAI also graded", {vs: "cond_slaveai"}),
+      L("cond_slaveai", "SlaveAI: condition", "The same listings", {vs: "cond_loupe"})]],
+    ["Loupe · Condition (learning)", "#d9b23a", [
+      L("cond_exact", "Exact grade", "NM / LP / MP / HP / DMG from the photos", {learning: true}),
+      L("cond_near", "Within one grade", "e.g. it said LP and the answer was NM or MP", {learning: true})]],
+    ["SlaveAI · Against your reviews", "#5cb87a", [
+      {key: "all", name: "Fully right", sub: "Verdict, edition and condition all match you", src: "slave"},
+      {key: "ed", name: "Right edition", sub: "Its edition answer against yours", src: "slave"},
+      {key: "c", name: "Exact condition", sub: "Its grade exactly matches yours", src: "slave"},
+      {key: "c1", name: "Condition within one grade", sub: "e.g. it said LP and you said NM or MP", src: "slave"}]]];
+  const lp = {}, sl = {};
+  loupeSeries([...new Set(groups.flatMap(g => g[2]).filter(r => r.src === "loupe").map(r => r.key))].map(k => [k, k])).forEach(s => lp[s.key] = s.pts);
+  slaveSeries().forEach(s => sl[s.key] = s.pts);
+  return groups.map(([title, color, rows]) => ({title, color, rows: rows.map(r => Object.assign({}, r, {pts: (r.src === "slave" ? sl : lp)[r.key] || [], vsPts: r.vs ? lp[r.vs] || [] : null})).filter(r => r.pts.length)})).filter(g => g.rows.length);
+}
+function scoreRowHTML(g, r, gi){
+  const p = r.pts, now = p[p.length - 1].v, t7 = p[p.length - 1].t - 7 * 864e5;
+  const old = p.filter(x => x.t <= t7).slice(-1)[0], was = (old || p[0]).v, d7 = p.length > 1 ? now - was : null, dLbl = old ? "7 days" : "since " + trDay(p[0].t);
+  const vsNow = r.vsPts && r.vsPts.length ? r.vsPts[r.vsPts.length - 1].v : null;
+  const verdict = r.learning && p.length < 5 ? ["Learning", "learn"] : p.length < 3 ? ["New", "flat"]
+    : r.vs && /loupe/.test(r.key) && vsNow != null ? (now - vsNow >= 3 ? ["Ahead of SlaveAI", "up"] : vsNow - now >= 3 ? ["Behind SlaveAI", "dn"] : ["Tied with SlaveAI", "flat"])
+    : d7 >= 3 ? ["Improving", "up"] : d7 <= -3 ? ["Slipping", "dn"] : ["Steady", "flat"];
+  const lo = 40, W = 200, H = 34, t0 = p[0].t, t1 = p[p.length - 1].t;
+  const sx = t => t1 === t0 ? W : (t - t0) / (t1 - t0) * W, sy = v => (100 - Math.max(lo, v)) / (100 - lo) * H;
+  const spark = p.length > 1 ? `<span class="sc-a">${p[0].v}</span><svg viewBox="-2 -2 ${W + 4} ${H + 4}" class="sc-spark" aria-hidden="true"><polyline points="${p.map(x => sx(x.t).toFixed(1) + "," + sy(x.v).toFixed(1)).join(" ")}" fill="none" stroke="${g.color}" stroke-width="2" stroke-linejoin="round"/></svg><span class="sc-a">${now}</span><span class="sc-since">since ${esc(trDay(t0))}</span>` : `<span class="sc-since">started ${esc(trDay(t0))}</span>`;
+  const id = gi + ":" + r.src + ":" + r.key, open = SC_OPEN.has(id);
+  const series = [{key: r.key, name: r.name, pts: p, color: g.color}].concat(r.vsPts && r.vsPts.length ? [{key: r.vs, name: /loupe/.test(r.vs) ? "Loupe" : "SlaveAI", pts: r.vsPts, color: "#8a8273"}] : []);
+  return `<button type="button" class="sc-row${open ? " open" : ""}" data-sco="${esc(id)}" aria-expanded="${open}">
+      <span class="sc-name"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></span>
+      <span class="sc-now">${now}%</span>
+      <span class="sc-d ${d7 == null ? "" : d7 >= 1 ? "up" : d7 <= -1 ? "dn" : ""}">${d7 == null ? "–" : d7 > 0 ? "▲ " + d7 : d7 < 0 ? "▼ " + -d7 : "0"}<small>${esc(dLbl)}</small></span>
+      <span class="sc-tr">${spark}</span>
+      <span class="sc-v ${verdict[1]}">${verdict[0]}</span></button>
+    ${open ? `<div class="sc-open">${trendChart("sc-" + id, r.name, r.sub, series)}</div>` : ""}`;
+}
+function scorecardHTML(){
+  const gs = scoreRows();
+  if (!gs.length) return '<p class="mut">The scorecard fills in after the next scan.</p>';
+  return `<div class="sc">${gs.map((g, gi) => `<div class="sc-g" style="color:${g.color}">${esc(g.title)}</div>${g.rows.map(r => scoreRowHTML(g, r, gi)).join("")}`).join("")}</div>
+    <p class="mut" style="font-size:12px;margin:8px 0 0">Tap a row for its full chart. Improving = up 3 or more in the last 7 days (or since a newer test started), Slipping = down 3 or more.</p>`;
+}
+function wireScorecard(box, redraw){
+  box.querySelectorAll("[data-sco]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.sco; SC_OPEN.has(k) ? SC_OPEN.delete(k) : SC_OPEN.add(k); redraw(); }));
 }
 function renderTrain(){
   const box = $("#trainBody"); if (!box) return;
@@ -4124,13 +4178,14 @@ function renderTrain(){
     <p class="mut" style="font-size:12px;margin:10px 0 0">The more listings you review, the better it gets - and the more honest the second number is.</p></div>
     ${(() => { const {random: rs} = audStats(); return `<div class="panel"><b style="font-size:16px">🤖 How SlaveAI is doing</b> <span class="mut" style="font-size:12px">- the paid Claude check</span>
       <p style="margin:8px 0 0">${rs.n ? `Fully right on <b>${rs.n ? Math.round(10 * rs.all / rs.n) : "–"} out of 10</b> randomly picked listings you reviewed <span class="mut">(${rs.all} of ${rs.n})</span>` : 'Review some deals in <b>Full Review → Random Sample</b> to get its score.'}</p></div>`; })()}
-    <div class="panel"><b style="font-size:16px">📈 Progress Over Time</b> <span class="mut" style="font-size:12px">- what's being tested and how it's improving · tap a name to hide or show its line</span>${progressCharts() || '<p class="mut">Charts appear after the next scan.</p>'}</div>`;
+    <div class="panel"><b style="font-size:16px">📈 Progress Over Time</b> <span class="mut" style="font-size:12px">- every test: today, the last 7 days, and since it started</span>${scorecardHTML()}</div>`;
   box.innerHTML = simple + `<details class="panel" id="trDeep"${store.get("pd_tr_deep") === "1" ? " open" : ""}><summary style="cursor:pointer"><b>More detail</b> <span class="mut" style="font-size:12px">- every number, trends and warnings</span></summary>
     ${alerts}<div style="margin-top:10px"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span>${YH.length >= 2 ? `<div style="margin:8px 0">Right on listings you checked, run by run ${dirY ? `<span style="color:${dirY[2]};font-weight:700">${dirY[0]} ${dirY[1]}</span>` : ""}${line(YH, "yours")}</div>` : ""}<div style="margin-top:8px">${loupe}</div></div>
     <div style="margin-top:16px"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div></details>`;
   const dp = $("#trDeep"); dp.addEventListener("toggle", () => store.set("pd_tr_deep", dp.open ? "1" : "0"));
-  wireTrends(box, () => { const y = scrollY; renderTrain(); scrollTo(0, y); });
+  const redrawTr = () => { const y = scrollY; renderTrain(); scrollTo(0, y); };
+  wireTrends(box, redrawTr); wireScorecard(box, redrawTr);
   $("#audRange").value = AUD.range; $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderTrain(); });
 }
 function renderAudit(){
