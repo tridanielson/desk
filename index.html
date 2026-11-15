@@ -659,7 +659,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 02:14 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 14, 06:23 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3701,7 +3701,15 @@ function wireQuick(d, q){
 function quickPool(){   // pool listings that aren't already deals and you haven't answered: Loupe's unsure ones first, then the ones it hasn't looked at
   loadPool();
   const have = new Set(S.deals.map(d => itemId(d))), U = d => /^(same|other)$/.test(d.photo_says || "") ? matcherUnsure(d) + 1 : 0;
+  // the same listing posted many times (a seller with 18 copies under one title, or one photo reused): answer it once.
+  // Keys: seller + title, and the first photo. Answered ones hide their twins; unanswered twins show once.
+  const sellerOf = {}; QP.items.concat(S.deals).forEach(d => { if (d.seller) sellerOf[itemId(d)] = d.seller; });
+  const firstImg = d => String(d.images || "").split(/\s+/)[0].replace(/s-l\d+/, "s-l");
+  const keys = d => [d.title && (sellerOf[itemId(d)] || d.seller) ? "t:" + (sellerOf[itemId(d)] || d.seller) + "|" + d.title : "", firstImg(d) ? "i:" + firstImg(d) : ""].filter(Boolean);
+  const answered = new Set(); Object.entries(AUD.rows).forEach(([u, r]) => keys({url: u, title: r.title, images: r.images}).forEach(k => answered.add(k)));
+  const shown = new Set();
   return QP.items.filter(d => !audOf(d) && !have.has(itemId(d)) && !d._tv && quickOK(d))
+    .filter(d => { const ks = keys(d); if (ks.some(k => answered.has(k) || shown.has(k))) return false; ks.forEach(k => shown.add(k)); return true; })
     .sort((a, b) => likelyMiss(b) - likelyMiss(a) || loupeSure(a) - loupeSure(b) || U(b) - U(a) || (+a.photo_margin || 9) - (+b.photo_margin || 9) || (b.found_at || "").localeCompare(a.found_at || ""));   // unsure first, the 1-in-10 confident checks last
 }
 function audQueue(){
@@ -3853,6 +3861,7 @@ function renderAudit(){
   // wait for the listings themselves (deals + Quick Review's practice pool) - never flash "All caught up" while they load
   if (!S.cards.length || (quick && !QP.loaded && !READONLY)){ box.innerHTML = `<p class="empty loadmsg">Loading…</p>`; if (quick) loadPool(); return; }
   let at = null;
+  if (!AUD.resumed && quick){ AUD.resumed = true; AUD.i = 0; }   // Quick Review always starts with the best next one (answered ones are gone anyway)
   if (!AUD.resumed){ AUD.resumed = true; try{ at = JSON.parse(sessionStorage.getItem("pd_audat") || "null"); if (at && at.f && (at.f === "quick") === quick) AUD.filter = at.f; else at = null; }catch(e){} }
   const q = audQueue();
   if (at && at.u){ const k = q.findIndex(x => x.url === at.u); if (k >= 0) AUD.i = k; }
