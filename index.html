@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:38 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:39 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3630,7 +3630,7 @@ function loadPool(){
     QP.loaded = true; QP.loading = false; if (document.querySelector("#tab-quick.on")) renderAudit(); })
     .catch(() => { QP.loading = false; QP.loaded = true; if (document.querySelector("#tab-quick.on")) renderAudit(); });
 }
-// hover a photo with the mouse: the whole photo pops out big beside it; scroll the mouse wheel up over the photo to zoom in
+// hover a photo with the mouse: the whole photo pops out big beside it (not zoomed); scroll the mouse wheel up over the photo to zoom in
 // on the spot under the pointer (wheel down zooms back out, then scrolls the page as usual). Click still opens the viewer.
 if (matchMedia("(hover:hover) and (pointer:fine)").matches){
   const lens = document.createElement("div"); lens.id = "phLens"; lens.innerHTML = '<div class="phl-in"><img alt=""></div><span class="phl-hint">scroll to zoom</span>'; document.body.appendChild(lens);
@@ -3652,7 +3652,7 @@ if (matchMedia("(hover:hover) and (pointer:fine)").matches){
     if (!img || !img.naturalWidth) return hide();
     const r = img.getBoundingClientRect(); L.fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); L.fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
     if (L.on !== img){ L.on = img; const src = img.currentSrc || img.src;
-      L.z = /ebayimg\.com/.test(src) ? 2.5 : 1;   // a seller's photo opens zoomed in on the spot under the pointer - move to look around, scroll down for the whole photo
+      L.z = 1;   // opens showing the whole photo; scroll up over it to zoom in on the spot under the pointer
       L.box.querySelectorAll(".ai-spot").forEach(x => x.remove());   // SlaveAI's boxes come along, bigger
       img.closest(".phz").querySelectorAll(".ai-spot").forEach(x => { const c = x.cloneNode(true); c.classList.add("big"); L.box.appendChild(c); }); L.img.src = src.replace(/\/s-l\d+\./, "/s-l1600.").replace("cards.scryfall.io/small/", "cards.scryfall.io/large/"); L.img.onerror = () => { L.img.onerror = null; L.img.src = src; }; lens.style.display = "block"; place(); }
     draw();
