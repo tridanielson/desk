@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:19 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:05 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3867,7 +3867,7 @@ function gradeHTML(d){
         <div class="qk-name">${esc(name0)}</div><div class="mut" style="font-size:13px">${esc(c.sn || setOf(d) || "")}</div>
         <div class="qk-q2">What Condition Is It?</div>
         <div class="qg-ans">${COND_LIST.map(g => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]}"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
-        <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">📷 Can't See The Card</button><button class="btn ghost qk-skip" id="qkSkip" type="button" title="The photos don't show enough to grade it. Saved, so it won't come back.">Can't Tell</button></div>
+        <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">Can't Grade</button></div>
         <details class="qg-defs"><summary>Quick Rules</summary>
           <ul>
             <li><b>Worst thing wins</b> - one crease = DMG, however clean the rest is.</li>
@@ -3877,8 +3877,7 @@ function gradeHTML(d){
             <li><b>Glare, sleeves, toploaders</b> - not damage. Grade the card under them.</li>
             <li><b>Made at the factory</b> (Deckmaster on the back, thin print lines, ink specks) - not damage.</li>
             <li><b>Off-center</b> - doesn't count.</li>
-            <li><b>Stock photo, several cards, too blurry, or only the back?</b> 📷 Can't See The Card.</li>
-            <li><b>Card is clear but you still can't decide</b> (edges cut off, heavy glare)? Can't Tell.</li>
+            <li><b>Stock photo, several cards, only the back, too blurry, or you just can't decide?</b> Can't Grade, then pick why.</li>
             <li><b>A different card?</b> 🃏 Not This Card. <b>Same card, different edition?</b> Grade it anyway.</li>
           </ul></details>
         <details class="qg-defs"><summary>What Each Condition Means</summary>
@@ -3904,8 +3903,16 @@ function wireGrade(d){
   const keepEd = (audOf(d) || {}).edition || "";
   $("#qkItem").querySelectorAll("[data-cg]").forEach(b => b.addEventListener("click", () => saveReview(d, {edition: keepEd, condition: b.dataset.cg, back: "skip", fault: "", quickGrade: true}, "", done)));
   $("#qkCard").addEventListener("click", () => saveReview(d, {edition: "wrongcard", condition: "unclear", back: "skip", fault: "seller"}, "", done));
-  $("#qkSkip").addEventListener("click", () => saveReview(d, {edition: keepEd || "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't grade from the photos"}, "", done));
-  $("#qkCant").addEventListener("click", () => photoProblem(d, why => saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: why, reasons: [why], good: "down", factNote: "photo problem: " + why}, "", done)));
+  // Can't Grade: a photo problem (a fact - teaches Loupe's photo checks) or just can't tell (saved, so it won't come back)
+  $("#qkCant").addEventListener("click", () => {
+    const opts = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards", "more than one card sold together"],
+                  ["verify", "↩ Only The Back", "no photo of the front"], ["tell", "🌫️ Too Blurry / Can't Tell", "the card is there, but you can't decide"]];
+    if (!qkSideOpen(`<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:15px">Why Can't You Grade It?</b><button type="button" class="btn ghost small" id="qkPickCancel">Cancel</button></div>
+      <div class="qk-probs">${opts.map(([k, l, t]) => `<button type="button" class="btn ghost" data-cgw="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div></div>`)) return;
+    $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-cgw]"); if (!b) return;
+      if (b.dataset.cgw === "tell") saveReview(d, {edition: keepEd || "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't grade from the photos"}, "", done);
+      else saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: b.dataset.cgw, reasons: [b.dataset.cgw], good: "down", factNote: "photo problem: " + b.dataset.cgw}, "", done); });
+  });
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
