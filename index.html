@@ -520,8 +520,8 @@ body.cs-open{overflow:hidden}
 .tr-chart{margin-top:16px}.tr-h{font-size:14px;margin-bottom:4px}.tr-h .mut{font-size:12px}.tr-svg{width:100%;height:auto;display:block;max-width:900px}.tr-grid{stroke:var(--line);stroke-width:1}.tr-ax{fill:var(--muted);font-size:11px}
 .tr-leg{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px}.tr-key{all:unset;cursor:pointer;font-size:12.5px;display:inline-flex;align-items:center;gap:5px;padding:2px 0}.tr-key i{width:12px;height:4px;border-radius:2px;display:inline-block}.tr-key.off{opacity:.4;text-decoration:line-through}.tr-up{color:var(--up);font-size:11px}.tr-dn{color:var(--down);font-size:11px}
 .qg-defs{margin-top:10px;font-size:13px;line-height:1.45}.qg-defs summary{cursor:pointer;font-weight:600}.qg-defs dl{margin:6px 0 0}.qg-defs dt{font-weight:700;margin-top:6px}.qg-defs dd{margin:1px 0 0}.qg-defs ul{margin:6px 0 0;padding-left:18px}.qg-defs li{margin:3px 0}
-.qg-more{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
-@media (max-width:560px){.qg-ans{grid-template-columns:repeat(3,1fr)}.qg-more{grid-template-columns:1fr}}
+.qg-more{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}.qg-more .btn{min-height:40px}
+@media (max-width:560px){.qg-ans{grid-template-columns:repeat(3,1fr)}.qg-more{grid-template-columns:1fr 1fr}}
 .qk-ans{display:grid;grid-template-columns:1fr 1fr;gap:8px}.qk-ans .btn{min-height:44px}.qk-ans .qk-yes{grid-column:1/-1;min-height:52px;font-size:16px}.qk-ans .qk-skip{grid-column:1/-1}
 .qk-cmp{display:flex;gap:10px;align-items:flex-start;margin:8px 0}.qk-cmp img{width:120px;height:167px;object-fit:contain;border-radius:6px;flex:none;background:var(--soft)}.qk-cmp #qkCmpCap{min-height:167px}.qk-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 #qkSide .qk-prints{max-height:520px;overflow:auto}
@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:08 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:10 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3867,7 +3867,7 @@ function gradeHTML(d){
         <div class="qk-name">${esc(name0)}</div><div class="mut" style="font-size:13px">${esc(c.sn || setOf(d) || "")}</div>
         <div class="qk-q2">What Condition Is It?</div>
         <div class="qg-ans">${COND_LIST.map(g => `<button class="btn ghost" type="button" data-cg="${g}" title="${g}: ${QG_DESC[g]}"><b>${g}</b><span>${QG_DESC[g]}</span></button>`).join("")}</div>
-        <div class="qg-more"><button class="btn ghost" id="qkCard" type="button">🃏 Not This Card</button><button class="btn ghost" id="qkCant" type="button">Can't Grade</button></div>
+        <div class="qg-more"><button class="btn ghost" type="button" data-cgw="stock" title="Not the actual card being sold">🖼️ Stock Photo</button><button class="btn ghost" type="button" data-cgw="lot" title="More than one card sold together">🃏 Several Cards</button><button class="btn ghost" type="button" data-cgw="tell" title="Too blurry, or you just can't decide">Can't Tell</button><button class="btn ghost" id="qkCard" type="button" title="A different card altogether - a different edition of the same card is fine">Wrong Card</button></div>
         <details class="qg-defs"><summary>Quick Rules</summary>
           <ul>
             <li><b>Worst thing wins</b> - one crease = DMG, however clean the rest is.</li>
@@ -3877,8 +3877,8 @@ function gradeHTML(d){
             <li><b>Glare, sleeves, toploaders</b> - not damage. Grade the card under them.</li>
             <li><b>Made at the factory</b> (Deckmaster on the back, thin print lines, ink specks) - not damage.</li>
             <li><b>Off-center</b> - doesn't count.</li>
-            <li><b>Stock photo, several cards, too blurry, or you just can't decide?</b> Can't Grade, then pick why.</li>
-            <li><b>A different card?</b> 🃏 Not This Card. <b>Same card, different edition?</b> Grade it anyway.</li>
+            <li><b>Too blurry, or you just can't decide?</b> Can't Tell.</li>
+            <li><b>A different card?</b> Wrong Card. <b>Same card, different edition?</b> Grade it anyway.</li>
           </ul></details>
         <details class="qg-defs"><summary>What Each Condition Means</summary>
           <dl>
@@ -3903,16 +3903,11 @@ function wireGrade(d){
   const keepEd = (audOf(d) || {}).edition || "";
   $("#qkItem").querySelectorAll("[data-cg]").forEach(b => b.addEventListener("click", () => saveReview(d, {edition: keepEd, condition: b.dataset.cg, back: "skip", fault: "", quickGrade: true}, "", done)));
   $("#qkCard").addEventListener("click", () => saveReview(d, {edition: "wrongcard", condition: "unclear", back: "skip", fault: "seller"}, "", done));
-  // Can't Grade: a photo problem (a fact - teaches Loupe's photo checks) or just can't tell (saved, so it won't come back)
-  $("#qkCant").addEventListener("click", () => {
-    const opts = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards", "more than one card sold together"],
-                  ["tell", "🌫️ Too Blurry / Can't Tell", "the card is there, but you can't decide"]];
-    if (!qkSideOpen(`<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:15px">Why Can't You Grade It?</b><button type="button" class="btn ghost small" id="qkPickCancel">Cancel</button></div>
-      <div class="qk-probs">${opts.map(([k, l, t]) => `<button type="button" class="btn ghost" data-cgw="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div></div>`)) return;
-    $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-cgw]"); if (!b) return;
-      if (b.dataset.cgw === "tell") saveReview(d, {edition: keepEd || "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't grade from the photos"}, "", done);
-      else saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: b.dataset.cgw, reasons: [b.dataset.cgw], good: "down", factNote: "photo problem: " + b.dataset.cgw}, "", done); });
-  });
+  // Stock Photo / Several Cards: photo problems (facts - they teach Loupe's photo checks); Can't Tell: saved, so it won't come back
+  $("#qkItem").querySelectorAll("[data-cgw]").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.cgw === "tell") saveReview(d, {edition: keepEd || "unclear", condition: "unclear", back: "skip", fault: "", factNote: "can't grade from the photos"}, "", done);
+    else saveReview(d, {edition: "", condition: "unclear", back: "skip", reason: b.dataset.cgw, reasons: [b.dataset.cgw], good: "down", factNote: "photo problem: " + b.dataset.cgw}, "", done);
+  }));
   $("#audPrev").addEventListener("click", () => { const p = back ? pos - 1 : hist.length - 1; if (p < 0) return toast("That's the first one this visit."); go(p); });
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
 }
