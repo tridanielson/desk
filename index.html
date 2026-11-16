@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:13 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 04:55 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3122,14 +3122,14 @@ function reviewHTML(d, mode){
       : `<div class="aud-q">${Q("Back of the card shown?", "")}${seg("back", [["shown", "Yes"], ["missing", "No / Can't Tell"]])}</div>
       <div class="aud-q" id="rvCondRow">${Q("Condition", "")}${s.back === "missing" ? '<span class="mut rv-noback" style="font-size:12px;display:block;margin:-4px 0 8px">Can\'t grade it - you need to see both sides of the card.</span>' : '<span class="mut rv-noback" style="font-size:12px;display:block;margin:-4px 0 8px" hidden>Can\'t grade it - you need to see both sides of the card.</span>'}${seg("condition", COND_LIST.map(x => [x, `${x} <span class="mut">${money(fairAt(d, x, d._var).v)}</span>`]).concat([["unclear", "Can't Tell"]]))}</div>
       <div class="aud-q" id="rvCFaultRow"${s.cfault ? "" : " hidden"}>${Q("Whose mistake?", "")}${seg("cfault", [["seller", "Seller Overstated It"], ["under", "Seller Understated It"], ["app", "The App Misread the Listing"]])}</div>
-      <div class="aud-q mk-row" id="rvMarkRow"${s.cfault ? "" : " hidden"}>${Q("Highlight Defects", "")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
+      <div class="aud-q mk-row" id="rvMarkRow"${s.cfault && s.cfault !== "under" && !(COND_LIST.includes(s.condition) && COND_LIST.indexOf(s.condition) < COND_LIST.indexOf(condCode(d._c0 || d.condition))) ? "" : " hidden"}>${Q("Highlight Defects", "")}<div class="mk-strip" id="rvMarks"><span class="mut" style="font-size:13px">Loading photos…</span></div></div>
       <div class="aud-q">${Q("Is it in English?", "")}${seg("eng", [["yes", "Yes"], ["no", "No"]])}</div>
       <div class="aud-q rq-sub" id="rvLangRow"${s.eng === "no" ? "" : " hidden"}>${Q("Which language?", "")}${seg("langpick", COL_LANGS.filter(([c]) => c !== "EN").map(([c, l]) => [c, esc(l)]).concat([["OTHER", "Other"]]))}</div>`}
     <div class="aud-q">${Q("Anything else? <span class=\"mut\" style=\"font-weight:400\">(optional)</span>", "")}<div class="seg" data-k="reason" data-multi="1"><button type="button" class="btn small${s.reasons.filter(r => !["language", "lot", "stock"].includes(r)).length ? " ghost" : ""}" data-v="">Nothing</button>${fbReasons().filter(([k]) => !isWrong(k) && !["condition", "seller", "prefs", "language", "lot", "stock"].includes(k) && (k !== "verify" || s.reasons.includes(k))).map(([k, l]) => `<button type="button" class="btn small${s.reasons.includes(k) ? "" : " ghost"}" data-v="${k}">${esc(l)}</button>`).join("")}</div></div>
     </div>
     </div>
 
-    <textarea id="rvNote" rows="2" maxlength="300" placeholder="Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'">${esc((DC.map[d.url] || {}).note || (audOf(d) || {}).note || "")}</textarea>
+    <textarea id="rvNote" rows="2" maxlength="300" placeholder="${s.cfault === "under" ? "Optional - better than listed needs no reason" : "Optional note · Needed only when you change the condition (say why) · Or a rule, e.g. 'skip signed copies'"}">${esc((DC.map[d.url] || {}).note || (audOf(d) || {}).note || "")}</textarea>
     ${S.ini && !READONLY ? `<div class="rv-always" style="display:flex;gap:8px;align-items:center;font-size:13px;margin-top:6px"><input type="checkbox" id="rvAlways" aria-label="Always tell SlaveAI this note" style="width:18px;height:18px;margin:0;padding:0;flex:none;cursor:pointer"><span>📌 Always tell SlaveAI this <span class="mut" style="font-size:12px">- every future check follows this note (remove it in Settings → SlaveAI)</span></span></div>` : ""}
     ${condGuideHTML()}</div></div>`;
 }
