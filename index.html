@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 04:55 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 04:56 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3509,11 +3509,14 @@ function wireCarousels(root){
 }
 function photoCheckLine(d){
   // same look as "Seller says": a titled box, one line per answer
-  const box = body => `<div class="rv-says"><div class="rv-says-h">Loupe (testing)</div>${body}${d.photo_cond ? `<div><span class="mut">Condition (still learning):</span> ${esc(d.photo_cond)}</div>` : ""}</div>`;
+  const kind = {stock: "looks like a stock image", lot: "several cards", verify: "too blurry to tell"}[d.photo_kind];
+  const box = body => `<div class="rv-says"><div class="rv-says-h">Loupe (testing)</div>${body}${kind ? `<div><span class="mut">Photo:</span> <b>${kind}</b></div>` : ""}${d.photo_cond ? `<div><span class="mut">Condition (still learning):</span> ${esc(d.photo_cond)}</div>` : ""}</div>`;
   const row = (k, v) => `<div><span class="mut">${k}:</span> ${v}</div>`;
   const note = t => `<div class="mut" style="font-size:12.5px">${t}</div>`;
   const vs = () => row("Printing", d.photo_says === "same" ? '<b class="up">the one it\'s priced as</b>' : '<b class="down">not the one it\'s priced as</b>');
   const back = () => d.photo_back === "yes" || d.photo_back === "no" ? row("Back shown", d.photo_back === "yes" ? "<b>yes</b>" : "<b>no</b>") : "";
+  if (!d.photo_read && d.photo_says === "one")
+    return box(row("Printing", "only one printing of this card in this set - nothing to tell apart") + back());
   if (!d.photo_read && !/^(same|other|none)$/.test(d.photo_says || "") && String(d.images || "").trim())
     return box(note(`Hasn't looked at this one yet${d.source === "sniper" ? " - it checks the sniper's finds on the next 3-hour scan" : " - it checks new deals on each 3-hour scan"}.`));
   if (!d.photo_read && d.photo_says === "none" && String(d.images || "").trim())
