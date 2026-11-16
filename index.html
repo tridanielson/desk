@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:54 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 15, 09:19 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -5517,7 +5517,7 @@ function sdRecentHTML(){
   if (!rec.length) return "";
   return `<details class="panel" id="sdRecentBox" style="padding:10px 14px"${store.get("pd_sdrecent_open") === "1" ? " open" : ""}><summary style="cursor:pointer"><b style="font-size:13px">Recently added, opened, sold or given (${rec.length})</b> <span class="mut" style="font-size:12px">- ↩ Undo takes it back (an add is removed; an open, sale or gift goes back to sealed)</span></summary>
     <div class="bdl-list sd-recent" style="margin-top:6px">${rec.map(r => { const n = COL.inv.filter(c => c.ref === r.id).length;
-      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · ${esc(r.product.replace(/^Secret Lair x /i, ""))} ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px;display:flex;gap:6px;align-items:center"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdedit="${esc(r.id)}" title="Change the price, quantity, where from, date...">✎ Edit</span>${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
+      return `<div class="bdl-row"><span><b>${r.status === "sold" ? "Sold" : r.status === "given" ? "Given" + (r.given_to ? " to " + esc(r.given_to) : "") : r.status === "sealed" ? (r.ref ? "Received" : "Added") : "Opened"}</b> ${esc(when(r))} · <a href="#" class="sd-find" data-sdfind="${esc(r.id)}" title="Show it in the list below to mark it opened, sold or given">${esc(r.product.replace(/^Secret Lair x /i, ""))}</a> ×${esc(r.qty)}${n ? ` <span class="mut">· ${n} card row${n > 1 ? "s" : ""} in Collection</span>` : ""}</span><span style="margin-left:auto;padding-left:8px;display:flex;gap:6px;align-items:center"><span class="btn ghost small" role="button" style="white-space:nowrap" data-sdedit="${esc(r.id)}" title="Change the price, quantity, where from, date...">✎ Edit</span>${r.status === "sealed" ? (r.ref ? '<span class="mut" style="font-size:12px;white-space:nowrap">undo on Secret Lair tab</span>' : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdunadd="${esc(r.id)}" title="Added by mistake? Remove it">↩ Undo</span>`)
         : `<span class="btn ghost small" role="button" style="white-space:nowrap" data-sdundoid="${esc(r.id)}">${r.status === "given" ? "↩ Back to me" : "↩ Undo"}</span>`}</span></div>`; }).join("")}</div></details>`;
 }
 function renderSDList(){
@@ -5547,6 +5547,18 @@ function renderSDList(){
       <div class="t-right"><div class="t-price">${g.first.status === "sold" ? gainHTML(g.profit) : worth(g)}</div>${g.first.status === "sold" || g.value == null ? "" : `<div style="font-size:12px">${gainHTML(g.value - g.cost)}</div>`}</div></div>`).join("") || '<p class="empty">Nothing here yet.</p>';
 }
 document.addEventListener("click", e => {
+  const f = e.target.closest("#sdBody [data-sdfind]");
+  if (f){   // a Recent line: show that product in the list below (search for it, right status) and bring it into view
+    e.preventDefault(); const r = SD.rows.find(x => x.id === f.dataset.sdfind); if (!r) return;
+    SD.q = r.product.replace(/^Secret Lair (x )?/i, "").slice(0, 60); SD.status = r.status || "sealed"; SD.kind = "";
+    if ($("#sdQ")) $("#sdQ").value = SD.q; if ($("#sdStatus")) $("#sdStatus").value = SD.status; if ($("#sdKind")) $("#sdKind").value = "";
+    renderSDList();
+    const t = $("#sdTable"), head = document.querySelector("header");
+    if (t){ window.scrollTo({top: t.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 70, behavior: "smooth"});
+      const row = t.querySelector("tbody tr"); if (row){ row.classList.add("flash"); setTimeout(() => row.classList.remove("flash"), 1600); } }
+    toast("Showing " + r.product.slice(0, 50) + " - clear the search box to see everything again.", 4000);
+    return;
+  }
   const b = e.target.closest("#sdBody [data-sdopen], #sdBody [data-sdsell], #sdBody [data-sdundoid], #sdBody [data-sdlist], #sdBody [data-sdedit], #sdBody [data-sdmore], #sdBody [data-sdgive], #sdBody [data-sdunadd]"); if (!b) return;
   e.preventDefault(); const g = (SD._groups || {})[b.dataset.sdopen || b.dataset.sdsell || b.dataset.sdundo || b.dataset.sdlist || b.dataset.sdmore || b.dataset.sdgive];
   if (b.dataset.sdunadd){ const r = SD.rows.find(x => x.id === b.dataset.sdunadd); if (r && !r.ref && (r.status || "sealed") === "sealed"){ SD.rows = SD.rows.filter(x => x !== r); markDirty("collection"); renderSD(); toast(`Removed ${r.product.slice(0, 50)}.`); } return; }
@@ -5634,7 +5646,7 @@ function openSDOpen(g){
       <select data-of="${k}">${fins.map(x => `<option value="${x}"${x === ff ? " selected" : ""}>${x === "foil" ? "Foil" : x === "etched" ? "Etched" : "Non-Foil"}</option>`).join("")}</select>
       <input data-oq="${k}" type="number" min="1" value="1" title="How many (per box opened)"></label>`; }).join("");
   openModal(`<h3>Mark Opened: ${esc(f.product)}</h3><div class="mut" style="font-size:13px">For when you've opened it. It leaves your sealed totals and stays in history (↩ Undo under Opened).</div>
-    <div class="grid"><div><label for="soQty">How many to open</label><input id="soQty" type="number" min="1" max="${g.qty}" value="1"></div><div><label for="soDate">Date</label><input id="soDate" type="date" value="${todayAZ()}"></div></div>
+    <div class="grid"><div><label for="soQty">How many to mark opened</label><input id="soQty" type="number" min="1" max="${g.qty}" value="1"></div><div><label for="soDate">Date</label><input id="soDate" type="date" value="${todayAZ()}"></div></div>
     ${f.kind === "secret_lair" ? (cards.length ? `<p class="mut" style="font-size:13px;margin:12px 0 6px">Tick the cards that were inside - only these go to your Collection. Change foil / non-foil or the count if yours differ.</p>
       <div class="bdl-list" style="max-height:44vh;overflow:auto">${cardRows}</div>` : '<p class="mut" style="font-size:13px">No card list for this drop yet - add the cards you got with + Add Card on Collection.</p>')
       + `<div class="grid"><div class="full"><label for="soBonus">Bonus / extra cards (optional, one per line)</label><textarea id="soBonus" rows="2" placeholder="e.g. 1 Sol Ring" style="width:100%"></textarea></div>
