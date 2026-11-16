@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:05 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 11:08 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3877,7 +3877,7 @@ function gradeHTML(d){
             <li><b>Glare, sleeves, toploaders</b> - not damage. Grade the card under them.</li>
             <li><b>Made at the factory</b> (Deckmaster on the back, thin print lines, ink specks) - not damage.</li>
             <li><b>Off-center</b> - doesn't count.</li>
-            <li><b>Stock photo, several cards, only the back, too blurry, or you just can't decide?</b> Can't Grade, then pick why.</li>
+            <li><b>Stock photo, several cards, too blurry, or you just can't decide?</b> Can't Grade, then pick why.</li>
             <li><b>A different card?</b> 🃏 Not This Card. <b>Same card, different edition?</b> Grade it anyway.</li>
           </ul></details>
         <details class="qg-defs"><summary>What Each Condition Means</summary>
@@ -3906,7 +3906,7 @@ function wireGrade(d){
   // Can't Grade: a photo problem (a fact - teaches Loupe's photo checks) or just can't tell (saved, so it won't come back)
   $("#qkCant").addEventListener("click", () => {
     const opts = [["stock", "🖼️ Stock Photo", "not the actual card being sold"], ["lot", "🃏 Several Cards", "more than one card sold together"],
-                  ["verify", "↩ Only The Back", "no photo of the front"], ["tell", "🌫️ Too Blurry / Can't Tell", "the card is there, but you can't decide"]];
+                  ["tell", "🌫️ Too Blurry / Can't Tell", "the card is there, but you can't decide"]];
     if (!qkSideOpen(`<div class="qk-pick" id="qkPick"><div class="row" style="justify-content:space-between;align-items:center"><b style="font-size:15px">Why Can't You Grade It?</b><button type="button" class="btn ghost small" id="qkPickCancel">Cancel</button></div>
       <div class="qk-probs">${opts.map(([k, l, t]) => `<button type="button" class="btn ghost" data-cgw="${k}"><b>${l}</b><br><span class="mut" style="font-size:12px">${t}</span></button>`).join("")}</div></div>`)) return;
     $("#qkPick").addEventListener("click", e => { const b = e.target.closest("[data-cgw]"); if (!b) return;
