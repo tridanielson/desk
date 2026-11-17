@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 05:05 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 05:06 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3059,6 +3059,7 @@ function reviewHTML(d, mode){
   const spots = aiSpots(d), allImgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u));
   const imgs = allImgs.slice(0, Math.max(24, ...spots.map(p => p.photo)));   // every saved photo - the back is often photo 4 or later   // always show the photos SlaveAI pointed at
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
+  if (!d._keepSel) RV._autoLang = null;
   const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
   // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
   if (s.stock === undefined){ s.stock = !!((d.stock && !/^photo:/.test(d.stock)) || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
@@ -3220,7 +3221,16 @@ function wireReview(root, d, done){
   const ep = root.querySelector("#rvEdPick");
   if (ep) ep.addEventListener("click", e => { if (!e.target.closest("[data-v]")) return; setTimeout(() => {
     const v = printing(RV.sel.variant) || {}, set = String(v.s || "").toLowerCase(), lr = root.querySelector("#rvLangRow");
-    if (!RV_FOREIGN.has(set) || !lr) return;
+    if (!lr) return;
+    const lab0 = lr.querySelector(".rq-l b"); if (lab0 && !lr.dataset.lab0) lr.dataset.lab0 = lab0.textContent;
+    if (!RV_FOREIGN.has(set)){   // changed your mind: undo what the foreign pick set (English back to how it was, every language shown again)
+      if (RV._autoLang){ RV.sel.eng = RV._autoLang.eng; RV.sel.langpick = RV._autoLang.langpick; RV._autoLang = null;
+        root.querySelectorAll('[data-k="eng"] [data-v]').forEach(x => x.classList.toggle("ghost", x.dataset.v !== RV.sel.eng));
+        lr.querySelectorAll('[data-k="langpick"] [data-v]').forEach(x => { x.hidden = false; x.classList.toggle("ghost", x.dataset.v !== RV.sel.langpick); });
+        if (lab0) lab0.textContent = lr.dataset.lab0 || lab0.textContent; lr.hidden = RV.sel.eng !== "no"; }
+      return; }
+    if (!RV._autoLang) RV._autoLang = {eng: RV.sel.eng, langpick: RV.sel.langpick || ""};
+    lr.querySelectorAll('[data-k="langpick"] [data-v]').forEach(x => x.hidden = false);
     RV.sel.eng = "no"; root.querySelectorAll('[data-k="eng"] [data-v]').forEach(x => x.classList.toggle("ghost", x.dataset.v !== "no"));
     lr.hidden = false; const lab = lr.querySelector(".rq-l b"); if (lab) lab.textContent = `Which language is this ${set.toUpperCase()} card?`;
     if (ONE_LANG[set]){ RV.sel.langpick = ONE_LANG[set]; lr.querySelectorAll('[data-k="langpick"] [data-v]').forEach(x => { x.classList.toggle("ghost", x.dataset.v !== ONE_LANG[set]); x.hidden = x.dataset.v !== ONE_LANG[set]; });
