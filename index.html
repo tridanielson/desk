@@ -683,7 +683,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 04:56 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 05:05 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3061,7 +3061,9 @@ function reviewHTML(d, mode){
   const url = ebayLink(d), aiC = String(d.ai_condition || "").toUpperCase();
   const s = RV.sel = (d._keepSel && RV.sel) || reviewStart(d); d._keepSel = false;
   // stock photo: the seller says so, SlaveAI said so, or your last review said so - ticked for you (untick if the photos are real)
-  if (s.stock === undefined) s.stock = !!((d.stock && !/^photo:/.test(d.stock)) || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
+  if (s.stock === undefined){ s.stock = !!((d.stock && !/^photo:/.test(d.stock)) || d.ai_category === "stock" || (s.reasons || []).includes("stock"));
+    // only the automatic photo check thinks so: nothing pre-picked - your call (a guess is never saved as your answer)
+    if (!s.stock && (/^photo:/.test(d.stock || "") || d.photo_kind === "stock") && !notStockByYou(d)) s.stock = null; }
   if (!s.back) s.back = ((audOf(d) || {}).back !== "skip" && (audOf(d) || {}).back) || (backSays(d) === "no" ? "missing" : backSays(d) === "yes" ? "shown" : "");   // nobody checked: nothing pre-picked (never save a guess as a fact)   // SlaveAI / Loupe say whether a photo shows the back
   if (s.back === "unclear") s.back = "missing";
   if (s.back === "missing" && !d._graded){ s.condition = "unclear"; s.cfault = ""; }   // one side only: the condition can't be graded   // one answer now: the back couldn't be checked   // the back of the card: shown in the photos?
@@ -3074,7 +3076,7 @@ function reviewHTML(d, mode){
   const c0 = String(d._c0 || d.condition || ""), listed = /\?$/.test(c0) ? `not stated (assumed ${c0.replace("?", "")})` : c0;
   // each question: its name and one bullet line saying what the answers mean
   const Q = (label, hint) => `<span class="rq-l"><b>${label}</b>${hint ? `<small>• ${hint}</small>` : ""}</span>`;
-  s.stockq = s.stock ? "yes" : "no";
+  s.stockq = s.stock ? "yes" : s.stock === null ? "" : "no";
   if (s.eng === undefined){ s.eng = s.lang && s.lang !== "EN" ? "no" : "yes"; s.langpick = s.lang && !["EN", "OTHER"].includes(s.lang) ? s.lang : (s.lang === "OTHER" ? "OTHER" : ""); }
   const seg = (k, opts) => `<div class="seg" data-k="${k}">${opts.map(([v, l]) => `<button type="button" class="btn small${s[k] === v ? "" : " ghost"}" data-v="${v}">${l}</button>`).join("")}</div>`;
   const vlabel = {ok: "✓ OK", warn: "⚠ Check it", reject: "✕ Reject"};
@@ -3108,7 +3110,7 @@ function reviewHTML(d, mode){
       : `<div class="rv-says"><div class="rv-says-h">SlaveAI thinks</div><div class="mut" style="font-size:12.5px">Didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div></div>`}
     ${photoCheckLine(d)}
     </div><div class="rv-right">
-    ${READONLY ? "" : `<div class="aud-q" id="rvStockRow">${Q("Stock photo?", "")}${seg("stockq", [["yes", "Yes"], ["no", "No"]])}</div>`}
+    ${READONLY ? "" : `<div class="aud-q" id="rvStockRow">${Q("Stock photo?", s.stock === null ? "Loupe's photo check thinks so - your call" : "")}${seg("stockq", [["yes", "Yes"], ["no", "No"]])}</div>`}
     <div class="rv-stocknote mut"${s.stock ? "" : " hidden"}>Saved as: card <b>Can't Tell</b> · condition <b>Can't Tell</b> · back <b>not recorded</b> · problem <b>Stock Photo</b>. Tap No if the photos are real.</div>
     <div class="rv-qs"${s.stock ? " hidden" : ""}>
     <div class="aud-q">${Q("Is it the card you're tracking?", "")}${seg("edition", [["matches", "Yes"]].concat(vars.length > 1 ? [["variant", "Different Art / Version"]] : []).concat([["edition", "Wrong Edition"], ["wrongcard", "Wrong Card"], ["fake", "Fake / Proxy"], ["lot", "Not a Single Card"], ["unclear", "Can't Tell"]]))}</div>
