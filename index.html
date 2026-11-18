@@ -684,7 +684,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 05:11 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 10:05 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -743,6 +743,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel row" id="wlBar">
     <span class="seg" id="wlKind" role="group" aria-label="Show"></span>
     <button type="button" class="wl-only" id="wlDeals" aria-pressed="false" title="An extra filter on top of All / Cards / Sets / Searches: only what has a deal on eBay right now">Only With a Deal Now</button>
+    <span id="wlCopy" style="display:flex;flex-wrap:wrap;gap:6px"></span>
     <input id="wlQ" placeholder="Find on your list…" style="flex:1;min-width:160px;max-width:280px;margin-left:auto">
   </div>
   <div class="panel wl-box"><div class="wl-row wl-headrow"><span></span><span>What</span><span>Watching for</span><span>Right now</span><span></span></div><div id="wlList"></div></div>
@@ -4820,6 +4821,9 @@ function renderWant(){
   const nd = all.filter(x => x.deals.length).length;
   $("#wlDeals").innerHTML = `<span class="wl-box-chk">${WL.deals ? "✓" : ""}</span>Only With a Deal Now <b>${nd}</b>`; $("#wlDeals").classList.toggle("on", !!WL.deals); $("#wlDeals").setAttribute("aria-pressed", !!WL.deals);
   $("#wlAdd").hidden = READONLY;
+  const allNeed = WL.kind === "set" && !READONLY && MYCOL() && COL.loaded ? COL.goals.filter(g => g.set && !/^paused$/i.test(g.status || "")).flatMap(g => { const pr = goalProgress(g); return pr ? pr.need : []; }) : [];
+  $("#wlCopy").innerHTML = allNeed.length ? massBtns(allNeed, "data-wlcopy", "All Missing") + " " + MASS_LINK : "";
+  if (allNeed.length){ loadTcgNames(); $("#wlCopy").querySelectorAll("[data-wlcopy]").forEach(b => b.addEventListener("click", () => massCopy(allNeed, b.dataset.wlcopy))); }
   const q = WL.q.trim().toLowerCase();
   const rows = all.filter(x => (WL.kind === "all" || x.kind === WL.kind) && (!WL.deals || x.deals.length) && (!q || x.find.toLowerCase().includes(q)));
   const dl = x => x.deals.length ? `<b class="up">${x.deals.length} deal${x.deals.length > 1 ? "s" : ""}</b>` + (x.kind === "card" ? ` · ${money(Math.min(...x.deals.map(d => +d.total || 9e9)))} ${esc(condCode(x.deals[0].condition) || "")}` : "") : "";
@@ -7521,7 +7525,7 @@ function renderSETS(){
   if (COL.binder && !binderList().some(([k]) => k === COL.binder)) COL.binder = "";
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Sets</h2>
     <p class="sub" style="margin:0">${ROLE === "user" ? `Sets you're completing, and what's left to buy. "Have" comes from your Collection tab.` : `Sets you're completing. Every card you still need is priced daily, checked for eBay deals on every scan (ahead of everything else), and alerts say <b>NEED</b>. "Have" comes from your Collection tab.`}</p></div>
-    <div class="row">${goals.length ? '<button class="btn ghost small" id="setNeedAll">📋 Everything I Need</button>' : ""}<button class="btn small" id="setAdd">+ Add a Set</button></div></div>
+    <div class="row"><button class="btn small" id="setAdd">+ Add a Set</button></div></div>
     ${binderList().length > 1 ? binderChipsHTML(false) : ""}${COL.binder ? `<p class="mut" style="font-size:12.5px;margin:4px 0 8px">Showing <b>${esc(binderName(COL.binder))}</b>: how much of each set is in this binder. Your Want List and the scanners still go by ${esc(binderName(""))} only.</p>` : ""}`;
   if (SETS.adding) L += `<div class="panel"><div class="row"><input id="setQ" placeholder="Search sets (e.g. Arabian Nights, Legends, 4th Edition)…" style="flex:1;min-width:220px" autocomplete="off">
       <select id="setFin"><option value="all">Every Version</option><option value="nonfoil">Non-Foil Only</option><option value="foil">Foil Only</option><option value="etched">Etched Only</option></select>
@@ -7544,7 +7548,6 @@ function renderSETS(){
   box.innerHTML = L;
   wireBinderChips(box, () => { renderSETS(); renderCOL(); });
   wireOwnedSets(box);
-  if ($("#setNeedAll")) $("#setNeedAll").addEventListener("click", () => { SETS.needAll = true; renderSETS(); window.scrollTo(0, 0); });
   $("#setAdd").addEventListener("click", () => { SETS.adding = true; renderSETS(); setTimeout(() => $("#setQ") && $("#setQ").focus(), 30); });
   if (SETS.adding){
     $("#setCancel").addEventListener("click", () => { SETS.adding = false; renderSETS(); });
@@ -7554,11 +7557,23 @@ function renderSETS(){
   box.querySelectorAll("[data-goal]").forEach(b => b.addEventListener("click", () => { SETS.open = b.dataset.goal; SETS.q = ""; renderSETS(); window.scrollTo(0, 0); }));
 }
 document.addEventListener("click", () => { if (NA.pop && $("#naSetPop")){ NA.pop = false; $("#naSetPop").hidden = true; } });
+// ---- TCGplayer Mass Entry copy: "1 Card Name [SET] 216" per line (number = exact art), one finish at a time
+function loadTcgNames(){ if (!NA.tcg && !NA.tcgLoading && SEES_OWNER()){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); } }
+function massCopy(rows, f){
+  const list = rows.filter(r => r.fin === f), counts = new Map();
+  const tn = r => (((NA.tcg || {}).sets || {})[r.c.set] || {names: {}}).names[String(r.c.collector_number).replace(/^0+/, "").toLowerCase()];   // TCGplayer's own name ("… (Borderless)") - Mass Entry only finds that
+  list.forEach(r => { const k = `${tn(r) || r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
+  const lbl = f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Normal";
+  copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${list.length} ${lbl === "Normal" ? "non-foil" : lbl.toLowerCase()} cards. In Mass Entry: paste${rows.some(r => r.fin !== f) ? `, ⚙ gear → Printing: ${lbl} only` : ""}, then Add to Cart.`);
+}
+const massBtns = (rows, attr, what) => ["nonfoil", "foil", "etched"].map(f => { const n = rows.filter(r => r.fin === f).length;
+  return n ? `<button class="btn small" type="button" ${attr}="${f}">📋 Copy ${n} ${what}${f === "foil" ? " Foil" : f === "etched" ? " Etched" : rows.some(r => r.fin !== "nonfoil") ? " Non-Foil" : ""}</button>` : ""; }).join("");
+const MASS_LINK = '<a class="btn ghost small" style="white-space:nowrap" href="https://www.tcgplayer.com/massentry" target="_blank" rel="noopener">Open TCGplayer Mass Entry</a>';
 // ---- Everything I Need: every card still missing from every set you track, in one list - filter by set and price,
 // buy links, and a TCGplayer Mass Entry copy for buying the cheap ones in one cart
 const NA = {sets: new Set(), price: "", sort: "price-desc", q: "", pop: false};
 function renderNeedAll(goals){
-  if (!NA.tcg && !NA.tcgLoading && SEES_OWNER()){ NA.tcgLoading = true; rawServer("readFiles", AUTH.token, ["data/tcg_names.json"]).then(f => { try{ NA.tcg = JSON.parse(f["data/tcg_names.json"].text || "{}"); }catch(e){ NA.tcg = {}; } }).catch(() => { NA.tcg = {}; }); }
+  loadTcgNames();
   const box = $("#setsBody"), live = goals.filter(g => !/^paused$/i.test(g.status || ""));
   const loading = live.filter(g => !SETS.cards[goalKey(g)] && !SETS.err[goalKey(g)]).length;
   const label = g => { const nm = (SETS.cards[goalKey(g)] || [])[0]; return (nm ? nm.set_name : g.set.toUpperCase()) + goalLabel(g); };
@@ -7618,12 +7633,7 @@ function renderNeedAll(goals){
   $("#naSetPop").addEventListener("change", e => { const x = e.target; if (!x.value) return; x.checked ? NA.sets.add(x.value) : NA.sets.delete(x.value); renderNeedAll(goals); });
   $("#naSetClear").addEventListener("click", e => { e.preventDefault(); NA.sets.clear(); renderNeedAll(goals); });
   [["#naPrice", "price"], ["#naSort", "sort"]].forEach(([id, k]) => $(id).addEventListener("input", e => { NA[k] = e.target.value; renderNeedAll(goals); }));
-  box.querySelectorAll("[data-nacopy]").forEach(b => b.addEventListener("click", () => {   // TCGplayer Mass Entry: "1 Card Name [SET] 216" per line (number = exact art)
-    const f = b.dataset.nacopy, list = rows.filter(r => r.fin === f), counts = new Map();
-    const tn = r => (((NA.tcg || {}).sets || {})[r.c.set] || {names: {}}).names[String(r.c.collector_number).replace(/^0+/, "").toLowerCase()];   // TCGplayer's own name ("… (Borderless)") - Mass Entry only finds that
-    list.forEach(r => { const k = `${tn(r) || r.c.name.split(" // ")[0]} [${r.c.set.toUpperCase()}] ${r.c.collector_number}`; counts.set(k, (counts.get(k) || 0) + 1); });
-    const lbl = f === "foil" ? "Foil" : f === "etched" ? "Etched" : "Normal";
-    copyText([...counts].map(([k, n]) => `${n} ${k}`).join("\n"), `Copied ${list.length} ${lbl === "Normal" ? "non-foil" : lbl.toLowerCase()} cards. In Mass Entry: paste, ⚙ gear → Printing: ${lbl} only, then Add to Cart.`); }));
+  box.querySelectorAll("[data-nacopy]").forEach(b => b.addEventListener("click", () => massCopy(rows, b.dataset.nacopy)));
   box.querySelectorAll("[data-nagot]").forEach(b => b.addEventListener("click", () => { const [id, k, f] = b.dataset.nagot.split("~"), g = live.find(x => goalKey(x) === k), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c || !g) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
@@ -7709,6 +7719,7 @@ function renderSetDetail(g){
       <div class="stat"><span>Cost to finish</span><b>${money(pr.cost)}</b><span>at Near Mint market</span></div>
       <div class="stat"><span>What you have is worth</span><b>${money(pr.owned)}</b><span>at Near Mint market</span></div>
     </div><div class="bar" style="margin-bottom:14px"><span style="width:${pct}%"></span></div>
+    ${pr.need.length && !READONLY ? `<div class="panel row" style="gap:10px;align-items:center">${massBtns(pr.need.filter(r => !q || r.c.name.toLowerCase().includes(q)), "data-setcopy", "Missing")}${MASS_LINK}<span class="mut" style="font-size:12px">Paste the list into Mass Entry and Add to Cart - card numbers are included, so you get the exact printing.</span></div>` : ""}
     <div class="panel row"><input id="setFind" placeholder="Search this set…" value="${esc(SETS.q)}" style="flex:1;min-width:180px">
       <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
       <label for="setCond" class="mut" style="font-size:13px">Best copy</label><select id="setCond" title="Show cards by the condition of your best copy"><option value="">Any condition</option>${COND_LIST5.map(c => `<option value="${c}">${c}</option>`).join("")}<option value="none">Don't have</option></select>
@@ -7736,6 +7747,7 @@ function renderSetDetail(g){
       <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">#${esc(r.c.collector_number)} · ${pr.multi ? finName(r.fin) + " · " : ""}${esc(r.c.rarity)} ${trend(r)}</div><div class="t-chips mk">${act(r)}</div></div>
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">No cards.</p>';
   $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
+  loadTcgNames(); box.querySelectorAll("[data-setcopy]").forEach(b => b.addEventListener("click", () => massCopy(pr.need.filter(r => !q || r.c.name.toLowerCase().includes(q)), b.dataset.setcopy)));
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setCond").addEventListener("input", e => { SETS.cond = e.target.value; renderSetDetail(g); });
   box.querySelectorAll("[data-slayout]").forEach(b => b.addEventListener("click", () => { SETS.layout = b.dataset.slayout; store.set("pd_set_layout", SETS.layout); renderSetDetail(g); }));
