@@ -684,7 +684,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 10:05 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 10:12 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -752,7 +752,6 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- ALL -->
 <section class="tab" id="tab-all">
-  <p style="margin:0 0 4px"><a href="#mine" id="allBack">← Want List</a></p>
   <h2>Every Tracked Card</h2>
   <p class="sub">Every card the tracker prices each morning: every card on your <b>Want List</b>: the cards you picked plus every card your searches find (Reserved List, Alpha/Beta/Unlimited, early expansions, Revised duals). The eBay deal scanner also checks these. Use the filters to spot drops and lows. Star a card to move it to your Watchlist with its own alerts.</p>
   <div class="panel row">
@@ -1905,7 +1904,7 @@ function showDetail(key){
   drawChart(c, w, "1Y");
 }
 document.addEventListener("click", e => { const a = e.target.closest(".cchart"); if (!a) return; e.preventDefault(); e.stopPropagation(); showDetail(a.dataset.ck); });
-document.addEventListener("click", e => { const a = e.target.closest("#wlAllLink, #allBack"); if (!a) return; e.preventDefault(); switchTab(a.id === "allBack" ? "mine" : "all"); });
+document.addEventListener("click", e => { const a = e.target.closest("#wlAllLink"); if (!a) return; e.preventDefault(); switchTab("all"); });
 // ---------------------------------------------------------------- Market: what's moving among the cards you track
 const MKT = {span: (() => { try{ return localStorage.getItem("pd_mkt") === "30" ? "30" : "7"; }catch(e){ return "7"; } })()};
 function renderMarket(){
@@ -1937,7 +1936,7 @@ function renderMarket(){
   box.querySelectorAll("[data-mk]").forEach(b => b.addEventListener("click", () => { MKT.span = b.dataset.mk; try{ localStorage.setItem("pd_mkt", MKT.span); }catch(e){} renderMarket(); }));
   box.querySelectorAll(".mk-row[data-ck]").forEach(r => r.addEventListener("click", () => showDetail(r.dataset.ck)));
 }
-function closeCardSheet(){ $("#cardSheet").hidden = true; document.body.classList.remove("cs-open"); }
+function closeCardSheet(){ $("#cardSheet").hidden = true; document.body.classList.remove("cs-open"); navSoon(); }
 $("#csClose").addEventListener("click", closeCardSheet);
 $("#cardSheet").addEventListener("click", e => { if (e.target.id === "cardSheet") closeCardSheet(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#cardSheet").hidden) closeCardSheet(); });
@@ -3561,7 +3560,7 @@ function openPhotoBig(d, i){
     v.querySelector(".phb-stage").addEventListener("click", e => { if (e.target.classList.contains("phb-stage")) close(); });
   };
   const keys = e => { if (e.key === "Escape"){ e.stopPropagation(); close(); } else if (e.key === "ArrowLeft" && imgs.length > 1){ i = (i - 1 + imgs.length) % imgs.length; draw(); } else if (e.key === "ArrowRight" && imgs.length > 1){ i = (i + 1) % imgs.length; draw(); } };
-  const close = () => { v.remove(); document.removeEventListener("keydown", keys, true); };
+  const close = () => { v.remove(); document.removeEventListener("keydown", keys, true); navSoon(); };
   document.addEventListener("keydown", keys, true);
   draw();
 }
@@ -4766,7 +4765,7 @@ function openSheet(i){
   $("#shChart").disabled = !c; const rm = $("#shRemove"); delete rm.dataset.armed; rm.textContent = "Remove";
   $("#sheetBg").classList.add("on"); $("#sheet").classList.add("on");
 }
-function closeSheet(){ $("#sheet").classList.remove("on"); $("#sheetBg").classList.remove("on"); sheetIdx = -1; }
+function closeSheet(){ $("#sheet").classList.remove("on"); $("#sheetBg").classList.remove("on"); sheetIdx = -1; navSoon(); }
 [["#shTarget", "target_price", true], ["#shDrop", "drop_pct", true], ["#shDeal", "deal_pct", true], ["#shLow", "alert_low", false], ["#shNotes", "notes", false]].forEach(([sel, f, isNum]) => {
   $(sel).addEventListener("change", () => {
     const w = S.watch[sheetIdx]; if (!w) return; let v = $(sel).value.trim();
@@ -5028,8 +5027,7 @@ function renderSLDetail(){
   const st = d.store || [], cd = slCountdown(d.on_sale_at);
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   const up = ((SL.data && SL.data.drops) || []).find(x => x.parts && x.parts.includes(d.key));   // a drop inside a superdrop goes back to it
-  let L = `<button class="btn ghost small" id="slBack">← ${up ? esc(up.name) : "All Secret Lairs"}</button>
-    <div style="margin:14px 0 6px"><h2 style="margin:0">${esc(d.name)}</h2>${(d.promo && d.promo.length) || d.promo_text ? `<div class="mut" style="font-size:13px">🎁 ${d.promo_text ? esc(d.promo_text) : "Promo: <b>" + d.promo.map(c => esc(c.fl ? c.fl + " (" + c.n + ")" : c.n)).join(", ") + "</b>"}</div>` : ""}${d.announced ? `<div style="font-size:13px"><a href="${esc(d.announced)}" target="_blank" rel="noopener">Wizards' announcement ↗</a></div>` : ""}<div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
+  let L = `<div style="margin:0 0 6px"><h2 style="margin:0">${esc(d.name)}</h2>${(d.promo && d.promo.length) || d.promo_text ? `<div class="mut" style="font-size:13px">🎁 ${d.promo_text ? esc(d.promo_text) : "Promo: <b>" + d.promo.map(c => esc(c.fl ? c.fl + " (" + c.n + ")" : c.n)).join(", ") + "</b>"}</div>` : ""}${d.announced ? `<div style="font-size:13px"><a href="${esc(d.announced)}" target="_blank" rel="noopener">Wizards' announcement ↗</a></div>` : ""}<div class="mut">${d.superdrop ? esc(d.superdrop) + " · " : ""}${slStatusBadge(d)} ${d.on_sale_at ? `<span class="badge b-src">date: ${esc(SRC[d.date_source] || "")}</span>` : ""}</div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 18px">
       ${stat("On Sale", esc(slDate(d, true)) + (cd ? `<div class="sl-count">${cd}</div>` : ""))}
       ${d.parts && d.parts.length ? (() => { const ps = d.parts.map(k => ((SL.data && SL.data.drops) || []).find(x => x.key === k)).filter(Boolean);
@@ -5072,8 +5070,6 @@ function renderSLDetail(){
   }
   box.innerHTML = L;
   const fl = $("#slFlip"); if (fl) fl.addEventListener("click", () => { SL.flip = !SL.flip; const y = window.scrollY; renderSL(); window.scrollTo(0, y); });
-  $("#slBack").addEventListener("click", () => { if (up){ SL.detail = up.key; renderSL(); const y = SL.supY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); return; }
-    SL.detail = null; renderSL(); const y = SL.listY || 0; requestAnimationFrame(() => setTimeout(() => window.scrollTo(0, y), 30)); });
   box.querySelectorAll("[data-sl]").forEach(el => el.addEventListener("click", e => { e.preventDefault(); openSL(el.dataset.sl); }));
   box.querySelectorAll("[data-bdrop]").forEach(r => r.addEventListener("click", () => { if (r.dataset.bdrop){ openSL(r.dataset.bdrop); } }));
   if ($("#slToSealed")) $("#slToSealed").addEventListener("click", e => { e.preventDefault(); SD.q = d.name.replace(/^Secret Lair (x )?/i, "").slice(0, 40); SD.status = "sealed"; switchTab("sealed"); });
@@ -5969,16 +5965,12 @@ function renderCOL(){
     <div class="cv-views" role="group" aria-label="Views">${VIEWS.map(([k, l, n, tip]) => `<button type="button" class="btn small${COL.view === k ? "" : " ghost"}" data-cview="${k}" title="${esc(tip)}">${l}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("")}
       <span class="seg cv-layout" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" class="btn small${COL.layout === "binder" ? " ghost" : ""}" data-clayout="list">☰ List</button><button type="button" class="btn small${COL.layout === "binder" ? "" : " ghost"}" data-clayout="binder">▦ Binder</button></span>
       <input id="colQ" type="search" placeholder="Find a card…" value="${esc(COL.q)}" style="min-width:160px;flex:0 1 220px"></div>
-    ${COL.back ? `<div class="row" style="gap:8px;margin:6px 0 0"><button type="button" class="btn small" id="colBack">← Back to ${esc(COL.back.name)}</button><span class="mut" style="font-size:12.5px">Showing your copies of <b>${esc(COL.q)}</b></span></div>` : ""}
+    ${COL.back ? `<div class="row" style="gap:8px;margin:6px 0 0"><span class="mut" style="font-size:12.5px">Showing your copies of <b>${esc(COL.q)}</b> · Back returns to ${esc(COL.back.name)}</span></div>` : ""}
     <p class="mut" id="colViewTip" style="font-size:12px;margin:4px 0 8px">${esc((VIEWS.find(v => v[0] === COL.view) || [])[3] || "")}</p>
     <div class="panel scroll${COL.layout === "binder" ? " is-binder" : ""}" id="colPanel"><span class="status" id="colCount"></span><div class="tiles" id="colTiles"></div><table id="colTable" class="desk-table"></table><div class="binder" id="colBinder"></div>
       <div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost small" id="colMore" hidden>Show More</button></div></div>`;
   if ($("#colSumTog")) $("#colSumTog").addEventListener("click", () => { COL.sumOpen = !COL.sumOpen; store.set("pd_col_sum", COL.sumOpen ? "1" : ""); renderCOL(); });
   $("#colQ").addEventListener("input", e => { COL.q = e.target.value; COL.limit = 150; renderCOLList(); });
-  if ($("#colBack")) $("#colBack").addEventListener("click", () => { const b = COL.back; COL.back = null; COL.q = ""; COL.layout = store.get("pd_col_layout") || "list"; DK.cur = b.deck; switchTab("decks");
-    requestAnimationFrame(() => { window.scrollTo(0, b.y || 0);   // back where you were, and the card you tapped blinks
-      const el = document.querySelector(`#deckBody [data-dkown="${b.row}"], #deckBody [data-dkmark="${b.row}"]`), row = el && el.closest(".dk-row");
-      if (row){ row.classList.add("dk-flash"); setTimeout(() => row.classList.remove("dk-flash"), 1600); } }); });
   // picking a view (again) drops any column sort you clicked, so each view shows its own order - Recently added = the order you entered them
   box.querySelectorAll("[data-cview]").forEach(b => b.addEventListener("click", () => { COL.view = b.dataset.cview; COL.limit = 150; COL.showBulk = false; delete TSORT["colTable"]; renderCOL(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
@@ -6278,8 +6270,8 @@ function addedNote(text){
   box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash");
   $("#colModal").scrollTop = 0;
 }
-function openModal(html, wide){ $("#colModalBody").innerHTML = html; $("#colModal").classList.toggle("wide", !!wide); $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on"); }
-function closeModal(){ prPopHide(); $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); }
+function openModal(html, wide){ $("#colModalBody").innerHTML = html; $("#colModal").classList.toggle("wide", !!wide); $("#colModal").classList.add("on"); $("#colModalBg").classList.add("on");  navSoon(); }
+function closeModal(){ prPopHide(); $("#colModal").classList.remove("on"); $("#colModalBg").classList.remove("on"); navSoon(); }
 $("#colModalBg").addEventListener("click", closeModal);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#colModal").classList.contains("on")) closeModal(); });
 function openSell(id){
@@ -7262,7 +7254,7 @@ function dkView(groups, i, r, pick, loading){
   }
   dkViewDraw();
 }
-function dkViewClose(){ const v = $("#dkView"); if (v) v.remove(); DKV.tok = (DKV.tok || 0) + 1; }
+function dkViewClose(){ const v = $("#dkView"); if (v) v.remove(); DKV.tok = (DKV.tok || 0) + 1; navSoon(); }
 function dkViewStep(d){ if (!DKV.groups.length) return; DKV.i = (DKV.i + d + DKV.groups.length) % DKV.groups.length; dkViewDraw(); }
 function dkViewDraw(){
   const v = $("#dkView"); if (!v) return;
@@ -7697,8 +7689,8 @@ function wireOwnedSets(box){
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g, COL.binder), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
-  if (!pr && SETS.err[k]){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty">${esc(SETS.err[k])}</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
-  if (!pr){ box.innerHTML = `<button class="btn ghost small" id="setBack">← All Sets</button><p class="empty loadmsg">Loading ${esc(title)}…</p>`; $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); }); return; }
+  if (!pr && SETS.err[k]){ box.innerHTML = `<p class="empty">${esc(SETS.err[k])}</p>`; return; }
+  if (!pr){ box.innerHTML = `<p class="empty loadmsg">Loading ${esc(title)}…</p>`; return; }
   const deal = c => "https://www.ebay.com/sch/i.html?_sacat=183454&_nkw=" + encodeURIComponent(`${c.name} ${c.set_name}`) + "&_sop=15";
   const tracked = new Map(S.cards.map(x => [x.s.toLowerCase() + "|" + x.num + "|" + x.f, x]));
   const q = SETS.q.trim().toLowerCase();
@@ -7709,8 +7701,8 @@ function renderSetDetail(g){
     .slice().sort(binder ? setOrder : (a, b) => (b.price || 0) - (a.price || 0));
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
-  let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div><button class="btn ghost small" id="setBack">← All Sets</button>
-      <h2 style="margin-top:10px">${esc(title)}${esc(goalLabel(g))}</h2>
+  let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div>
+      <h2 style="margin-top:0">${esc(title)}${esc(goalLabel(g))}</h2>
       <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${pr.wantNM ? " · <b>only NM copies count</b>" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
       ${g._temp ? `<div class="row"><button class="btn small" id="setStar" title="Track this set: what's missing, what it costs to finish, NEED tags on deals">☆ Complete This Set</button></div></div>` : `<div class="row"><button class="btn ${pr.wantNM ? "" : "ghost "}small" id="setNMt" title="Only a Near Mint copy completes a card - worse copies stay on the need list until you upgrade">${pr.wantNM ? "✓ Upgrading to NM" : "Upgrade to NM"}</button><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>`}
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
@@ -7746,7 +7738,6 @@ function renderSetDetail(g){
   if (!binder) $("#setTiles").innerHTML = rows.map(r => `<div class="tile"><img src="${esc(sfImg(r.c.id, "small"))}" alt="" loading="lazy" style="width:44px;border-radius:3px;margin-right:10px" data-zoom="${esc(r.c.id)}">
       <div class="t-main"><div class="t-name">${esc(r.c.name)}</div><div class="t-sub">#${esc(r.c.collector_number)} · ${pr.multi ? finName(r.fin) + " · " : ""}${esc(r.c.rarity)} ${trend(r)}</div><div class="t-chips mk">${act(r)}</div></div>
       <div class="t-right"><div class="t-price">${r.price == null ? "–" : money(r.price)}</div></div></div>`).join("") || '<p class="empty">No cards.</p>';
-  $("#setBack").addEventListener("click", () => { SETS.open = ""; renderSETS(); });
   loadTcgNames(); box.querySelectorAll("[data-setcopy]").forEach(b => b.addEventListener("click", () => massCopy(pr.need.filter(r => !q || r.c.name.toLowerCase().includes(q)), b.dataset.setcopy)));
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setCond").addEventListener("input", e => { SETS.cond = e.target.value; renderSetDetail(g); });
@@ -8073,6 +8064,61 @@ function renderAccounts(){
     $("#armYes").addEventListener("click", async () => { closeModal(); try{ ACC.info = await server("accountRemove", b.dataset.arm); renderAccounts(); toast("Account removed."); }catch(e){ toast(e.message, 6000); } });
   }));
 }
+// ---- the browser's / phone's Back steps through the site: an open popup closes first, then the screen you were on
+// before (the tab, the set or Secret Lair drop you opened, the deck); it only leaves the site from where you started.
+const NAV = {ign: 0, applying: false};
+function navState(){
+  const t = store.get("pd_tab") || "deals", s = {t};
+  if (t === "sets" && SETS.open) s.set = SETS.open;
+  if (t === "sl" && SL.detail) s.sl = SL.detail;
+  if (t === "decks" && DK.cur) s.deck = DK.cur;
+  if (t === "col" && COL.back) s.cb = COL.back.deck || 1;
+  return s;
+}
+function topOverlay(){   // the popup on top, and how to close it
+  const pb = $("#phBig"); if (pb) return () => { const b = pb.querySelector("#phbClose"); if (b) b.click(); else pb.remove(); };
+  if ($("#dkView")) return dkViewClose;
+  if ($("#lightbox") && $("#lightbox").classList.contains("on")) return () => $("#lightbox").click();
+  if ($("#colModal") && $("#colModal").classList.contains("on")) return closeModal;
+  if ($("#sheet") && $("#sheet").classList.contains("on")) return closeSheet;
+  if ($("#cardSheet") && !$("#cardSheet").hidden) return closeCardSheet;
+  return null;
+}
+function navSoon(){ setTimeout(navSync, 0); }
+function navSync(){
+  if (NAV.ign || NAV.applying) return;
+  try{
+    const st = history.state || {}, ov = !!topOverlay(), cur = navState();
+    if (!st.nav){ history.replaceState({nav: cur}, "", "#" + cur.t); if (ov) history.pushState({nav: cur, ov: 1}, ""); return; }
+    if (st.ov && !ov){ NAV.ign++; history.back(); return; }   // the popup was closed on the page: drop its Back step
+    if (JSON.stringify(cur) !== JSON.stringify(st.nav)){ history.replaceState(Object.assign({}, st, {y: window.scrollY}), ""); history.pushState({nav: cur}, "", "#" + cur.t); }
+    if (ov && !(history.state || {}).ov) history.pushState({nav: cur, ov: 1}, "");
+  }catch(e){}
+}
+function navApply(s, y){
+  const b = COL.back;
+  NAV.applying = true;
+  try{
+    if (s.t === "sets"){ SETS.open = s.set || ""; SETS.needAll = false; SETS.q = ""; }
+    if (s.t === "sl") SL.detail = s.sl || null;
+    if (s.t === "decks" && s.deck){ DK.cur = s.deck; store.set("pd_deck", DK.cur); }
+    switchTab(s.t);
+    if (s.t === "sets") renderSETS(); else if (s.t === "sl") renderSL(); else if (s.t === "decks") renderDECKS();
+  }catch(e){} finally{ NAV.applying = false; }
+  try{ history.replaceState(Object.assign({}, history.state || {}, {nav: navState()}), "", "#" + s.t); }catch(e){}
+  requestAnimationFrame(() => setTimeout(() => { window.scrollTo(0, y || 0);
+    if (b && s.t === "decks"){ const el = document.querySelector(`#deckBody [data-dkown="${b.row}"], #deckBody [data-dkmark="${b.row}"]`), row = el && el.closest(".dk-row");   // the card you tapped blinks
+      if (row){ row.classList.add("dk-flash"); setTimeout(() => row.classList.remove("dk-flash"), 1600); } } }, 30));
+}
+window.addEventListener("popstate", e => {
+  if (NAV.ign){ NAV.ign--; navSync(); return; }
+  const close = topOverlay();
+  if (close){ close(); return; }
+  const st = e.state;
+  if (st && st.nav) navApply(st.nav, st.y); else navSync();
+});
+document.addEventListener("click", navSoon);
+document.addEventListener("keyup", navSoon);
 const TABLOAD = {};
 function switchTab(name){
   if (name !== "col" && typeof COL !== "undefined" && COL.back){ COL.back = null; COL.q = ""; COL.layout = store.get("pd_col_layout") || "list"; }   // leaving a deck's "your copies" look
@@ -8080,7 +8126,7 @@ function switchTab(name){
   renderGroups(name);
   document.querySelectorAll("section.tab").forEach(s => s.classList.toggle("on", s.id === "tab-" + name));
   store.set("pd_tab", name);
-  try{ if (name !== "detail" && location.hash !== "#" + name) history.replaceState(null, "", "#" + name); }catch{}
+  navSoon();
   const stale = k => Date.now() - (TABLOAD[k] || Date.now()) > 15 * 6e4;   // reopened after a while: quietly fetch fresh data (no Refresh buttons)
   if (name === "sl" && typeof loadSL === "function"){ loadSL(stale("sl")); TABLOAD.sl = Date.now(); if (!GUESTVIEW()) loadCOL(); }
   if (name === "sealed" && typeof loadCOL === "function"){ loadCOL(stale("sealed") && !S.dirty.has("collection")); TABLOAD.sealed = Date.now(); if (typeof loadSL === "function") loadSL(); renderSD(); }
