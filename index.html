@@ -684,7 +684,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 16, 05:25 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 05:11 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -4288,8 +4288,11 @@ function isVintageDeal(d){   // the card's set release year (dashboard yr), or w
   return !!d && d.fair_src === "vintage";
 }
 const learnedOf = d => { const m = /^learned:([\d.]+):(\d+)/.exec((d && d.fair_src) || ""); return m ? {share: +m[1], n: +m[2]} : null; };
-const condMult = (c, d) => { const L = learnedOf(d); if (L && c === condCode(d.condition)) return L.share;   // this card's own share, learned from eBay listings
-  const vin = d && isVintageDeal(d), v = parseFloat(((vin ? S.ini.conditions_vintage : S.ini.conditions) || {})[c]); return v > 0 ? v : (vin ? DEF_MULT_V : DEF_MULT)[c]; };
+const condTable = (c, d) => { const vin = d && isVintageDeal(d), v = parseFloat(((vin ? S.ini.conditions_vintage : S.ini.conditions) || {})[c]); return v > 0 ? v : (vin ? DEF_MULT_V : DEF_MULT)[c]; };
+const condMult = (c, d) => { const L = learnedOf(d);
+  if (L && c === condCode(d.condition)){ const i = COND_LIST.indexOf(c), up = i > 0 ? condTable(COND_LIST[i - 1], d) : null, dn = i >= 0 && i < COND_LIST.length - 1 ? condTable(COND_LIST[i + 1], d) : null;
+    return Math.max(dn || 0, Math.min(up || 9, L.share)); }   // this card's own share, learned from eBay listings - kept between its neighbours (MP never above LP)
+  return condTable(c, d); };
 function gradeCondOf(label){   // "CGC 5.5" -> "MP" ([graded_conditions])
   const G = S.ini.graded_conditions || {}, m = String(label || "").match(/(10|[1-9](?:\.5)?)\s*$/);
   if (!m) return String(G.unknown || "MP").toUpperCase();
