@@ -508,6 +508,8 @@ body.cs-open{overflow:hidden}
 .qk-q2{font-size:16px;font-weight:600;margin:12px 0 8px}
 .qk-mode{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:4px 0 10px}.qk-mode button{border:0;background:transparent;color:var(--ink);font:inherit;font-weight:600;padding:7px 16px;cursor:pointer}.qk-mode button.on{background:var(--accent);color:#fff}
 .qg-ans{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.qg-ans .btn{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px}.qg-ans .btn b{font-size:17px}.qg-ans .btn span{font-size:11px;opacity:.75;font-weight:400}.sc{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.paused-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#3a2f0e;border:1px solid #8a6d1a;color:#f2d27a;border-radius:10px;padding:10px 14px;margin:12px 0 0}
+.ss-line{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:9px 0}.ss-line>div:first-child{flex:1}
 .wsrc{display:block;font-size:11px;color:var(--muted);text-decoration:none;margin-top:1px;font-weight:400}.wsrc:hover{text-decoration:underline;color:var(--muted)}
 .sc-g{font-size:13px;font-weight:700;padding:12px 14px 4px}
 .sc-row{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:minmax(0,1fr) 64px 76px 300px 132px;gap:12px;align-items:center;padding:9px 14px;border-top:1px solid var(--soft)}
@@ -684,7 +686,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 17, 10:38 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 05:51 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -7529,7 +7531,7 @@ function renderSETS(){
       const pct = pr && pr.total ? Math.round(pr.have / pr.total * 100) : 0;
       return `<button class="sl-card" data-goal="${esc(k)}" style="padding:14px"><div class="row" style="gap:10px;align-items:center">
           ${nm && nm.set ? setIcon(nm.set) : ""}
-          <div style="text-align:left"><div class="cname">${esc(nm ? nm.set_name : g.set.toUpperCase())}${esc(goalLabel(g))}${/^paused$/i.test(g.status || "") ? ' <span class="badge">PAUSED</span>' : ""}</div>
+          <div style="text-align:left"><div class="cname">${esc(nm ? nm.set_name : g.set.toUpperCase())}${esc(goalLabel(g))}${/^paused$/i.test(g.status || "") ? ' <span class="badge" style="background:#4a3a10;color:#f2c94c">⏸ Paused</span>' : ""}</div>
           <div class="cset">${esc(g.set.toUpperCase())}${nm ? " · " + esc((nm.released_at || "").slice(0, 4)) : ""}${/^(yes|true|1)$/i.test(g.skip_basics || "") ? " · no basics" : ""}</div></div></div>
         ${pr ? `<div class="bar" style="margin:12px 0 6px"><span style="width:${pct}%"></span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px"><span><b>${pr.have}</b> / ${pr.total} (${pct}%)</span><span>${pr.need.length ? `need ${pr.need.length}` : "<b>Complete!</b>"}</span></div>
@@ -7688,6 +7690,33 @@ function wireOwnedSets(box){
   const oq = $("#ownQ"); if (oq) oq.addEventListener("input", e => { SETS.ownQ = e.target.value; const pos = e.target.selectionStart; renderSETS(); const f = $("#ownQ"); if (f){ f.focus(); f.setSelectionRange(pos, pos); } });
   const om = $("#ownMore"); if (om) om.addEventListener("click", () => { SETS.ownAll = !SETS.ownAll; renderSETS(); });
 }
+// ---- a set's settings in one place: each line shows what it's set to now
+function openSetSettings(g, pr){
+  const draw = () => {
+    const nb = /^(yes|true|1)$/i.test(g.skip_basics || ""), nm = /^NM$/i.test(g.want_cond || ""), paused = /^paused$/i.test(g.status || "");
+    const tog = (id, on, a, b) => `<span class="seg"><button type="button" class="btn small${on ? "" : " ghost"}" data-ss="${id}" data-v="1">${a}</button><button type="button" class="btn small${on ? " ghost" : ""}" data-ss="${id}" data-v="0">${b}</button></span>`;
+    const line = (t, sub, ctl) => `<div class="ss-line"><div><b>${t}</b><div class="mut" style="font-size:12.5px">${sub}</div></div><div>${ctl}</div></div>`;
+    openModal(`<h3>⚙ Set Settings</h3>
+      ${line("Upgrade to NM", "Only a Near Mint copy completes a card - worse copies stay on your need list.", tog("nm", nm, "On", "Off"))}
+      ${line("Basic lands", "Count the basic lands (every art) toward finishing this set, or leave them out.", tog("nb", !nb, "Count", "Skip"))}
+      ${line("Deal alert at", "How far under fair value an eBay listing must be to show as a deal.", `<input id="ssDeal" class="num" type="number" style="width:70px" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}"> % off`)}
+      ${line("Pause set", "Paused: no eBay deals, price alerts or NEED tags for its missing cards. Progress and cards stay.", tog("pause", paused, "Paused", "Active"))}
+      <div class="ss-line" style="border-top:1px solid var(--line);margin-top:10px;padding-top:14px"><div><b>Remove set</b><div class="mut" style="font-size:12.5px">Stops tracking it. Your cards stay in Collection.</div></div><div><button type="button" class="btn small" id="ssDel" style="background:#7a2a22;border-color:#7a2a22;color:#fff">Remove Set</button></div></div>
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" id="ssDone" type="button">Done</button></div>`);
+    $("#colModalBody").querySelectorAll("[data-ss]").forEach(b => b.addEventListener("click", () => {
+      const on = b.dataset.v === "1", id = b.dataset.ss;
+      if (id === "nm"){ if (on === nm) return; g.want_cond = on ? "NM" : ""; }
+      if (id === "nb"){ if (on === !nb) return; g.skip_basics = on ? "no" : "yes"; loadSetCards(g); }
+      if (id === "pause"){ if (on === paused) return; g.status = on ? "paused" : "active"; }
+      markDirty("collection"); draw(); renderSetDetail(g);
+    }));
+    $("#ssDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
+    $("#ssDone").addEventListener("click", closeModal);
+    $("#ssDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
+      COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); closeModal(); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
+  };
+  draw();
+}
 function renderSetDetail(g){
   const box = $("#setsBody"), k = goalKey(g), pr = goalProgress(g, COL.binder), nm = (SETS.cards[k] || [])[0];
   const title = nm ? nm.set_name : g.set.toUpperCase();
@@ -7705,8 +7734,9 @@ function renderSetDetail(g){
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
   let L = `<div class="row" style="justify-content:space-between;align-items:flex-start"><div>
       <h2 style="margin-top:0">${esc(title)}${esc(goalLabel(g))}</h2>
-      <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${pr.wantNM ? " · <b>only NM copies count</b>" : ""}${paused ? " · <b>paused</b> (not being tracked)" : ""}</p></div>
-      ${g._temp ? `<div class="row"><button class="btn small" id="setStar" title="Track this set: what's missing, what it costs to finish, NEED tags on deals">☆ Complete This Set</button></div></div>` : `<div class="row"><button class="btn ${pr.wantNM ? "" : "ghost "}small" id="setNMt" title="Only a Near Mint copy completes a card - worse copies stay on the need list until you upgrade">${pr.wantNM ? "✓ Upgrading to NM" : "Upgrade to NM"}</button><button class="btn ghost small" id="setNBt" title="Count the basic lands (every art) toward this set, or leave them out">${isNB ? "Include Basic Lands" : "Skip Basic Lands"}</button><button class="btn ghost small" id="setPause" title="Paused: its missing cards lose the NEED tag and aren't price-tracked or scanned on eBay. Your progress and cards stay.">${paused ? "Resume Set (Brings Back NEED Tags on Deals)" : "Pause Set (Temporarily Removes NEED Tags on Deals)"}</button><button class="btn ghost small" id="setDel">Remove Set</button></div></div>`}
+      <p class="sub" style="margin:0">${esc(g.set.toUpperCase())}${nm ? " · released " + esc(nm.released_at || "") : ""}${isNB ? " · basic lands not counted" : ""}${pr.wantNM ? " · <b>only NM copies count</b>" : ""}</p></div>
+      ${g._temp ? `<div class="row"><button class="btn small" id="setStar" title="Track this set: what's missing, what it costs to finish, NEED tags on deals">☆ Complete This Set</button></div></div>` : `<div class="row"><button class="btn ghost small" id="setCfg" title="Upgrade to NM, basic lands, deal alert, pause, remove">⚙ Settings</button></div></div>`}
+    ${paused ? `<div class="paused-bar"><span>⏸ <b>Paused</b> - no eBay deals or price alerts for this set. Your progress and cards stay.</span><button class="btn small" id="setResume">Resume</button></div>` : ""}
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin:14px 0">
       <div class="stat"><span>Progress</span><b>${pr.have} / ${pr.total}</b><span>${pct}% complete</span></div>
       <div class="stat"><span>Still need</span><b>${pr.need.length} cards</b><span>${pr.unpriced ? pr.unpriced + " without a price" : ""}</span></div>
@@ -7717,7 +7747,6 @@ function renderSetDetail(g){
     <div class="panel row"><input id="setFind" placeholder="Search this set…" value="${esc(SETS.q)}" style="flex:1;min-width:180px">
       <select id="setView"><option value="need">Cards I Need</option><option value="have">Cards I Have</option><option value="all">Whole Set</option></select>
       <label for="setCond" class="mut" style="font-size:13px">Best copy</label><select id="setCond" title="Show cards by the condition of your best copy"><option value="">Any condition</option>${COND_LIST5.map(c => `<option value="${c}">${c}</option>`).join("")}<option value="none">Don't have</option></select>
-      ${g._temp ? "" : `<label>Deal alert at <input id="setDeal" class="num" type="number" value="${esc(g.deal_pct || "")}" placeholder="${esc((S.ini.deals || {}).default_deal_pct || 20)}">% off</label>`}
       <span class="seg" role="group" aria-label="Layout"><button type="button" class="btn small${binder ? "" : " ghost"}" data-slayout="binder">▦ Binder</button><button type="button" class="btn small${binder ? " ghost" : ""}" data-slayout="list">☰ List</button></span>
       <span class="status">${rows.length} cards</span></div>
     ${binder ? `<div class="panel"><div id="setBinder"></div></div>` : `<div class="panel scroll"><div class="tiles" id="setTiles"></div><table id="setTable" class="desk-table"></table></div>`}
@@ -7747,14 +7776,8 @@ function renderSetDetail(g){
   box.querySelectorAll("[data-spocket]").forEach(b => b.addEventListener("click", () => openSetPocket(g, rows[+b.dataset.spocket], pr)));
   if ($("#setStar")) $("#setStar").addEventListener("click", () => { const ng = {set: g.set, finish: "all", skip_basics: "no", status: "active", deal_pct: "", notes: ""};
     COL.goals.push(ng); markDirty("collection"); SETS.open = goalKey(ng); renderSETS(); toast("Completing it now - its missing cards start getting tracked on the next morning run.", 6000); });
-  if ($("#setNMt")) $("#setNMt").addEventListener("click", () => { g.want_cond = pr.wantNM ? "" : "NM"; markDirty("collection"); renderSetDetail(g);
-    toast(pr.wantNM ? "Any condition counts again." : "Upgrade to NM: cards you only have in worse condition are back on your need list.", 5000); });
-  $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g); const f = $("#setFind"); f.focus(); f.setSelectionRange(pos, pos); });
-  if ($("#setDeal")) $("#setDeal").addEventListener("change", e => { g.deal_pct = e.target.value.trim(); markDirty("collection"); toast("Saved."); });
-  if ($("#setNBt")) $("#setNBt").addEventListener("click", () => { g.skip_basics = isNB ? "no" : "yes"; markDirty("collection"); loadSetCards(g); renderSetDetail(g); toast(isNB ? "Basic lands now count toward this set." : "Basic lands left out of this set."); });
-  if ($("#setPause")) $("#setPause").addEventListener("click", () => { g.status = paused ? "active" : "paused"; markDirty("collection"); renderSetDetail(g); });
-  if ($("#setDel")) $("#setDel").addEventListener("click", e => { if (!e.target.dataset.armed){ e.target.dataset.armed = 1; e.target.textContent = "Tap again to remove"; return; }
-    COL.goals = COL.goals.filter(x => x !== g); markDirty("collection"); SETS.open = ""; renderSETS(); toast("Set removed. Your cards stay in Collection."); });
+  if ($("#setResume")) $("#setResume").addEventListener("click", () => { g.status = "active"; markDirty("collection"); renderSetDetail(g); toast("Resumed - its missing cards are tracked and scanned on eBay again."); });
+  if ($("#setCfg")) $("#setCfg").addEventListener("click", () => openSetSettings(g, pr));
   box.querySelectorAll("[data-got]").forEach(b => b.addEventListener("click", () => { const [id, f] = b.dataset.got.split("~"), c = (SETS.cards[k] || []).find(x => x.id === id); if (!c) return;
     openColEdit(null, {name: c.name, set: c.set, number: c.collector_number, finish: f || "nonfoil", scryfall_id: c.id, source: "Set: " + c.set_name}); }));
   box.querySelectorAll("[data-zoom]").forEach(im => im.addEventListener("click", () => { $("#lightboxImg").src = sfImg(im.dataset.zoom, "large"); $("#lightbox").classList.add("on"); }));
