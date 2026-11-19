@@ -694,7 +694,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 02:45 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 02:50 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3968,7 +3968,9 @@ function wireGrade(d){
   if ($("#qkFwd")) $("#qkFwd").addEventListener("click", () => go(pos + 1 < hist.length ? pos + 1 : null));
   const car = $("#qkItem .ph-car");   // right-click the photo: next photo + the grades, right under the pointer
   if (car) car.addEventListener("contextmenu", e => { e.preventDefault(); qgMenu(e.clientX, e.clientY, car); });
+  if (car && QGM.keep){ const k = QGM.keep; QGM.keep = null; setTimeout(() => { if (document.body.contains(car)) qgMenu(k.x, k.y, car); }, 300); }   // graded from the menu: it comes back on the next card
 }
+const QGM = {keep: null};
 function qgMenu(x, y, car){
   qgMenuClose();
   const m = document.createElement("div"), multi = car.querySelectorAll(".aud-ph").length > 1;
@@ -3983,6 +3985,8 @@ function qgMenu(x, y, car){
     if (k === "next"){ const r = car.querySelector(".ph-arr.r"), strip = car.querySelector(".aud-photos");
       if (r && !r.disabled) r.click(); else if (strip) strip.scrollTo({left: 0, behavior: "smooth"});   // after the last photo: back to the first
       return; }   // the menu stays open: keep flipping, then pick a grade
+    QGM.keep = {x: parseFloat(m.style.left) + 20, y: parseFloat(m.style.top) + 14};   // same spot on the next card
+    setTimeout(() => { QGM.keep = null; }, 5000);   // no next card came: forget it
     qgMenuClose();
     const t = k === "tell" ? $('#qkItem [data-cgw="tell"]') : $(`#qkItem [data-cg="${k}"]`); if (t) t.click(); });
   setTimeout(() => { document.addEventListener("mousedown", qgMenuOut, true); window.addEventListener("scroll", qgMenuClose, {once: true, passive: true}); }, 0);
