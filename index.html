@@ -577,7 +577,7 @@ body.cs-open{overflow:hidden}
 #sfPop{position:fixed;z-index:30;display:none;width:250px;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
 #sfPop img{width:100%;border-radius:10px;display:block}#sfPop div{font-size:11px;color:var(--muted);text-align:center;margin-top:4px}
 .srv-pre{font-size:12px;background:var(--soft);padding:8px;border-radius:6px;overflow:auto;white-space:pre}
-.guide-toc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}.guide-toc a{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;text-decoration:none;color:var(--ink);background:var(--panel)}
+.guide-toc{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px;position:sticky;top:var(--hdr-h,64px);z-index:4;background:var(--bg);padding:8px 0;box-shadow:0 6px 8px -8px rgba(0,0,0,.5)}.guide-toc a.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.guide-toc a{padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;text-decoration:none;color:var(--ink);background:var(--panel)}
 .guide-steps{display:grid;gap:10px}.gstep{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}.gstep p{margin:4px 0 0;font-size:14px}
 .gnum{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
 .guide-tools{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}.guide-tools div{background:var(--soft);border-radius:8px;padding:10px}.guide-tools span{display:block;font-size:13px;color:var(--muted);margin-top:3px}
@@ -691,7 +691,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 06:59 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 07:05 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -2865,9 +2865,17 @@ function renderGuide(){
   $("#guideSpecial").innerHTML = GUIDE_SPECIAL.map(c => `<div class="gcmp gone"><div class="gpair one">${c.img ? guideCard(...c.img) : guideCard("", "", c.label, c.q)}</div>
     <div><h4>${esc(c.title)}</h4><ul class="guide-list">${c.tells.map(t => `<li>${t}</li>`).join("")}</ul></div></div>`).join("");
 }
-document.addEventListener("click", e => { const a = e.target.closest(".guide-toc a"); if (!a) return; e.preventDefault();
-  const el = document.querySelector(a.getAttribute("href")), head = document.querySelector("header");
-  if (el) window.scrollTo({top: el.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - 10, behavior: "smooth"}); });
+let TOCPICK = null;
+document.addEventListener("click", e => { const a = e.target.closest(".guide-toc a"); if (!a) return; e.preventDefault(); TOCPICK = a;
+  const el = document.querySelector(a.getAttribute("href")), head = document.querySelector("header"), toc = a.closest(".guide-toc");
+  if (el) window.scrollTo({top: el.getBoundingClientRect().top + scrollY - (head ? head.offsetHeight : 0) - (toc ? toc.offsetHeight : 0) - 10, behavior: "smooth"}); });
+window.addEventListener("scroll", () => {   // the section you're reading lights up in the sticky menu
+  const toc = document.querySelector(".guide-toc"); if (!toc || !toc.offsetParent) return;
+  const line = toc.getBoundingClientRect().bottom + 20; let cur = null;
+  toc.querySelectorAll("a").forEach(a => { const el = document.querySelector(a.getAttribute("href")); if (el && el.getBoundingClientRect().top <= line) cur = a; });
+  const bottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 4, pe = TOCPICK && document.querySelector(TOCPICK.getAttribute("href"));
+  if (bottom && pe && pe.getBoundingClientRect().top < innerHeight) cur = TOCPICK;   // the end of the page can't scroll a short section to the top: keep the one you tapped
+  toc.querySelectorAll("a").forEach(a => a.classList.toggle("on", a === cur)); }, {passive: true});
 // ---------------------------------------------------------------- Review: one panel for everything you tell it about a deal
 // Right card/edition? · Condition (+ why) · Good deal? (+ reason) · Bought? · Note -> one Save feeds every system:
 //   collection/deal_feedback.csv (hides it, blocks sellers, comments become rules), collection/deal_condition.csv (re-prices
