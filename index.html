@@ -691,7 +691,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 07:05 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 11:38 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1380,9 +1380,28 @@ $("#signOutBtn").addEventListener("click", () => {
 });
 
 // Scryfall: try directly from the browser, fall back to going through Google
+// ---- prices are TCGplayer's: the daily run saves the TCGplayer prices it used (data/tcg_prices.json, by TCGplayer product
+// id) and every Scryfall card the desk looks up gets them - Market as the price (Listed Median if it hasn't sold lately)
+const TCGP = {p: null, date: "", load: null};
+function tcgReady(){
+  if (!TCGP.load) TCGP.load = (async () => {
+    try{ const f = await GH.readFiles(["data/tcg_prices.json"]); const j = JSON.parse((f["data/tcg_prices.json"] || {}).text || "{}"); TCGP.p = j.p || {}; TCGP.date = j.date || ""; }
+    catch(e){ TCGP.load = null; } })();   // not signed in yet: try again next time
+  return TCGP.load;
+}
+function tcgPatch(c){
+  if (!c || c.object !== "card" || !TCGP.p || c._tcg) return c;
+  const pr = Object.assign({}, c.prices || {}), t = {};
+  [["nonfoil", c.tcgplayer_id, "", "usd"], ["foil", c.tcgplayer_id, "f", "usd_foil"], ["etched", c.tcgplayer_etched_id, "e", "usd_etched"]].forEach(([f, id, suf, k]) => {
+    const v = id && TCGP.p[id + suf]; if (!v) return;
+    t[f] = {m: v[0], l: v[1], md: v[2]}; const m = v[0] != null ? v[0] : v[2]; pr[k] = m == null ? null : (+m).toFixed(2); });
+  c._tcg = t; c.prices = pr; return c;
+}
+const tcgPatchAll = j => { if (j && Array.isArray(j.data)) j.data.forEach(tcgPatch); else tcgPatch(j); return j; };
 async function sf(pathAndQuery){
-  try{ const r = await fetch("https://api.scryfall.com" + pathAndQuery); if (r.ok || r.status === 404) return r.status === 404 ? {data: []} : r.json(); }catch{}
-  return JSON.parse(await server("scryfall", pathAndQuery));
+  await Promise.race([tcgReady(), new Promise(r => setTimeout(r, 4000))]).catch(() => {});
+  try{ const r = await fetch("https://api.scryfall.com" + pathAndQuery); if (r.ok || r.status === 404) return r.status === 404 ? {data: []} : tcgPatchAll(await r.json()); }catch{}
+  return tcgPatchAll(JSON.parse(await server("scryfall", pathAndQuery)));
 }
 
 // ---------------------------------------------------------------- state
@@ -2268,7 +2287,16 @@ function qualityHTML(d){
   if (d.reprint && !reviewedByMe(d)) h += /^#/.test(d.reprint)
     ? `<span class="flag sus" title="The listing doesn't say which version this is. It's valued as the one you track - if it's the ${esc(d.reprint)} instead, it isn't a deal. Check the photos.">which version? could be ${esc(d.reprint)}</span> `
     : `<span class="flag sus" title="Priced like the ${esc(d.reprint)} reprint - check the photos (border, corners)">possible ${esc(d.reprint)}?</span> `;
+  const tl = tcgLowOf(d);
+  if (tl && +d.total > tl.v) h += `<span class="flag sus" title="TCGplayer's cheapest copy was ${money(tl.v)}${tl.date ? " (" + esc(tl.date) + " data)" : ""} - this one costs more, so you could just buy it there. It won't ring your phone.">cheaper on TCGplayer</span>`;
   return h;
+}
+/* TCGplayer's cheapest copy of the deal's card (from the scan, or the card's daily prices) */
+function tcgLowOf(d){
+  const m = String(d.tcg_low || "").match(/^([\d.]+)@?(.*)$/);
+  if (m && +m[1]) return {v: +m[1], date: m[2]};
+  const c = dealCard(d);
+  return c && +c.tl ? {v: +c.tl, date: c.td || ""} : null;
 }
 // ---- your feedback on deals (collection/deal_feedback.csv) - teaches the scanner + sniper
 const FB_COLS = ["at", "url", "card", "key", "seller", "verdict", "reason", "note", "title", "fault"];
@@ -6717,7 +6745,8 @@ async function dkFetch(rows){
       const r = await fetch("https://api.scryfall.com/cards/collection", {method: "POST", headers: {"Content-Type": "application/json"},
         body: JSON.stringify({identifiers: part.map(x => x.set && x.collector_number ? {set: x.set, collector_number: x.collector_number} : {name: x.name})})});
       if (!r.ok) throw new Error("Scryfall " + r.status);
-      const j = await r.json(), got = j.data || [];
+      await Promise.race([tcgReady(), new Promise(r2 => setTimeout(r2, 4000))]).catch(() => {});
+      const j = tcgPatchAll(await r.json()), got = j.data || [];
       part.forEach(x => {
         const c = got.find(g => x.set && x.collector_number ? g.set === x.set && g.collector_number === x.collector_number
           : g.name.toLowerCase() === x.name.toLowerCase() || dkFront(g.name) === x.name.toLowerCase());
@@ -6935,7 +6964,7 @@ function renderDECKS0(box){
   const fmt = `<div class="dk-fmt${loading ? "" : chk.ok ? " ok" : " bad"}">${DK_EDIT() ? `<select id="dkFmt" aria-label="Format">${FORMATS.filter(f => f.game === "mtg").map(f => `<option value="${f.id}"${f.id === chk.f.id ? " selected" : ""}>${esc(f.name)}</option>`).join("")}</select>` : `<b>${esc(chk.f.name)}</b>`}
     <span>${loading ? "Checking…" : !chk.f.size ? "No deck rules checked." : chk.ok ? `✓ ${chk.count} of ${chk.f.size}${chk.f.exact ? "" : "+"} · every card legal${chk.f.cmdr ? " · in the commander's colors" : ""}` : `⚠ ${chk.out.length} problem${chk.out.length === 1 ? "" : "s"}`}</span>
     ${!loading && chk.out.length ? `<ul>${chk.out.slice(0, 12).map(o => `<li>${esc(o)}</li>`).join("")}${chk.out.length > 12 ? `<li>…and ${chk.out.length - 12} more</li>` : ""}</ul>` : ""}</div>`;
-  box.innerHTML = head + chips + stats + fmt + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: Scryfall's daily market prices (from TCGplayer) for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
+  box.innerHTML = head + chips + stats + fmt + tools + list + `<p class="mut" style="font-size:12px;margin:10px 2px">Prices: TCGplayer Market for the printing shown. <b>Put in Deck</b> tags one of your copies (any printing, any binder) as sleeved in this deck: it stays in your collection and still counts toward your Sets. A copy tagged to another deck isn't free for this one. Plain basic lands are never counted as needed. Tap <b>All Printings</b> to see every version${DK_EDIT() ? ", switch the one on the list" : ""}${ROLE === "owner" ? " or add one to your Want List" : ""}.</p>`;
   wireDecks(box);
 }
 // your free copies as "M19 #314 NM" (foil / language when not plain), up to two printings, then "+N more"
@@ -8260,7 +8289,7 @@ $("#allSortSel").addEventListener("change", e => { const [k, dir] = e.target.val
 $("#runBtn").addEventListener("click", async () => {
   const d = (S.runs || {}).deals || {};
   if (!await costConfirm("Run a scan now?", ["Optional - this happens on its own every morning (prices) and every 3 hours (deals).",
-    `eBay: about <b>${d.searches || 300} searches</b> for the deal scan, plus a few full-listing checks.`, aiNote(), "Prices from Scryfall are free. Takes about 5 minutes."], "Run It")) return;
+    `eBay: about <b>${d.searches || 300} searches</b> for the deal scan, plus a few full-listing checks.`, aiNote(), "Prices from TCGplayer (tcgcsv) are free. Takes about 5 minutes."], "Run It")) return;
   await flushSaves();
   const b = $("#runBtn"); b.disabled = true;
   try{ await GH.runWorkflow(); toast("Scan started. This page updates itself when it's done (about 5 minutes).", 6000); watchRun("prices"); }
