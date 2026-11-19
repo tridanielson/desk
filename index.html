@@ -691,7 +691,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 06:07 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 18, 06:59 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -6112,7 +6112,8 @@ const condSummary = cs => { const n = {}; (cs || []).forEach(c => n[c] = (n[c] |
 // ---- Binder view: each card a pocket with its picture; one pocket per condition; Bulk is the last pocket
 const COND_BADGE = {NM: ["#ece6dc", "#1b120a"], LP: ["#c9d6e2", "#1b120a"], MP: ["#e0a24a", "#1b120a"], HP: ["#e07b5a", "#1b120a"], DMG: ["#b0574a", "#fff"]};
 const cardImg = i => i.sid ? `https://cards.scryfall.io/normal/front/${i.sid[0]}/${i.sid[1]}/${i.sid}.jpg`
-  : i.set && i.number ? `https://api.scryfall.com/cards/${encodeURIComponent(i.set.toLowerCase())}/${encodeURIComponent(i.number)}?format=image&version=normal` : "";
+  : i.set && i.number ? `https://api.scryfall.com/cards/${encodeURIComponent(i.set.toLowerCase())}/${encodeURIComponent(i.number)}?format=image&version=normal`
+  : i.set && i.name ? sfImgNamed(i.name.split(" // ")[0], encodeURIComponent(i.set.toLowerCase())) : "";   // no number saved: the card by name in that set
 function colBinderHTML(show, bulk){
   const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.row && i.row.grade ? String(i.row.grade) : i.condition || "NM").toUpperCase(), [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
     return `<button type="button" class="pocket" data-pocket="${k}" title="${esc(i.name)}">
@@ -6399,7 +6400,7 @@ async function colPrints(name, r){
   // first page shows at once; the rest (basic lands have 1,000+) load in the background while you type in the find box.
   // Only the matches you can see get pictures, so it stays quick.
   let path = "/cards/search?unique=prints&order=released&dir=asc&include_extras=true&q=" + encodeURIComponent(`!"${name}" -is:digital`);
-  const tiles = [], CAP = 24; let total = 0, done = false, grid, f, more;
+  const tiles = [], CAP = 60; let total = 0, done = false, grid, f, more;
   const stale = () => my !== colPrints.seq || !document.body.contains(box) || $("#eName").value.trim().toLowerCase() !== name.toLowerCase();
   const add = prints => { for (const p of prints) for (const fin of p.finishes || ["nonfoil"]) tiles.push({p, fin, find: [p.set_name, p.set, p.collector_number, (p.released_at || "").slice(0, 4), fin, p.lang !== "en" ? langName(p.lang) + " " + (p.printed_name || "") : ""].join(" ").toLowerCase()}); };
   const draw = () => {
@@ -6424,6 +6425,8 @@ async function colPrints(name, r){
     more.textContent = !hit.length ? (done ? "No printing matches - try the set's name, its code, or the year." : "No match yet -" + loading)
       : hit.length > CAP ? `Showing ${CAP} of ${hit.length} - type the set to narrow it down.${loading}` : loading.trim();
     more.hidden = !more.textContent;
+    const cnt = box.querySelector("#ePrCount");   // a printing that also came in foil is two choices: count what you can tap
+    if (cnt && !(tiles.length === 1 && done)) cnt.textContent = `${done ? tiles.length : tiles.length + "+"} to choose from${tiles.length > total ? ` (${total} printings - some also in foil)` : ""}, oldest first - tap the one you have.`;
   };
   const cache = colPrints.cache || (colPrints.cache = {}), ck = name.toLowerCase(), all = [];
   try{
@@ -6431,8 +6434,8 @@ async function colPrints(name, r){
     total = j.total_cards || (j.data || []).length; add(j.data || []); all.push(...(j.data || []));
     path = j.has_more && j.next_page ? j.next_page.replace("https://api.scryfall.com", "") : null; done = !path;
     if (!tiles.length){ box.innerHTML = `<p class="mut" style="font-size:13px">No printings found - check the name.</p>`; return; }
-    const many = total > CAP || tiles.length > CAP;
-    box.innerHTML = `<p style="margin:4px 0 0;font-size:13px"><b>Which printing?</b> <span class="mut">${tiles.length === 1 && done ? "Only one - picked for you." : `${total} printings, oldest first - tap the one you have.`}</span></p>
+    const many = total > 24 || tiles.length > 24;   // a find box once there are more than a screenful
+    box.innerHTML = `<p style="margin:4px 0 0;font-size:13px"><b>Which printing?</b> <span class="mut" id="ePrCount">${tiles.length === 1 && done ? "Only one - picked for you." : `${total} printings, oldest first - tap the one you have.`}</span></p>
       ${many ? `<input id="ePrFind" type="search" placeholder="Find the set - name, code or year (e.g. Unlimited, 4ED, 1995)" autocomplete="off" style="width:100%;margin-top:6px">` : ""}
       <div class="prints col-prints"></div><p class="mut" id="ePrMore" style="font-size:12px;margin:4px 0 0" hidden></p>`;
     grid = box.querySelector(".prints"); f = $("#ePrFind"); more = $("#ePrMore");
