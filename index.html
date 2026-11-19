@@ -691,7 +691,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 01:46 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 02:27 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -3900,6 +3900,7 @@ function gradePool(){
     if (!/i\.ebayimg\.com/.test(d.images || "") || d._graded || /\b(psa|bgs|cgc|sgc|beckett)\b/i.test(d.title || "") || (DC.map[d.url] || {}).c) return false;
     const a = audOf(d);
     if (a && (COND_LIST.includes(a.condition) || a.edition === "wrong" || a.verdict === "reject" || /photo problem|can't grade/.test(a.note || ""))) return false;
+    if (String((a && a.back) || backSays(d)).toLowerCase() === "no") return false;   // no picture of the back (your answer, else Loupe's - 98% right): can't grade the whole card
     const fb = fbLast(d);
     return !(fb && fb.verdict === "bad" && ["edition", "wrongcard", "fake", "lot", "stock", "verify"].includes(fb.reason));
   }).sort((a, b) => {
@@ -3977,8 +3978,19 @@ function spreadCards(list, max = 2, look = 300){
 }
 function audQueue(){
   const f = AUD.filter;
-  if (f === "quick") return spreadCards(audQueue0());
+  if (f === "quick") return spreadCards(qkCap(audQueue0()));
   return audQueue0();
+}
+/* a card you've already answered 15 times goes to the back of the line - more answers on it teach Loupe little next to a
+   card it's barely seen */
+const QK_CAP = 15;
+function qkCap(list){
+  const n = {};
+  for (const k in AUD.rows){ const c = AUD.rows[k].card; if (c) n[c] = (n[c] || 0) + 1; }
+  if (qgMode() === "cond") return list;   // condition answers count separately (below)
+  const lo = [], hi = [];
+  list.forEach(d => ((n[d.card] || 0) >= QK_CAP ? hi : lo).push(d));
+  return lo.concat(hi);
 }
 function audQueue0(){
   const f = AUD.filter;
