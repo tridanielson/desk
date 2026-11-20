@@ -516,6 +516,7 @@ body.cs-open{overflow:hidden}
 .qg-menu{position:fixed;z-index:60;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.45);display:flex;flex-direction:column;gap:5px}
 .qg-menu button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:6px 9px;cursor:pointer}
 .qg-menu button:hover{border-color:var(--accent);color:var(--accent)}.qg-menu .qm-row{display:flex;gap:4px}.qg-menu .qm-next{font-weight:600}.qg-menu .qm-tell{font-size:12px;color:var(--muted)}
+.rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}.rc-t{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;align-items:flex-start}.rc-q{font-weight:700;font-size:13px}.rc-v{font-size:28px;font-weight:800;line-height:1.1}.rc-t svg{display:block;width:100%;align-self:stretch}.rc-d{font-size:13px;margin-left:8px;font-weight:700;color:var(--muted)}.rc-d.up{color:#5cc28d}.rc-d.dn{color:#f0776d}
 .paused-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#3a2f0e;border:1px solid #8a6d1a;color:#f2d27a;border-radius:10px;padding:10px 14px;margin:12px 0 0}
 .ss-line{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:9px 0}.ss-line>div:first-child{flex:1}
 .wsrc{display:block;font-size:11px;color:var(--muted);text-decoration:none;margin-top:1px;font-weight:400}.wsrc:hover{text-decoration:underline;color:var(--muted)}
@@ -694,7 +695,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 11:13 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 20, 05:53 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -4225,6 +4226,27 @@ function scoreRowHTML(g, r, gi){
       <span class="sc-v ${verdict[1]}">${verdict[0]}</span></button>
     ${open ? `<div class="sc-open">${trendChart("sc-" + id, r.name, r.sub, series)}</div>` : ""}`;
 }
+// ---- the report card: the 4 numbers that answer "can I trust it, is it learning, can it grade, can it replace SlaveAI?"
+function reportCardHTML(){
+  const all = {}; scoreRows().forEach(g => g.rows.forEach(r => { all[r.src + ":" + r.key] = Object.assign({color: g.color}, r); }));
+  const tile = (keys, q, what) => {
+    const r = keys.map(k => all[k]).find(x => x && x.pts.length); if (!r) return `<div class="rc-t"><div class="rc-q">${q}</div><div class="rc-v">–</div><div class="mut" style="font-size:12px">${what} - after a few more runs</div></div>`;
+    const p = r.pts, now = p[p.length - 1].v, t7 = p[p.length - 1].t - 7 * 864e5, was = (p.filter(x => x.t <= t7).slice(-1)[0] || p[0]).v, d = p.length > 1 ? now - was : 0;
+    const v = r.learning && p.length < 5 ? ["Learning", "learn"] : p.length < 3 ? ["New", "flat"] : d >= 3 ? ["Improving", "up"] : d <= -3 ? ["Slipping", "dn"] : ["Steady", "flat"];
+    const lo = Math.max(0, Math.min(...p.map(x => x.v)) - 3), hi = Math.min(100, Math.max(...p.map(x => x.v)) + 3), t0 = p[0].t, t1 = p[p.length - 1].t, W = 160, H = 30;
+    const sx = t => t1 === t0 ? W : (t - t0) / (t1 - t0) * W, sy = x => H - (x - lo) / ((hi - lo) || 1) * H;
+    return `<div class="rc-t"><div class="rc-q">${q}</div><div class="rc-v">${now}%<span class="rc-d ${d >= 1 ? "up" : d <= -1 ? "dn" : ""}">${d > 0 ? "▲ " + d : d < 0 ? "▼ " + -d : ""}</span></div>
+      <div class="mut" style="font-size:12px">${what}</div>
+      ${p.length > 1 ? `<svg viewBox="-2 -2 ${W + 4} ${H + 4}" style="width:100%;height:34px;margin-top:6px" aria-hidden="true"><polyline points="${p.map(x => sx(x.t).toFixed(1) + "," + sy(x.v).toFixed(1)).join(" ")}" fill="none" stroke="${r.color}" stroke-width="2"/></svg>` : ""}
+      <span class="sc-v ${v[1]}">${v[0]}</span></div>`; };
+  const L = all["loupe:vs_loupe"], S = all["loupe:vs_slaveai"], ln = L && L.pts.length ? L.pts[L.pts.length - 1].v : null, sn = S && S.pts.length ? S.pts[S.pts.length - 1].v : null;
+  const race = `<div class="rc-t"><div class="rc-q">Can it replace SlaveAI?</div><div class="rc-v">${ln == null ? "–" : ln + "%"} <span class="mut" style="font-size:14px;font-weight:400">vs ${sn == null ? "–" : sn + "%"}</span></div>
+    <div class="mut" style="font-size:12px">Loupe vs SlaveAI on the same listings (printing)</div>
+    <span class="sc-v ${ln == null || sn == null ? "flat" : ln - sn >= 3 ? "up" : sn - ln >= 3 ? "dn" : "flat"}">${ln == null || sn == null ? "Not enough yet" : ln - sn >= 3 ? "Loupe is ahead" : sn - ln >= 3 ? "SlaveAI is ahead" : "Tied"}</span></div>`;
+  return `<div class="panel"><b style="font-size:16px">📋 Report Card</b> <span class="mut" style="font-size:12px">- the 4 numbers that matter most</span>
+    <div class="rc-grid">${tile(["loupe:sure"], "Can I trust it?", "Right when it decides on its own")}${tile(["loupe:fixed", "loupe:yours"], "Is it learning?", "The same test every time - the honest trend")}
+    ${tile(["loupe:cond_near"], "Can it grade?", "Condition within one grade (NM/LP/MP/HP/DMG)")}${race}</div></div>`;
+}
 function scorecardHTML(){
   const gs = scoreRows();
   if (!gs.length) return '<p class="mut">The scorecard fills in after the next scan.</p>';
@@ -4286,7 +4308,7 @@ function renderTrain(){
       <div class="mut" style="font-size:12px">${esc(arr[0].at.slice(5, 10))} → ${esc(arr[arr.length - 1].at.slice(5, 10))} · ${lo.toFixed(0)}–${hi.toFixed(0)}%</div>`; };
   const yp = (sc.yours || {}).pct, yn = (sc.yours || {}).n, newPct = AC.new_pct != null ? AC.new_pct : AC.pct, dirN = direction(NS), dirY = direction(YH);
   const big = (p, txt, sub) => `<div><span class="ln-big">${p == null ? "–" : p + "%"}</span><span class="ln-what">${txt}${p != null ? ` <span class="mut">(about ${of10(p)} in 10)</span>` : ""}<br><span class="mut">${sub}</span></span></div>`;
-  const simple = `<div class="panel"><b style="font-size:16px">🔍 How Loupe is doing</b> <span class="mut" style="font-size:12px">- it looks at the photos and says which printing the card is</span>
+  const simple = reportCardHTML() + `<details class="panel" id="trAll"${store.get("pd_tr_all") === "1" ? " open" : ""}><summary style="cursor:pointer"><b>All Scores</b> <span class="mut" style="font-size:12px">- every test, trends and both checks</span></summary><div class="panel"><b style="font-size:16px">🔍 How Loupe is doing</b> <span class="mut" style="font-size:12px">- it looks at the photos and says which printing the card is</span>
     <div class="ln-head" style="margin-top:10px">
       ${big(AC.n ? newPct : null, "right on <b>cards it has never seen</b>", AC.n ? `random cards from all of Magic · ${AC.new_n || AC.n} checked so far` : "first numbers after the next scan")}
       ${big(yp != null ? yp : null, "right on <b>listings you checked</b>", yp != null ? `graded against your own reviews · ${yn} listings` : "after the next scan")}</div>
@@ -4296,12 +4318,13 @@ function renderTrain(){
     <p class="mut" style="font-size:12px;margin:10px 0 0">The more listings you review, the better it gets - and the more honest the second number is.</p></div>
     ${(() => { const {random: rs} = audStats(); return `<div class="panel"><b style="font-size:16px">🤖 How SlaveAI is doing</b> <span class="mut" style="font-size:12px">- the paid Claude check</span>
       <p style="margin:8px 0 0">${rs.n ? `Fully right on <b>${rs.n ? Math.round(10 * rs.all / rs.n) : "–"} out of 10</b> randomly picked listings you reviewed <span class="mut">(${rs.all} of ${rs.n})</span>` : 'Review some deals in <b>Full Review → Random Sample</b> to get its score.'}</p></div>`; })()}
-    <div class="panel"><b style="font-size:16px">📈 Progress Over Time</b> <span class="mut" style="font-size:12px">- every test: today, the last 7 days, and since it started</span>${scorecardHTML()}</div>`;
+    <div class="panel"><b style="font-size:16px">📈 Progress Over Time</b> <span class="mut" style="font-size:12px">- every test: today, the last 7 days, and since it started</span>${scorecardHTML()}</div></details>`;
   box.innerHTML = simple + `<details class="panel" id="trDeep"${store.get("pd_tr_deep") === "1" ? " open" : ""}><summary style="cursor:pointer"><b>More detail</b> <span class="mut" style="font-size:12px">- every number, trends and warnings</span></summary>
     ${alerts}<div style="margin-top:10px"><b>🔍 Loupe</b> <span class="mut" style="font-size:12px">(free - runs on every scan)</span>${YH.length >= 2 ? `<div style="margin:8px 0">Right on listings you checked, run by run ${dirY ? `<span style="color:${dirY[2]};font-weight:700">${dirY[0]} ${dirY[1]}</span>` : ""}${line(YH, "yours")}</div>` : ""}<div style="margin-top:8px">${loupe}</div></div>
     <div style="margin-top:16px"><div class="row" style="justify-content:space-between"><span><b>🤖 SlaveAI</b> <span class="mut" style="font-size:12px">(paid Claude check)</span></span>
       <select id="audRange"><option value="all">All Time</option><option value="30">Last 30 Days</option></select></div><div style="margin-top:8px">${audBoard(true)}</div></div></details>`;
   const dp = $("#trDeep"); dp.addEventListener("toggle", () => store.set("pd_tr_deep", dp.open ? "1" : "0"));
+  const da = $("#trAll"); da.addEventListener("toggle", () => store.set("pd_tr_all", da.open ? "1" : "0"));
   const redrawTr = () => { const y = scrollY; renderTrain(); scrollTo(0, y); };
   wireTrends(box, redrawTr); wireScorecard(box, redrawTr);
   $("#audRange").value = AUD.range; $("#audRange").addEventListener("change", e => { AUD.range = e.target.value; renderTrain(); });
