@@ -694,7 +694,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 11:08 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 11:13 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -4138,7 +4138,10 @@ function wireTrends(box, redraw){
 }
 function loupeSeries(keys){
   const T = ((PC.data || {}).trends || []).map(p => Object.assign({t: Date.parse(p.at)}, p));
-  return keys.map(([key, name, tip]) => ({key, name, tip, pts: T.filter(p => p[key] != null).map(p => ({t: p.t, v: p[key]}))}));
+  // a score resting on a handful of listings is shaky: points with under 30 (or, from before sizes were kept, a test's
+  // first 3 days) don't count - no fake "100%" start to fall from
+  return keys.map(([key, name, tip]) => { const all = T.filter(p => p[key] != null), t0 = all.length ? all[0].t : 0;
+    return {key, name, tip, pts: all.filter(p => (p.n && p.n[key] != null) ? p.n[key] >= 30 : p.t >= t0 + 3 * 864e5).map(p => ({t: p.t, v: p[key]}))}; });
 }
 function slaveSeries(){   // each day you reviewed: SlaveAI against your answers over that day and the 6 before it
   const rows = Object.values(AUD.rows).filter(r => r.ai_verdict && r.at).map(r => Object.assign({}, r, {_t: Date.parse(r.at + "Z")})).filter(r => isFinite(r._t)).sort((a, b) => a._t - b._t);
@@ -4166,10 +4169,11 @@ function scoreRows(){
       L("sure", "When it's sure", "The times it decides on its own"),
       L("never_seen", "Cards it has never seen", "Random cards from all of Magic it was never taught"),
       L("all", "All listings it checked", "Your reviews, slabs and listing titles together"),
-      L("yours", "Listings you checked", "Graded against your own reviews"),
+      L("yours", "Listings you checked", "Graded against your own reviews (new, harder ones keep joining)", {fx: "fixed"}),
+      L("fixed", "Same test every time", "The same 1,901 reviewed listings, re-graded - the fairest trend"),
       L("read", "Reading the set code", "Code and number printed on newer cards"),
       L("titles", "Listing titles", "Against what the seller's title says"),
-      L("paintings", "Right painting", "Cards with several paintings in one set")]],
+      L("paintings", "Right painting", "Cards with several paintings in one set", {fx: "fixed_paintings"})]],
     ["Loupe · Photo checks", "#5b9bd5", [
       L("kind_stock", "Spots stock photos", "From the ones you've marked"),
       L("kind_card", "Spots real photos", "Real photos it correctly calls real"),
@@ -4190,9 +4194,16 @@ function scoreRows(){
       {key: "c", name: "Exact condition", sub: "Its grade exactly matches yours", src: "slave"},
       {key: "c1", name: "Condition within one grade", sub: "e.g. it said LP and you said NM or MP", src: "slave"}]]];
   const lp = {}, sl = {};
-  loupeSeries([...new Set(groups.flatMap(g => g[2]).filter(r => r.src === "loupe").map(r => r.key))].map(k => [k, k])).forEach(s => lp[s.key] = s.pts);
+  loupeSeries([...new Set(groups.flatMap(g => g[2]).filter(r => r.src === "loupe").flatMap(r => [r.key, r.fx]).filter(Boolean))].map(k => [k, k])).forEach(s => lp[s.key] = s.pts);
   slaveSeries().forEach(s => sl[s.key] = s.pts);
-  return groups.map(([title, color, rows]) => ({title, color, rows: rows.map(r => Object.assign({}, r, {pts: (r.src === "slave" ? sl : lp)[r.key] || [], vsPts: r.vs ? lp[r.vs] || [] : null})).filter(r => r.pts.length)})).filter(g => g.rows.length);
+  return groups.map(([title, color, rows]) => ({title, color, rows: rows.map(r => Object.assign({}, r, {pts: (r.src === "slave" ? sl : lp)[r.key] || [], vsPts: r.vs ? lp[r.vs] || [] : null, fxPts: r.fx ? lp[r.fx] || [] : null})).filter(r => r.pts.length)})).filter(g => g.rows.length);
+}
+/* a test whose questions keep getting harder (your new reviews join it) is judged by its fixed version instead */
+function fxVerdict(r){
+  const f = r.fxPts; if (!r.fx) return null;
+  if (!f || f.length < 3) return null;
+  const now = f[f.length - 1], t7 = now.t - 7 * 864e5, was = (f.filter(x => x.t <= t7).slice(-1)[0] || f[0]).v, d = now.v - was;
+  return d >= 3 ? ["Improving", "up"] : d <= -3 ? ["Slipping", "dn"] : ["Steady", "flat"];
 }
 function scoreRowHTML(g, r, gi){
   const p = r.pts, now = p[p.length - 1].v, t7 = p[p.length - 1].t - 7 * 864e5;
@@ -4200,7 +4211,7 @@ function scoreRowHTML(g, r, gi){
   const vsNow = r.vsPts && r.vsPts.length ? r.vsPts[r.vsPts.length - 1].v : null;
   const verdict = r.learning && p.length < 5 ? ["Learning", "learn"] : p.length < 3 ? ["New", "flat"]
     : r.vs && /loupe/.test(r.key) && vsNow != null ? (now - vsNow >= 3 ? ["Ahead of SlaveAI", "up"] : vsNow - now >= 3 ? ["Behind SlaveAI", "dn"] : ["Tied with SlaveAI", "flat"])
-    : d7 >= 3 ? ["Improving", "up"] : d7 <= -3 ? ["Slipping", "dn"] : ["Steady", "flat"];
+    : fxVerdict(r) || (d7 >= 3 ? ["Improving", "up"] : d7 <= -3 ? (r.fx ? ["Harder test", "flat"] : ["Slipping", "dn"]) : ["Steady", "flat"]);
   const lo = 40, W = 200, H = 34, t0 = p[0].t, t1 = p[p.length - 1].t;
   const sx = t => t1 === t0 ? W : (t - t0) / (t1 - t0) * W, sy = v => (100 - Math.max(lo, v)) / (100 - lo) * H;
   const spark = p.length > 1 ? `<span class="sc-a">${p[0].v}</span><svg viewBox="-2 -2 ${W + 4} ${H + 4}" class="sc-spark" aria-hidden="true"><polyline points="${p.map(x => sx(x.t).toFixed(1) + "," + sy(x.v).toFixed(1)).join(" ")}" fill="none" stroke="${g.color}" stroke-width="2" stroke-linejoin="round"/></svg><span class="sc-a">${now}</span><span class="sc-since">since ${esc(trDay(t0))}</span>` : `<span class="sc-since">started ${esc(trDay(t0))}</span>`;
@@ -4218,7 +4229,7 @@ function scorecardHTML(){
   const gs = scoreRows();
   if (!gs.length) return '<p class="mut">The scorecard fills in after the next scan.</p>';
   return `<div class="sc">${gs.map((g, gi) => `<div class="sc-g" style="color:${g.color}">${esc(g.title)}</div>${g.rows.map(r => scoreRowHTML(g, r, gi)).join("")}`).join("")}</div>
-    <p class="mut" style="font-size:12px;margin:8px 0 0">Tap a row for its full chart. Improving = up 3 or more in the last 7 days (or since a newer test started), Slipping = down 3 or more.</p>`;
+    <p class="mut" style="font-size:12px;margin:8px 0 0">Tap a row for its full chart. Improving = up 3 or more in the last 7 days (or since a newer test started), Slipping = down 3 or more. Harder test = your newest reviews (Loupe's toughest listings) pulled it down - "Same test every time" shows whether Loupe itself got worse. Scores resting on under 30 listings are left out.</p>`;
 }
 function wireScorecard(box, redraw){
   box.querySelectorAll("[data-sco]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.sco; SC_OPEN.has(k) ? SC_OPEN.delete(k) : SC_OPEN.add(k); redraw(); }));
