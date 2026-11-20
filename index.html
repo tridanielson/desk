@@ -694,7 +694,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 04:05 PM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 19, 05:49 PM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -1384,7 +1384,7 @@ $("#signOutBtn").addEventListener("click", () => {
 
 // Scryfall: try directly from the browser, fall back to going through Google
 // ---- prices are TCGplayer's: the daily run saves the TCGplayer prices it used (data/tcg_prices.json, by TCGplayer product
-// id) and every Scryfall card the desk looks up gets them - Market as the price (Listed Median if it hasn't sold lately)
+// id) and every Scryfall card the desk looks up gets them - Market as the price (Scryfall's when it hasn't sold lately)
 const TCGP = {p: null, date: "", load: null};
 function tcgReady(){
   if (!TCGP.load) TCGP.load = (async () => {
@@ -1397,7 +1397,7 @@ function tcgPatch(c){
   const pr = Object.assign({}, c.prices || {}), t = {};
   [["nonfoil", c.tcgplayer_id, "", "usd"], ["foil", c.tcgplayer_id, "f", "usd_foil"], ["etched", c.tcgplayer_etched_id, "e", "usd_etched"]].forEach(([f, id, suf, k]) => {
     const v = (id && TCGP.p[id + suf]) || TCGP.p["s:" + c.id + suf]; if (!v) return;   // by TCGplayer id, or Scryfall id when it was found by name
-    t[f] = {m: v[0], l: v[1], md: v[2]}; const m = v[0] != null ? v[0] : v[2]; pr[k] = m == null ? null : (+m).toFixed(2); });
+    t[f] = {m: v[0], l: v[1], md: v[2]}; if (v[0] != null) pr[k] = (+v[0]).toFixed(2); });   // no Market (no recent sales): keep Scryfall's
   c._tcg = t; c.prices = pr; return c;
 }
 const tcgPatchAll = j => { if (j && Array.isArray(j.data)) j.data.forEach(tcgPatch); else tcgPatch(j); return j; };
