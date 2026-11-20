@@ -517,6 +517,8 @@ body.cs-open{overflow:hidden}
 .qg-menu button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:7px;padding:6px 9px;cursor:pointer}
 .qg-menu button:hover{border-color:var(--accent);color:var(--accent)}.qg-menu .qm-row{display:flex;gap:4px}.qg-menu .qm-next{font-weight:600}.qg-menu .qm-tell{font-size:12px;color:var(--muted)}
 .rc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}.rc-t{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;align-items:flex-start}.rc-q{font-weight:700;font-size:13px}.rc-v{font-size:28px;font-weight:800;line-height:1.1}.rc-t svg{display:block;width:100%;align-self:stretch}.rc-d{font-size:13px;margin-left:8px;font-weight:700;color:var(--muted)}.rc-d.up{color:#5cc28d}.rc-d.dn{color:#f0776d}
+.guide-tbl{width:100%;border-collapse:collapse;font-size:13px}.guide-tbl th,.guide-tbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}.guide-tbl th{color:var(--muted);font-weight:600}
+@media (max-width:700px){.guide-tbl{display:block;overflow-x:auto}}
 .paused-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:#3a2f0e;border:1px solid #8a6d1a;color:#f2d27a;border-radius:10px;padding:10px 14px;margin:12px 0 0}
 .ss-line{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:9px 0}.ss-line>div:first-child{flex:1}
 .wsrc{display:block;font-size:11px;color:var(--muted);text-decoration:none;margin-top:1px;font-weight:400}.wsrc:hover{text-decoration:underline;color:var(--muted)}
@@ -695,7 +697,7 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div class="panel connect">
     <h2>Setup &amp; Status</h2>
     <p class="sub" id="connStatus">Connecting…</p>
-    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 20, 05:53 AM</b></p>
+    <p class="mut" style="font-size:12px;margin:-4px 0 8px">Page version: <b id="pageVer">Nov 20, 06:02 AM</b></p>
     <div class="panel owner-only" style="margin-top:14px"><b>Hours Invested</b><div id="hoursBody"><p class="mut loadmsg">Loading…</p></div></div>
     <div class="panel scroll" style="margin-top:14px"><b>Last Updates</b><div id="runsBody" style="margin-top:6px"><p class="mut loadmsg">Loading…</p></div>
       <div class="row owner-only" style="margin-top:8px"><button class="btn ghost small" id="runBtn" disabled title="Optional - prices refresh every morning and eBay deals every 3 hours on their own. This runs both right now (uses eBay searches; asks first).">Run a Scan Now</button><span class="mut" style="font-size:12px">Optional - everything updates on its own.</span></div></div>
@@ -868,11 +870,11 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
 
 <!-- SETS -->
 <section class="tab" id="tab-guide">
-  <h2>ID &amp; Fake Guide</h2>
+  <h2>ID, Fake &amp; Condition Guide</h2>
   <p class="sub">One place to check a card before you buy or sell it: how to spot proxies and counterfeits, and how to tell look-alike editions apart (the Unlimited vs Revised kind of mistake). Pictures are the real printings from Scryfall. Tap a picture to open it bigger.</p>
 
   <div class="guide-toc">
-    <a href="#g-tests">Fake checks</a><a href="#g-tools">Tools</a><a href="#g-editions">Edition look-alikes</a><a href="#g-special">Not-legal versions</a><a href="#g-listings">Listing red flags</a><a href="#g-sources">Sources</a>
+    <a href="#g-tests">Fake checks</a><a href="#g-tools">Tools</a><a href="#g-editions">Edition look-alikes</a><a href="#g-special">Not-legal versions</a><a href="#g-listings">Listing red flags</a><a href="#g-condition">Condition</a><a href="#g-sources">Sources</a>
   </div>
 
   <div class="panel" id="g-tests">
@@ -925,6 +927,58 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     </ul>
   </div>
 
+  <div class="panel" id="g-condition">
+    <h3>Condition - TCGplayer's Standard</h3>
+    <p class="mut" style="margin-top:0">TCGplayer calls picking NM/LP/MP/HP/DMG <b>conditioning</b>. <b>Grading</b> means a numbered score in a slab (PSA, BGS, CGC). Look at the front <i>and</i> back under a bright, direct light, and when you're torn between two grades, <b>take the lower one</b>.</p>
+
+    <h4 style="margin:14px 0 6px">The 5 Grades</h4>
+    <table class="guide-tbl">
+      <tr><th>Grade</th><th>Wear points allowed</th><th>What it looks like</th><th>Never allowed</th></tr>
+      <tr><td><b>NM</b> Near Mint</td><td>up to 3</td><td>Looks unplayed at a glance - only the tiniest edge nicks, light scuffs, one pinpoint dent or short fine scratches</td><td>whitening, grime, any bend, faults, damage</td></tr>
+      <tr><td><b>LP</b> Lightly Played</td><td>up to 6</td><td>Some handling: a little edge wear or whitening, small scuffs, a tiny dent or a short bend</td><td>faults (rippling, liquid spots), damage</td></tr>
+      <tr><td><b>MP</b> Moderately Played</td><td>up to 12</td><td>Clearly played: border wear along long stretches, scuffing, small creases, a little grime</td><td>damage; only tiny faults</td></tr>
+      <tr><td><b>HP</b> Heavily Played</td><td>up to 24</td><td>Lots of wear everywhere, but the card is still whole and readable</td><td>damage</td></tr>
+      <tr><td><b>DMG</b> Damaged</td><td>over 24, or any deal-breaker</td><td>Tears, holes, folds, peeling or splitting, water damage, writing or ink, missing or unreadable text, curl over 5 mm</td><td>-</td></tr>
+    </table>
+
+    <h4 style="margin:16px 0 6px">How the Points Work</h4>
+    <p style="margin:0">Each flaw gets a size, and the sizes add up: <b>Slight = 1 point, Minor = 2, Moderate = 4, Major = 8.</b> The total has to fit the grade's budget <i>and</i> each kind of flaw has its own limit per grade - so two slight nicks (2 points) can still be NM, but one bend can't, however small. Damage skips the points: it's DMG straight away.</p>
+
+    <h4 style="margin:16px 0 6px">Types of Wear</h4>
+    <div class="guide-tools">
+      <div><b>Edgewear</b><span>Color, gloss or material worn off the edges, border or corners - the white specks on a black border.</span></div>
+      <div><b>Surface wear</b><span>Wear that goes through the top layer so white shows in the picture or text area (whitening, wear dots).</span></div>
+      <div><b>Scratch</b><span>A line cut into the surface that removes material.</span></div>
+      <div><b>Scuffing</b><span>A patch of many tiny scratches or rubbing - often cloudy or dull-looking, common on foils and backs.</span></div>
+      <div><b>Grime</b><span>Dirt, smudges or residue from handling or storage.</span></div>
+      <div><b>Indentation</b><span>A dent, dimple or pock mark pushed into the card (no material lost).</span></div>
+      <div><b>Bend</b><span>A crease or fold line. None at all in NM.</span></div>
+      <div><b>Fault</b><span>The surface swelling, rippling or splitting - drips, bubbles, the layers starting to separate.</span></div>
+      <div><b>Defect</b><span>A factory flaw: missing ink, miscut, off-center, roller lines, foil bubbles.</span></div>
+      <div><b>Damage</b><span>Anything that breaks the card: tears, holes, sun bleaching, liquid, stickers or ink on it, peeling.</span></div>
+    </div>
+
+    <h4 style="margin:16px 0 6px">Handy Limits (Magic-size card, 88 × 63 mm)</h4>
+    <ul class="guide-list">
+      <li><b>Edge wear, added up along the edges:</b> NM about 2 cm · LP 8 cm · MP 16 cm · HP more.</li>
+      <li><b>Bends:</b> NM none · LP up to 1 cm · MP up to 2 cm · HP longer.</li>
+      <li><b>Dents:</b> NM one pinpoint that doesn't show through · LP about 2 × 2 mm · MP about 5 × 5 mm.</li>
+      <li><b>Whitening / surface wear:</b> NM none · LP a speck (about 1.5 × 1.5 mm) · MP about 3 × 3 mm · HP about 6 × 6 mm.</li>
+      <li><b>Grime:</b> NM none · LP a speck · MP a small patch (about 5 × 5 mm).</li>
+      <li><b>Curl:</b> up to 5 mm of lift is fine at any grade; more is DMG. <b>Centering</b> up to 70/30 is fine; worse needs photos.</li>
+      <li><b>Factory flaws:</b> tiny ones don't count; small to medium ones drop it one grade. Ones that break the card (crimped, badly miscut) count as damage.</li>
+    </ul>
+
+    <h4 style="margin:16px 0 6px">What Condition Does to the Price</h4>
+    <ul class="guide-list">
+      <li><b>Cards people play</b> (current Standard and new Commander staples): condition barely moves the price - an LP copy sells close to NM.</li>
+      <li><b>Collector cards</b> (old cards, Reserved List, high-end foils): condition matters a lot, and NM copies carry a real premium - the biggest gaps are on the oldest cards.</li>
+      <li><b>Expensive older staples:</b> a big jump to NM, but MP through DMG sell for nearly the same because players just want any copy. That flat bottom is where heavily played bargains hide.</li>
+      <li><b>Buyers of NM older cards are picky</b> - list honestly (when in doubt, a grade lower) and add real photos for anything expensive.</li>
+    </ul>
+    <p class="mut" style="font-size:12.5px;margin:10px 0 0">The deal scanner prices each listing for its condition (NM down to DMG), and your Condition reviews teach Loupe these same grades.</p>
+  </div>
+
   <div class="panel" id="g-sources">
     <h3>Sources</h3>
     <ul class="guide-list mut" style="font-size:13px">
@@ -934,6 +988,8 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
       <li><a href="https://www.misprint.com/posts/alpha-vs-beta-vs-unlimited-magic" target="_blank" rel="noopener">Misprint - Alpha vs Beta vs Unlimited</a></li>
       <li><a href="https://www.retrotcg.net/games/magic-the-gathering-ccg/lea?page=2" target="_blank" rel="noopener">RetroTCG - Alpha corner radius</a></li>
       <li><a href="https://mtg.wiki/page/Tap" target="_blank" rel="noopener">MTG Wiki - Tap symbol history</a></li>
+      <li><a href="https://mktg-assets.tcgplayer.com/web/seller/guides/Card-Conditioning-Standards.pdf" target="_blank" rel="noopener">TCGplayer - Card Conditioning Standards (PDF)</a> (grades, wear types, points and limits)</li>
+      <li><a href="https://www.tcgplayer.com/content/article/Condition-Grading-and-Magic-Finance/781726d0-cddd-4911-9007-330945b8bfd8/" target="_blank" rel="noopener">TCGplayer - Condition, Grading, and Magic Finance</a> (how condition affects price)</li>
       <li>Card pictures: <a href="https://scryfall.com" target="_blank" rel="noopener">Scryfall</a>. Card images © Wizards of the Coast.</li>
     </ul>
   </div>
