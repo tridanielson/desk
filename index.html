@@ -264,6 +264,9 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 .mk-dot{display:inline-block;border-radius:999px;background:#ffe600;margin-right:5px;vertical-align:middle}
 #mkView .mk-stage{overflow:auto}
 #mkView .mk-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
+#dFilters .fon{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--text,inherit);font-weight:600}
+#dFilters label.fchk{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;white-space:nowrap}
+.fon-bar{display:inline-block;margin-left:8px;padding:3px 10px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}.fon-bar a{color:inherit;text-decoration:underline;margin-left:6px}
 .msel{position:relative;display:inline-block}.msel .btn.on{border-color:var(--gold);font-weight:600}
 .msel-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px}
 .msel-pop label{display:flex;gap:8px;align-items:center;padding:7px 4px;font-size:14px;cursor:pointer}.msel-pop label .mut{margin-left:auto;font-size:12px}
@@ -810,14 +813,15 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <div id="dLearned" style="margin-top:10px"></div>
     <div id="dElse" style="margin-top:12px"></div>
   </details>
-  <div class="panel">
+  <div class="panel" id="dFilters">
     <div class="row">
     <input type="hidden" id="dDays" value="7"><input type="hidden" id="dMin" value="0"><!-- always the last 7 days (what the scanner re-checks), no minimum -->
-    <select id="dRvw" class="owner-only" aria-label="Reviewed" title="Deals you haven't reviewed yet"><option value="">Reviewed + Not Reviewed</option><option value="todo">Not Reviewed Yet</option><option value="done">Reviewed Only</option></select>
+    <select id="dRvw" class="owner-only" aria-label="Reviewed" title="Deals you haven't reviewed yet"><option value="">All</option><option value="done">Reviewed</option><option value="todo">Not Reviewed</option></select>
     <select id="dCond" aria-label="Condition"><option value="">Any Condition</option><option value="MP">MP or Better</option><option value="LP">LP or Better</option><option value="NM">Near Mint Only</option></select>
     <select id="dSortSel" aria-label="Sort by"><option value="Best Value|-1">Sort: Best Value</option><option value="">Sort: Newest First</option><option value="Listed|-1">Sort: Newest Listed</option><option value="% Off|-1">Sort: Biggest % Off</option><option value="Price + Ship|1">Sort: Cheapest</option><option value="Price + Ship|-1">Sort: Most Expensive</option><option value="Fair Value|-1">Sort: Highest Value</option><option value="Type / Ends|1">Sort: Ending Soonest</option><option value="Condition|-1">Sort: Best Condition</option><option value="Card|1">Sort: Card A-Z</option></select>
     <select id="dType" aria-label="Listing type" title="Auction Only = sorted by ending soonest, ended ones hidden"><option value="bin">Buy It Now Only</option><option value="auction">Auction Only</option><option value="">Buy It Now + Auction</option><option value="offer">🤝 Takes Offers</option><option value="sniped">🎯 My Snipes</option><option value="offers">🤝 My Offers</option></select>
     <input id="dSearch" placeholder="Card name..." style="flex:1;min-width:160px">
+    <label class="fchk" title="Only listings that ship from your country (Settings > My Country) - foreign ones have import fees on top"><input type="checkbox" id="dUSA"> <span id="dUSAlbl">My Country Only</span></label>
     <button class="btn ghost small" id="dMoreBtn" type="button">More Filters ▾</button>
     <span class="status" id="dCount"></span><span id="dActive" class="mut" style="font-size:12px"></span>
     </div>
@@ -832,7 +836,6 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
     <select id="dBy" class="owner-only" title="Filter hidden deals by who caught them" hidden><option value="">Caught by Anyone</option><option value="you">👎 You</option><option value="rule">📋 Your Rules</option><option value="ai">🤖 SlaveAI</option><option value="auto">🔎 Automatic Checks</option></select>
     <select id="dSigned" title="Signed / autographed cards"><option value="">Signed + Unsigned</option><option value="hide">Hide Signed</option><option value="only">Signed Only</option></select>
     <span hidden><input type="checkbox" id="dPref" aria-label="Top Picks Only"><input type="checkbox" id="dEnded" aria-label="Include Ended, Bought & Hidden by You"></span>
-    <label title="Only listings that ship from your country (Settings > My Country) - foreign ones have import fees on top"><input type="checkbox" id="dUSA"> <span id="dUSAlbl">My Country Only</span></label>
     <select id="dLang" aria-label="Language" title="From the listing's item details, or words like Japanese / German / FBB in the title"><option value="">All Languages</option><option value="en">English Only</option><option value="foreign">Non-English Only</option></select>
     <select id="dGraded" aria-label="Graded"><option value="">Graded + Ungraded</option><option value="raw">Ungraded Only</option><option value="graded">Graded Only</option></select>
     </div>
@@ -2511,7 +2514,7 @@ function fillSetFilter(){   // every set that has deals, by name, with how many 
   const keys = [...new Set(Object.keys(n).concat([...picked]))].sort((a, b) => (nm[a] || a).localeCompare(nm[b] || b));
   if (pop.hidden || !pop.children.length) pop.innerHTML = `<div class="msel-top"><b>Sets</b><a href="#" id="dSetClear">Clear</a></div>` + keys.map(k => `<label><input type="checkbox" value="${esc(k)}"${picked.has(k) ? " checked" : ""}> ${esc(nm[k] || k)} <span class="mut">${esc(k)}${n[k] ? " · " + n[k] : ""}</span></label>`).join("");
   $("#dSetBtn").textContent = (picked.size > 1 ? picked.size + " Sets" : setLabel()) + " ▾";
-  $("#dSetBtn").classList.toggle("on", picked.size > 0); placeSetPop();
+  $("#dSetBtn").classList.toggle("on", picked.size > 0); $("#dSetBtn").classList.toggle("fon", picked.size > 0); placeSetPop();
 }
 function placeSetPop(){   // keep the list on screen (the button moves as its label changes)
   const pop = $("#dSetPop"); if (!pop || pop.hidden) return; pop.style.left = "0px";
@@ -2578,7 +2581,7 @@ const DEAL_DEFAULTS = {"#dDays": "7", "#dMin": "0"};
 (function(){
   const more = $("#dMore"), btn = $("#dMoreBtn"); if (!more || !btn) return;
   const set = open => { more.hidden = !open; btn.textContent = open ? "Fewer Filters ▴" : "More Filters ▾"; store.set("pd_more", open ? "1" : ""); if (typeof showActiveFilters === "function") try{ showActiveFilters(); }catch(e){} };
-  set(store.get("pd_more") === "1"); btn.addEventListener("click", () => set(more.hidden));
+  set(false); btn.addEventListener("click", () => set(more.hidden));
   const how = $("#dHow"); if (how && store.get("pd_howto") !== "1") how.hidden = false;
   $("#dHowOk").addEventListener("click", () => { how.hidden = true; store.set("pd_howto", "1"); });
   $("#dHowShow").addEventListener("click", e => { e.preventDefault(); how.hidden = false; how.scrollIntoView({block: "nearest"}); });
@@ -2592,14 +2595,19 @@ function showActiveFilters(){
   const showTxt = $("#dShow") && $("#dShow").value ? $("#dShow").options[$("#dShow").selectedIndex].text.replace(/^Show: /, "") : "";
   const on2 = on.filter(t => t !== "Include Ended, Bought & Hidden by You" && !/^(Everything|Only Hidden)/.test(t)); if (showTxt) on2.unshift(showTxt);
   on.length = 0; on.push(...on2);
-  box.innerHTML = on.length ? ` · Filters on: ${on.map(esc).join(", ")} <a href="#" id="dReset">Show All</a>` : "";
+  box.innerHTML = on.length ? `<span class="fon-bar">Filtered: ${on.map(esc).join(", ")} <a href="#" id="dReset">Clear All</a></span>` : "";
   if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
     store.set("pd_dealfilters", "{}"); dealCombosSync(); renderDeals(); });
   // the More Filters button says how many of its filters are on, so a folded-away filter never surprises you
   const MORE = ["#dShow", "#dPref", "#dBuy", "#dSus", "#dSet", "#dLang", "#dSigned", "#dGraded", "#dUSA", "#dBy", "#dWhy"];
   const nMore = MORE.filter(x => { const el = $(x); if (!el) return false; if (el.type === "checkbox") return el.checked; if (x === "#dBy" || x === "#dWhy") return !el.hidden && el.value; return String(el.value) !== (el.tagName === "SELECT" ? el.options[0].value : ""); }).length;
-  const mb = $("#dMoreBtn"); if (mb) mb.textContent = ($("#dMore").hidden ? "More Filters" : "Fewer Filters") + (nMore ? ` (${nMore} on)` : "") + ($("#dMore").hidden ? " ▾" : " ▴");
+  // every filter that isn't on its default glows, so a set filter is never easy to miss
+  ["#dRvw", "#dCond", "#dType", "#dShow", "#dOnly", "#dSigned", "#dLang", "#dGraded", "#dWhy", "#dBy"].forEach(x => { const el = $(x); if (el) el.classList.toggle("fon", !el.hidden && el.selectedIndex > 0); });
+  if ($("#dUSA")) $("#dUSA").closest("label").classList.toggle("fon", $("#dUSA").checked);
+  if ($("#dSearch")) $("#dSearch").classList.toggle("fon", !!$("#dSearch").value.trim());
+  const mb = $("#dMoreBtn"); if (mb) mb.classList.toggle("fon", nMore > 0);
+  if (mb) mb.textContent = ($("#dMore").hidden ? "More Filters" : "Fewer Filters") + (nMore ? ` (${nMore} on)` : "") + ($("#dMore").hidden ? " ▾" : " ▴");
 }
 // "Show" and "Only" are one dropdown each over the old checkboxes (kept underneath so saved filters keep working)
 function dealCombosSync(){
@@ -4739,7 +4747,7 @@ const PV = {newer: false, lastInput: Date.now()};
 const reviewingNow = () => !!document.querySelector("#tab-audit.on #audItem .aud-grid, #tab-quick.on #audItem .qk, #tab-quick.on #qkItem, #tab-quick.on #audItem button");
 const busyNow = () => reviewingNow() || S.dirty.size || AUTOSAVE.busy || $("#colModal").classList.contains("on") || document.querySelector(".modal.on, dialog[open], #mkView") || (document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && document.activeElement.value);
 document.addEventListener("click", e => { if (!e.target.closest("#dResort")) return; e.preventDefault(); DFREEZE.order = null; renderDeals(); window.scrollTo({top: ($("#dealsTable").closest(".panel") || document.body).offsetTop - 80}); });
-["input", "change"].forEach(t => document.addEventListener(t, e => { if (e.target.closest && e.target.closest("#dDays, #dMin, #dBuy, #dSus, #dSearch, #dRej, #dSigned, #dWhy, #dBy, #dSet, #dType, #dSetPop")) DFREEZE.order = null; }, true));
+["input", "change"].forEach(t => document.addEventListener(t, e => { if (e.target.closest && e.target.closest("#dFilters") && !e.target.closest("#dSortSel")) DFREEZE.order = null; }, true));
 document.addEventListener("visibilitychange", () => { if (document.hidden && document.querySelector("#tab-deals.on")) freezeDeals();
   else if (!document.hidden && DFREEZE.order && Date.now() - DFREEZE.at > 3 * 3600e3){ DFREEZE.order = null; renderDeals(); } });   // gone for hours: start fresh
 async function softReload(){
