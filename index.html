@@ -266,7 +266,7 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 #mkView .mk-thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
 #dFilters .fon{border-color:var(--accent)!important;box-shadow:0 0 0 1px var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--text,inherit);font-weight:600}
 #dFilters label.fchk{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;white-space:nowrap}
-.fon-bar{display:inline-block;margin-left:8px;padding:3px 10px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}.fon-bar a{color:inherit;text-decoration:underline;margin-left:6px}
+.fon-bar{display:inline-block;margin-left:8px;padding:3px 10px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:12.5px}.fclear{margin-left:8px;padding:4px 12px;border-radius:999px;border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;font-size:12.5px;cursor:pointer;vertical-align:middle}.fclear:hover{background:var(--accent);color:var(--accent-ink)}
 .msel{position:relative;display:inline-block}.msel .btn.on{border-color:var(--gold);font-weight:600}
 .msel-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;min-width:240px;max-width:min(320px,90vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);padding:8px}
 .msel-pop label{display:flex;gap:8px;align-items:center;padding:7px 4px;font-size:14px;cursor:pointer}.msel-pop label .mut{margin-left:auto;font-size:12px}
@@ -2595,7 +2595,7 @@ function showActiveFilters(){
   const showTxt = $("#dShow") && $("#dShow").value ? $("#dShow").options[$("#dShow").selectedIndex].text.replace(/^Show: /, "") : "";
   const on2 = on.filter(t => t !== "Include Ended, Bought & Hidden by You" && !/^(Everything|Only Hidden)/.test(t)); if (showTxt) on2.unshift(showTxt);
   on.length = 0; on.push(...on2);
-  box.innerHTML = on.length ? `<span class="fon-bar">Filtered: ${on.map(esc).join(", ")} <a href="#" id="dReset">Clear All</a></span>` : "";
+  box.innerHTML = on.length ? `<span class="fon-bar">Filtered: ${on.map(esc).join(", ")}</span><button type="button" class="fclear" id="dReset">✕ Clear Filters</button>` : "";
   if ($("#dReset")) $("#dReset").addEventListener("click", e => { e.preventDefault();
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
     store.set("pd_dealfilters", "{}"); dealCombosSync(); renderDeals(); });
