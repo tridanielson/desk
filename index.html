@@ -2600,7 +2600,7 @@ function showActiveFilters(){
     DEAL_FILTERS.forEach(s => { const el = $(s); if (!el) return; if (el.type === "checkbox") el.checked = false; else el.value = DEAL_DEFAULTS[s] ?? (el.tagName === "SELECT" ? el.options[0].value : ""); });
     store.set("pd_dealfilters", "{}"); dealCombosSync(); renderDeals(); });
   // the More Filters button says how many of its filters are on, so a folded-away filter never surprises you
-  const MORE = ["#dShow", "#dPref", "#dBuy", "#dSus", "#dSet", "#dLang", "#dSigned", "#dGraded", "#dUSA", "#dBy", "#dWhy"];
+  const MORE = ["#dShow", "#dPref", "#dBuy", "#dSus", "#dSet", "#dLang", "#dSigned", "#dGraded", "#dBy", "#dWhy"];
   const nMore = MORE.filter(x => { const el = $(x); if (!el) return false; if (el.type === "checkbox") return el.checked; if (x === "#dBy" || x === "#dWhy") return !el.hidden && el.value; return String(el.value) !== (el.tagName === "SELECT" ? el.options[0].value : ""); }).length;
   // every filter that isn't on its default glows, so a set filter is never easy to miss
   ["#dRvw", "#dCond", "#dType", "#dShow", "#dOnly", "#dSigned", "#dLang", "#dGraded", "#dWhy", "#dBy"].forEach(x => { const el = $(x); if (el) el.classList.toggle("fon", !el.hidden && el.selectedIndex > 0); });
