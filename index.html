@@ -112,15 +112,16 @@ td.r,th.r{text-align:right}
 .cm-cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:488/680;border-radius:6px;background:linear-gradient(160deg,#3a2a1c,#1b1410);color:#c9a26b;font-family:Georgia,serif;font-size:22px;font-weight:700;opacity:.5}.cm-die.on .cm-cover{opacity:1}
 .cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--muted);text-align:left}.cm-ins{font-size:11px;color:var(--muted);text-align:left;line-height:1.25;margin-top:2px}
 .cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
-.cm-grid{grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:16px}
+.cm-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .cm-it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;gap:6px}
-.cm-pair{display:flex;gap:8px;align-items:flex-end}.cm-cov-b{flex:0 0 70%}.cm-card-b{flex:1 1 0;min-width:0}
+.cm-pair{display:flex;flex-direction:column;gap:8px}.cm-cov-b,.cm-card-b{width:100%}
+.cm-cards{display:flex;gap:6px;justify-content:center}.cm-cards .cm-card{width:auto;flex:0 1 31%;min-width:0}
 .cm-pick{position:relative;display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:5px;font:inherit;color:inherit;cursor:pointer;-webkit-touch-callout:none;user-select:none}
 .cm-pick img{display:block;width:100%;border-radius:6px;opacity:.85}.cm-pick .cm-cov,.cm-pick .cm-cover{aspect-ratio:2/3;object-fit:cover;width:100%}.cm-pick .cm-card{aspect-ratio:488/680;object-fit:cover}
 .cm-pick.on{border-color:var(--up);box-shadow:0 0 0 2px var(--up) inset}.cm-pick.on img{opacity:1}
 .cm-pick .ck{position:absolute;top:9px;right:9px;width:26px;height:26px;border-radius:50%;background:var(--up);color:#fff;font-weight:700;line-height:26px;text-align:center;display:none;box-shadow:0 1px 4px rgba(0,0,0,.4)}.cm-pick.on .ck{display:block}
 .cm-lbl{font-size:12.5px;color:var(--muted);text-align:center}.cm-pick.on .cm-lbl{color:var(--up);font-weight:700}
-.cm-ins-ph{display:flex;align-items:center;justify-content:center;aspect-ratio:488/680;border:1px dashed var(--line);border-radius:6px;font-size:12px;color:var(--muted);padding:6px;text-align:center}
+.cm-ins-ph{display:flex;align-items:center;justify-content:center;min-height:56px;border:1px dashed var(--line);border-radius:6px;font-size:12px;color:var(--muted);padding:6px;text-align:center}
 .cm-k{font-size:13.5px}.cm-k .cm-d{margin-left:4px}
 .cm-seal{display:flex;gap:6px}.cm-seal button{flex:1;font:inherit;font-size:12.5px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);cursor:pointer}.cm-seal button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
 @media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:minmax(0,1fr)}}
@@ -7544,7 +7545,10 @@ async function loadCOMICS(){
   renderCOMICS();
 }
 // the insert card's picture straight from Scryfall (no lookup first): the comic came with this card
-const comicImg = c => { const k = (c.cards || [])[0]; return k ? `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(k.name)}${k.set ? "&set=" + k.set : ""}&format=image&version=normal` : ""; };
+const comicImg = c => cardImgOf((c.cards || [])[0]);
+const cardImgOf = k => { if (!k) return "";   // the exact printing when known (set + number), never Scryfall's newest
+  return k.set && k.num ? `https://api.scryfall.com/cards/${encodeURIComponent(k.set)}/${encodeURIComponent(k.num)}?format=image&version=normal`
+    : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(k.name)}${k.set ? "&set=" + k.set : ""}&format=image&version=normal`; };
 const comicName = c => c.series + (c.issue ? " #" + c.issue : "");
 function comicGroups(){
   const have = new Map(COMICS.rows.filter(r => (parseInt(r.qty) || 0) > 0).map(r => [r.id, r]));
@@ -7569,7 +7573,7 @@ function comicHTML(c, have){
       ${c.cover ? `<img class="cm-cov" src="${esc(c.cover)}" alt="${esc(nm)} cover" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : ph}
       <span class="cm-lbl">${on ? "✓ Have Comic" : "Comic"}</span></button>
     ${c.insert ? `<button type="button" class="cm-pick cm-card-b${cardOn ? " on" : ""}" data-ccard="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc("Came with: " + c.insert + (cardOn ? " · you have it - tap to undo" : " · tap if you have it"))}"><span class="ck">✓</span>
-      ${isCard ? `<img class="cm-card" src="${esc(img)}" alt="${esc((c.cards || [])[0].name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-ins-ph',textContent:${esc(JSON.stringify(c.insert))}}))">` : `<span class="cm-ins-ph">${esc(c.insert)}</span>`}
+      ${isCard ? `<span class="cm-cards">${c.cards.map(k => `<img class="cm-card" src="${esc(cardImgOf(k))}" alt="${esc(k.name)}" title="${esc(k.name)}" loading="lazy" onerror="this.remove()">`).join("")}</span>` : `<span class="cm-ins-ph">${esc(c.insert)}</span>`}
       <span class="cm-lbl">${cardOn ? (isCard ? "✓ Have Card" : "✓ Have It") : (isCard ? "Card" : "Insert")}</span></button>` : ""}</div>
     <div class="cm-k"><b>${esc(c.issue ? "#" + c.issue : c.series)}</b>${c.title ? " · " + esc(c.title) : ""} <span class="cm-d">${esc(diceMonth(c.date))}</span></div>
     ${c.insert ? `<div class="cm-ins">Came with: ${esc(c.insert)}</div>` : ""}
