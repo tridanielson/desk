@@ -112,9 +112,18 @@ td.r,th.r{text-align:right}
 .cm-cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:488/680;border-radius:6px;background:linear-gradient(160deg,#3a2a1c,#1b1410);color:#c9a26b;font-family:Georgia,serif;font-size:22px;font-weight:700;opacity:.5}.cm-die.on .cm-cover{opacity:1}
 .cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--muted);text-align:left}.cm-ins{font-size:11px;color:var(--muted);text-align:left;line-height:1.25;margin-top:2px}
 .cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
-.cm-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
-.cm-pair{display:flex;gap:6px;align-items:flex-end;justify-content:center}.cm-pair .cm-cov,.cm-pair .cm-cover{flex:0 0 60%;width:60%;aspect-ratio:2/3;object-fit:cover}.cm-pair .cm-card{flex:1 1 0;min-width:0;width:auto;aspect-ratio:488/680;object-fit:cover}
-@media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cm-pair{gap:4px}}
+.cm-grid{grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.cm-it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;gap:6px}
+.cm-pair{display:flex;gap:8px;align-items:flex-end}.cm-cov-b{flex:0 0 58%}.cm-card-b{flex:1 1 0;min-width:0}
+.cm-pick{position:relative;display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:5px;font:inherit;color:inherit;cursor:pointer;-webkit-touch-callout:none;user-select:none}
+.cm-pick img{display:block;width:100%;border-radius:6px;opacity:.85}.cm-pick .cm-cov,.cm-pick .cm-cover{aspect-ratio:2/3;object-fit:cover;width:100%}.cm-pick .cm-card{aspect-ratio:488/680;object-fit:cover}
+.cm-pick.on{border-color:var(--up);box-shadow:0 0 0 2px var(--up) inset}.cm-pick.on img{opacity:1}
+.cm-pick .ck{position:absolute;top:9px;right:9px;width:26px;height:26px;border-radius:50%;background:var(--up);color:#fff;font-weight:700;line-height:26px;text-align:center;display:none;box-shadow:0 1px 4px rgba(0,0,0,.4)}.cm-pick.on .ck{display:block}
+.cm-lbl{font-size:12.5px;color:var(--muted);text-align:center}.cm-pick.on .cm-lbl{color:var(--up);font-weight:700}
+.cm-ins-ph{display:flex;align-items:center;justify-content:center;aspect-ratio:488/680;border:1px dashed var(--line);border-radius:6px;font-size:12px;color:var(--muted);padding:6px;text-align:center}
+.cm-k{font-size:13.5px}.cm-k .cm-d{margin-left:4px}
+.cm-seal{display:flex;gap:6px}.cm-seal button{flex:1;font:inherit;font-size:12.5px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);cursor:pointer}.cm-seal button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+@media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #dcPop{position:fixed;z-index:2000;pointer-events:none;width:300px;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45);background:#fff}
 #dcPop img{display:block;width:100%;aspect-ratio:1;object-fit:contain}#dcPop div{font-size:12px;padding:6px 8px;color:#333;background:#f4f1ea}
@@ -7520,7 +7529,7 @@ function dkEditor(id){
 }
 
 // ---------------- Comics: every Magic comic (Armada first - magazines can join later), and which ones you have ----------------
-const COMIC_COLS = ["id", "qty", "insert", "acquired", "notes"];
+const COMIC_COLS = ["id", "qty", "insert", "sealed", "acquired", "notes"];   // qty = the comic, insert "yes" = the card/insert, sealed = sealed | open
 const COMICS = {cat: null, rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all"};
 try{ COMICS.show = store.get("pd_comics_show") || "all"; }catch{}
 async function loadCOMICS(){
@@ -7552,14 +7561,20 @@ function comicGroups(){
   return {groups: gs.sort((a, b) => (a.series === "One-Shots") - (b.series === "One-Shots") || (a.date || "").localeCompare(b.date || "") || a.series.localeCompare(b.series)), have};
 }
 function comicHTML(c, have){
-  const on = have.has(c.id), r = have.get(c.id), img = comicImg(c), ro = READONLY && ROLE !== "user";
-  const ins = c.insert ? (r && r.insert === "no" ? "no" : r && r.insert === "yes" ? "yes" : "") : "";
-  return `<div class="cm-it${on ? " on" : ""}"><button class="dc-die cm-die${on ? " on" : ""}" type="button" data-comic="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc(comicName(c) + (c.title ? " - " + c.title : "") + (on ? " · you have it" : " · tap if you have it"))}">
-    <span class="ck">✓</span><span class="cm-pair">${c.cover ? `<img class="cm-cov" src="${esc(c.cover)}" alt="${esc(comicName(c))} cover" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : `<span class="cm-cover">${c.issue ? "#" + c.issue : "One-Shot"}</span>`}${img ? `<img class="cm-card" src="${esc(img)}" alt="${esc((c.cards || [])[0].name)}" title="Came with: ${esc(c.insert)}" loading="lazy" onerror="this.remove()">` : ""}</span>
-    <div class="k"><b>${esc(c.issue ? "#" + c.issue : c.series)}</b>${c.title ? " · " + esc(c.title) : ""}</div>
-    <div class="cm-d">${esc(diceMonth(c.date))}</div>
-    ${c.insert ? `<div class="cm-ins">Came with: ${esc(c.insert)}</div>` : ""}</button>
-    ${on && c.insert && !ro ? `<button type="button" class="cm-insb${ins ? " " + ins : ""}" data-cins="${esc(c.id)}" title="Does your copy still have what came with it?">${ins === "yes" ? "✓ Still Has It" : ins === "no" ? "✗ Missing" : "Still Has It?"}</button>` : ""}</div>`;
+  const on = have.has(c.id), r = COMICS.rows.find(x => x.id === c.id), img = comicImg(c), ro = READONLY && ROLE !== "user";
+  const cardOn = !!(r && r.insert === "yes"), seal = r ? r.sealed || "" : "", nm = comicName(c), isCard = !!img;
+  const ph = `<span class="cm-cover">${c.issue ? "#" + c.issue : "One-Shot"}</span>`;
+  return `<div class="cm-it"><div class="cm-pair">
+    <button type="button" class="cm-pick cm-cov-b${on ? " on" : ""}" data-comic="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc(nm + (on ? " · you have the comic - tap to undo" : " · tap if you have the comic"))}"><span class="ck">✓</span>
+      ${c.cover ? `<img class="cm-cov" src="${esc(c.cover)}" alt="${esc(nm)} cover" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : ph}
+      <span class="cm-lbl">${on ? "✓ Have Comic" : "Comic"}</span></button>
+    ${c.insert ? `<button type="button" class="cm-pick cm-card-b${cardOn ? " on" : ""}" data-ccard="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc("Came with: " + c.insert + (cardOn ? " · you have it - tap to undo" : " · tap if you have it"))}"><span class="ck">✓</span>
+      ${isCard ? `<img class="cm-card" src="${esc(img)}" alt="${esc((c.cards || [])[0].name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-ins-ph',textContent:${esc(JSON.stringify(c.insert))}}))">` : `<span class="cm-ins-ph">${esc(c.insert)}</span>`}
+      <span class="cm-lbl">${cardOn ? (isCard ? "✓ Have Card" : "✓ Have It") : (isCard ? "Card" : "Insert")}</span></button>` : ""}</div>
+    <div class="cm-k"><b>${esc(c.issue ? "#" + c.issue : c.series)}</b>${c.title ? " · " + esc(c.title) : ""} <span class="cm-d">${esc(diceMonth(c.date))}</span></div>
+    ${c.insert ? `<div class="cm-ins">Came with: ${esc(c.insert)}</div>` : ""}
+    ${on && !ro ? `<div class="cm-seal" role="group" aria-label="Sealed or opened"><button type="button" data-cseal="${esc(c.id)}" data-v="sealed" class="${seal === "sealed" ? "on" : ""}">Sealed / Mint</button><button type="button" data-cseal="${esc(c.id)}" data-v="open" class="${seal === "open" ? "on" : ""}">Opened</button></div>`
+      : on && seal ? `<div class="cm-ins">${seal === "sealed" ? "Sealed / Mint" : "Opened"}</div>` : ""}</div>`;
 }
 function renderCOMICS(){
   const box = $("#comicsBody"); if (!box) return;
@@ -7574,6 +7589,7 @@ function renderCOMICS(){
     <p class="sub" style="margin:0">Every Magic comic Armada published (1995–96)${READONLY && ROLE !== "user" ? "." : ". Tap a comic you have; tap again to undo."} List courtesy of <a href="${esc(COMICS.cat.source)}" target="_blank" rel="noopener">${esc(COMICS.cat.source_name || "MTG Wiki")}</a>; pictures are each cover (from MTG Wiki) and the card it came with.</p></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 14px">
       <div class="stat"><span>You have</span><b>${nHave} <span class="mut" style="font-size:14px;font-weight:500">of ${all.length}</span></b></div>
+      <div class="stat"><span>Cards you have</span><b>${all.filter(c => c.insert && (COMICS.rows.find(x => x.id === c.id) || {}).insert === "yes").length} <span class="mut" style="font-size:14px;font-weight:500">of ${all.filter(c => c.insert).length}</span></b></div>
       <div class="stat"><span>Complete series</span><b>${done} <span class="mut" style="font-size:14px;font-weight:500">of ${bySeries.size}</span></b></div></div>
     <div class="panel row"><input id="cmQ" placeholder="Search a series, title or card…" value="${esc(COMICS.q)}" style="flex:1;min-width:180px">
       <select id="cmShow"><option value="all">All comics</option><option value="have">Series I've started</option><option value="need">Still missing some</option><option value="done">Complete series</option></select></div>
@@ -7585,22 +7601,19 @@ function renderCOMICS(){
   $("#cmQ").addEventListener("input", e => { COMICS.q = e.target.value; const keep = COMICS.q; renderCOMICS(); const q = $("#cmQ"); if (q){ q.focus(); q.setSelectionRange(keep.length, keep.length); } });
   $("#cmShow").addEventListener("change", e => { COMICS.show = e.target.value; try{ store.set("pd_comics_show", COMICS.show); }catch{} renderCOMICS(); });
   box.querySelectorAll("[data-comic]").forEach(b => b.addEventListener("click", () => { if (READONLY && ROLE !== "user") return; toggleComic(b.dataset.comic); }));
-  box.querySelectorAll("[data-cins]").forEach(b => b.addEventListener("click", () => comicInsert(b.dataset.cins)));
+  box.querySelectorAll("[data-ccard]").forEach(b => b.addEventListener("click", () => { if (READONLY && ROLE !== "user") return; comicInsert(b.dataset.ccard); }));
+  box.querySelectorAll("[data-cseal]").forEach(b => b.addEventListener("click", () => comicSeal(b.dataset.cseal, b.dataset.v)));
 }
+// the comic and its card are separate checks: one row per comic, qty = the comic, insert "yes" = the card (either can be on alone)
+function comicRow(id){ let r = COMICS.rows.find(x => x.id === id); if (!r){ r = {id, qty: "0", insert: "", sealed: "", acquired: todayAZ(), notes: ""}; COMICS.rows.push(r); } return r; }
+function comicTidy(r){ if (!(parseInt(r.qty) > 0) && r.insert !== "yes" && !r.notes){ COMICS.rows.splice(COMICS.rows.indexOf(r), 1); } markDirty("comics"); const y = window.scrollY; renderCOMICS(); window.scrollTo(0, y); }
 function toggleComic(id){
-  const c = COMICS.cat.items.find(x => x.id === id); if (!c) return;
-  const i = COMICS.rows.findIndex(r => r.id === id);
-  if (i >= 0) COMICS.rows.splice(i, 1);
-  else COMICS.rows.push({id, qty: "1", insert: "", acquired: todayAZ(), notes: ""});
-  markDirty("comics");
-  const y = window.scrollY; renderCOMICS(); window.scrollTo(0, y);
+  if (!COMICS.cat.items.find(x => x.id === id)) return;
+  const r = comicRow(id); if (parseInt(r.qty) > 0){ r.qty = "0"; r.sealed = ""; } else { r.qty = "1"; r.acquired = r.acquired || todayAZ(); }
+  comicTidy(r);
 }
-function comicInsert(id){   // Still Has It? -> yes -> missing -> not answered
-  const r = COMICS.rows.find(x => x.id === id); if (!r) return;
-  r.insert = r.insert === "yes" ? "no" : r.insert === "no" ? "" : "yes";
-  markDirty("comics");
-  const y = window.scrollY; renderCOMICS(); window.scrollTo(0, y);
-}
+function comicInsert(id){ const r = comicRow(id); r.insert = r.insert === "yes" ? "" : "yes"; comicTidy(r); }
+function comicSeal(id, v){ const r = comicRow(id); r.sealed = r.sealed === v ? "" : v; comicTidy(r); }
 // ---------------- Spindown dice: dicecollector.com's list of every Magic spindown, and which ones you have ----------------
 const DICE_COLS = ["id", "qty", "set", "kind", "acquired", "notes"];
 const DICE = {cat: null, rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all", recolor: false};
