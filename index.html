@@ -112,7 +112,9 @@ td.r,th.r{text-align:right}
 .cm-cover{display:flex;align-items:center;justify-content:center;width:100%;aspect-ratio:488/680;border-radius:6px;background:linear-gradient(160deg,#3a2a1c,#1b1410);color:#c9a26b;font-family:Georgia,serif;font-size:22px;font-weight:700;opacity:.5}.cm-die.on .cm-cover{opacity:1}
 .cm-die .k{text-align:left}.cm-d{font-size:11px;color:var(--muted);text-align:left}.cm-ins{font-size:11px;color:var(--muted);text-align:left;line-height:1.25;margin-top:2px}
 .cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
-.cm-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.cm-grid{grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.cm-pair{display:flex;gap:6px;align-items:flex-end;justify-content:center}.cm-pair .cm-cov,.cm-pair .cm-cover{flex:0 0 60%;width:60%;aspect-ratio:2/3;object-fit:cover}.cm-pair .cm-card{flex:1 1 0;min-width:0;width:auto;aspect-ratio:488/680;object-fit:cover}
+@media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cm-pair{gap:4px}}
 @media (max-width:700px){.dc-grid.cm-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #dcPop{position:fixed;z-index:2000;pointer-events:none;width:300px;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.45);background:#fff}
 #dcPop img{display:block;width:100%;aspect-ratio:1;object-fit:contain}#dcPop div{font-size:12px;padding:6px 8px;color:#333;background:#f4f1ea}
@@ -7553,7 +7555,7 @@ function comicHTML(c, have){
   const on = have.has(c.id), r = have.get(c.id), img = comicImg(c), ro = READONLY && ROLE !== "user";
   const ins = c.insert ? (r && r.insert === "no" ? "no" : r && r.insert === "yes" ? "yes" : "") : "";
   return `<div class="cm-it${on ? " on" : ""}"><button class="dc-die cm-die${on ? " on" : ""}" type="button" data-comic="${esc(c.id)}" ${ro ? "disabled" : ""} title="${esc(comicName(c) + (c.title ? " - " + c.title : "") + (on ? " · you have it" : " · tap if you have it"))}">
-    <span class="ck">✓</span>${img ? `<img src="${esc(img)}" alt="${esc(comicName(c))}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : `<span class="cm-cover">${c.issue ? "#" + c.issue : "One-Shot"}</span>`}
+    <span class="ck">✓</span><span class="cm-pair">${c.cover ? `<img class="cm-cov" src="${esc(c.cover)}" alt="${esc(comicName(c))} cover" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cm-cover',textContent:'${c.issue ? "#" + c.issue : "One-Shot"}'}))">` : `<span class="cm-cover">${c.issue ? "#" + c.issue : "One-Shot"}</span>`}${img ? `<img class="cm-card" src="${esc(img)}" alt="${esc((c.cards || [])[0].name)}" title="Came with: ${esc(c.insert)}" loading="lazy" onerror="this.remove()">` : ""}</span>
     <div class="k"><b>${esc(c.issue ? "#" + c.issue : c.series)}</b>${c.title ? " · " + esc(c.title) : ""}</div>
     <div class="cm-d">${esc(diceMonth(c.date))}</div>
     ${c.insert ? `<div class="cm-ins">Came with: ${esc(c.insert)}</div>` : ""}</button>
@@ -7569,7 +7571,7 @@ function renderCOMICS(){
   const nHave = all.filter(c => have.has(c.id)).length, bySeries = new Map(); all.filter(c => c.issue).forEach(c => bySeries.set(c.line + "|" + c.series, (bySeries.get(c.line + "|" + c.series) || []).concat(c)));
   const done = [...bySeries.values()].filter(cs => cs.every(c => have.has(c.id))).length;
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:6px"><div><h2>Comics</h2>
-    <p class="sub" style="margin:0">Every Magic comic Armada published (1995–96)${READONLY && ROLE !== "user" ? "." : ". Tap a comic you have; tap again to undo."} List courtesy of <a href="${esc(COMICS.cat.source)}" target="_blank" rel="noopener">${esc(COMICS.cat.source_name || "MTG Wiki")}</a>; pictures are the card each issue came with.</p></div></div>
+    <p class="sub" style="margin:0">Every Magic comic Armada published (1995–96)${READONLY && ROLE !== "user" ? "." : ". Tap a comic you have; tap again to undo."} List courtesy of <a href="${esc(COMICS.cat.source)}" target="_blank" rel="noopener">${esc(COMICS.cat.source_name || "MTG Wiki")}</a>; pictures are each cover (from MTG Wiki) and the card it came with.</p></div></div>
     <div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));margin:12px 0 14px">
       <div class="stat"><span>You have</span><b>${nHave} <span class="mut" style="font-size:14px;font-weight:500">of ${all.length}</span></b></div>
       <div class="stat"><span>Complete series</span><b>${done} <span class="mut" style="font-size:14px;font-weight:500">of ${bySeries.size}</span></b></div></div>
