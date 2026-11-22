@@ -1143,8 +1143,12 @@ const GH = {
   putFile(path, text, sha, message){ return server("saveFile", path, text, sha, message); },
   runWorkflow(mode){ return server("runWorkflow", mode || "both"); },
   loadSL(){ return server("loadSecretLair"); },
-  readFiles(paths){ return server("readFiles", paths); }
+  readFiles(paths){ return server("readFiles", paths).then(o => { markBig(o); return o; }); }
 };
+// A file that came back with an id but no text was too big for the server to read (GitHub sends no text past 1 MB).
+// Never save over it: saving would replace the whole file with just this page's new rows (lost 3,410 reviews on Nov 21).
+const BIGF = new Set();
+function markBig(o){ Object.entries(o || {}).forEach(([p, x]) => { if (x && x.sha && !x.text) BIGF.add(p); else BIGF.delete(p); }); }
 // ---------------------------------------------------------------- sign-in
 const AUTH = {token: store.get("pd_session") || "", device: store.get("pd_device") || ""};
 if (!AUTH.device){ AUTH.device = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now(); store.set("pd_device", AUTH.device); }
@@ -1524,6 +1528,7 @@ function markDirty(file){
 }
 async function putIfChanged(path, text, sha, msg){   // skip files that didn't actually change
   if (AUTOSAVE.last[path] === text) return sha;
+  if (BIGF.has(path)) throw new Error(`Couldn't read ${path} in full, so it wasn't saved (your changes are kept). Reload the page.`);
   const nsha = await GH.putFile(path, text, sha, msg); AUTOSAVE.last[path] = text; return nsha;
 }
 // Review files can be changed from two places (phone + computer, or Claude). If the copy on GitHub changed since this
@@ -1532,7 +1537,9 @@ async function putMerged(path, sha, build, merge, msg){
   try{ return await putIfChanged(path, build(), sha, msg); }
   catch(e){
     if (!/changed on GitHub/i.test(e.message)) throw e;
-    const f = (await rawServer("readFiles", AUTH.token, [path]))[path] || {};
+    const got = await rawServer("readFiles", AUTH.token, [path]); markBig(got);
+    if (BIGF.has(path)) throw new Error(`Couldn't read ${path} in full, so it wasn't saved (your changes are kept). Reload the page.`);
+    const f = got[path] || {};
     merge(f.text ? parseCSV(f.text) : []);
     delete AUTOSAVE.last[path];
     return await putIfChanged(path, build(), f.sha, msg);
