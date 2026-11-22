@@ -7920,7 +7920,7 @@ function renderSetDetail(g){
   const cf = SETS.cond || "";   // condition filter: your best copy is this condition ("none" = not owned)
   const binder = SETS.layout !== "list";   // binder: the set in its own order, what you don't have faded out
   const rows = (SETS.view === "need" ? pr.need : SETS.view === "have" ? pr.rows.filter(r => r.have) : pr.rows)
-    .filter(r => !q || r.c.name.toLowerCase().includes(q)).filter(r => !cf || (cf === "none" ? !r.have : r.best === cf))
+    .filter(r => !q || r.c.name.toLowerCase().includes(q) || String(r.c.collector_number || "").toLowerCase() === q.replace(/^#/, "")).filter(r => !cf || (cf === "none" ? !r.have : r.best === cf))
     .slice().sort(binder ? setOrder : (a, b) => (b.price || 0) - (a.price || 0));
   const pct = Math.round(pr.have / pr.total * 100);
   const isNB = /^(yes|true|1)$/i.test(g.skip_basics || ""), paused = /^paused$/i.test(g.status || "");
@@ -7964,6 +7964,8 @@ function renderSetDetail(g){
   loadTcgNames(); box.querySelectorAll("[data-setcopy]").forEach(b => b.addEventListener("click", () => massCopy(pr.need.filter(r => !q || r.c.name.toLowerCase().includes(q)), b.dataset.setcopy)));
   $("#setView").addEventListener("input", e => { SETS.view = e.target.value; renderSetDetail(g); });
   $("#setCond").addEventListener("input", e => { SETS.cond = e.target.value; renderSetDetail(g); });
+  $("#setFind").addEventListener("input", e => { SETS.q = e.target.value; const pos = e.target.selectionStart; renderSetDetail(g);   // filter as you type, keep typing where you were
+    const f = $("#setFind"); if (f){ f.focus(); try{ f.setSelectionRange(pos, pos); }catch(err){} } });
   box.querySelectorAll("[data-slayout]").forEach(b => b.addEventListener("click", () => { SETS.layout = b.dataset.slayout; store.set("pd_set_layout", SETS.layout); renderSetDetail(g); }));
   box.querySelectorAll("[data-spocket]").forEach(b => b.addEventListener("click", () => openSetPocket(g, rows[+b.dataset.spocket], pr)));
   if ($("#setStar")) $("#setStar").addEventListener("click", () => { const ng = {set: g.set, finish: "all", skip_basics: "no", status: "active", deal_pct: "", notes: ""};
