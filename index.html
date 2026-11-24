@@ -7739,6 +7739,21 @@ function dbxDetailHTML(b, own, ro){
     ${ROLE === "owner" && !READONLY ? `<button type="button" class="btn small ghost" id="dbxEdit">✎ Edit Photos &amp; Info</button>` : ""}
   </aside>`;
 }
+// photos you link get copied onto your own site (desk.havothcards.com/img/deckboxes/) so they keep showing if the original link breaks;
+// the original link stays in the notes
+const DBX_PHOTOS = [["photo", "front"], ["photo_back", "back"], ["photo_side", "side"], ["photo_inside", "inside"], ["photo_extras", "extras"]];
+async function dbxKeepPhotos(b){
+  const todo = DBX_PHOTOS.filter(([k]) => /^https:\/\//.test(b[k] || "") && !/^https:\/\/desk\.havothcards\.com\//.test(b[k]));
+  if (!todo.length) return;
+  let ok = 0, err = "";
+  for (const [k, slot] of todo){
+    try{ const r = await server("savePhoto", b[k], `${b.id}-${slot}`);
+      if (r && r.url){ const src = b[k]; b[k] = r.url; ok++; if (!String(b.notes || "").includes(src)) b.notes = [b.notes, `${slot} photo from ${src}`].filter(Boolean).join(" · "); } }
+    catch(e){ err = e.message || String(e); if (/unknown|not a function|savePhoto/i.test(err)) err = "The server needs its update first - reload the desk while signed in as admin, then save again."; break; }
+  }
+  if (ok){ markDirty("dbcat"); renderDBX(); toast(`${ok} photo${ok === 1 ? "" : "s"} saved to your site - ${ok === 1 ? "it" : "they"} won't break if the original link does.`); }
+  if (err) toast("Kept the photo link, but couldn't save a copy: " + err, 7000);
+}
 function dbxRow(id){ let r = DBX.rows.find(x => x.id === id); if (!r){ r = {id, qty: "0", sealed: "", paid: "", notes: ""}; DBX.rows.push(r); } return r; }
 function dbxTidy(r){ if (!(parseInt(r.qty) > 0) && !r.notes) DBX.rows.splice(DBX.rows.indexOf(r), 1); markDirty("dboxes"); const y = window.scrollY; renderDBX(); window.scrollTo(0, y); }
 function dbxToggle(id){ const r = dbxRow(id); if (parseInt(r.qty) > 0){ r.qty = "0"; r.sealed = ""; } else r.qty = "1"; dbxTidy(r); }
@@ -7777,6 +7792,7 @@ function openDbxEdit(id){
     const t = id ? b : (() => { let n = DBX.cat.length + 1, nid; do { nid = "db-" + String(n++).padStart(3, "0"); } while (DBX.cat.some(x => x.id === nid)); const x = {id: nid}; DBX.cat.push(x); return x; })();
     DBX_CAT_COLS.filter(k => k !== "id").forEach(k => { t[k] = v(k); });
     closeModal(); DBX.sel = t.id; markDirty("dbcat"); renderDBX(); toast(id ? "Deck box updated." : "Deck box added.");
+    dbxKeepPhotos(t);
   });
 }
 
