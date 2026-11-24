@@ -200,10 +200,7 @@ input[type=number]::-webkit-inner-spin-button{opacity:.45;cursor:pointer}input[t
 input[type=date]::-webkit-calendar-picker-indicator{opacity:.6;cursor:pointer}
 *{scrollbar-color:color-mix(in srgb,var(--muted) 45%,transparent) transparent}
 .big-spin{width:42px;height:42px;margin:0 auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:bigspin .9s linear infinite}@keyframes bigspin{to{transform:rotate(360deg)}}
-.buy-list{padding:4px 14px}.buy-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.buy-row:last-child{border-bottom:0}
-.buy-main{flex:1 1 280px;min-width:0}.buy-main .mut{font-size:12.5px;margin-top:2px}.buy-acts{display:flex;gap:6px;flex-wrap:wrap}
-.buy-tag{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;margin-left:2px}.buy-tag.ok{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up)}.buy-tag.bad{background:color-mix(in srgb,var(--down) 18%,transparent);color:var(--down)}
-.buy-row.gone b{text-decoration:line-through;opacity:.75}
+#colWaiting .bdl-list{grid-template-columns:minmax(0,1fr)}#colWaiting .bdl-row{flex-wrap:wrap;gap:4px 10px;align-items:center}#colWaiting .bdl-row>span:first-child{flex:1 1 220px;min-width:0}
 body:has(#busy.on) .loadmsg{visibility:hidden}
 body.booting main{visibility:hidden}body.booting #busy{display:block}body.booting #busy .busy-msg{background:transparent;backdrop-filter:none}   /* the big "Refreshing… please wait" card says it - no second, smaller "Loading…" behind it */
 .sd-sug{position:absolute;left:0;right:0;top:100%;z-index:30;background:var(--panel,#fff);border:1px solid var(--line);border-radius:10px;max-height:300px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.18)}
@@ -680,7 +677,6 @@ body:not(.ui-ready) #nav button:not(.pre){display:none}
     <button data-tab="market" data-group="deals" title="What's moving: your tracked cards' biggest price changes, sets trending, cards near their low">Market</button>
     <button data-tab="all" data-group="deals" hidden title="Every card priced daily">All Prices</button>
     <button data-tab="col" data-group="mine" title="What you own, what it is worth, and profit on sales">Collection</button>
-    <button data-tab="buys" data-group="mine" title="Everything you've bought - eBay, Secret Lair and more - and what's still on the way">Purchases</button>
     <button data-tab="sets" data-group="mine" title="Every set you own cards from, and the ones you are completing">Sets</button>
     <button data-tab="decks" data-group="mine" title="Paste a deck list: every printing, prices, and what you still need">Decks</button>
     <button data-tab="sl" data-group="mine" title="Every Secret Lair drop, upcoming dates, and your orders">Secret Lair</button>
@@ -1023,9 +1019,6 @@ if(T){document.getElementById("heroT").textContent=T[0];document.getElementById(
   <div id="diceBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
 
-<section class="tab" id="tab-buys">
-  <div id="buysBody"><p class="empty loadmsg">Loading…</p></div>
-</section>
 <section class="tab" id="tab-comics">
   <div id="comicsBody"><p class="empty loadmsg">Loading…</p></div>
 </section>
@@ -5165,7 +5158,7 @@ async function loadSL(force){
   SL.loading = true; SL.error = ""; renderSL();
   try{ const r = await GH.loadSL(); SL.data = r.data ? JSON.parse(r.data) : null; SL.upcoming = r.upcoming && r.upcoming.text ? parseCSV(r.upcoming.text) : []; SL.upSha = r.upcoming ? r.upcoming.sha : null; SL.orders = r.orders ? JSON.parse(r.orders) : null; }
   catch(e){ SL.error = e.message; }
-  SL.loading = false; renderSL(); if (document.querySelector("#tab-buys.on")) renderBUYS();
+  SL.loading = false; renderSL(); if (document.querySelector("#tab-col.on")) renderColWaiting();
 }
 function renderSL(){
   const box = $("#slBody"); if (!box) return;
@@ -5627,7 +5620,7 @@ function markLines(lines, n){
   const what = lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders of " + lines[0].product.slice(0, 40);
   toast(`${what} - received and added to Sealed. ↩ Undo is next to it.`, 5000);
   renderSLOrders();
-  if (document.querySelector("#tab-col.on") || document.querySelector("#tab-buys.on")) renderCOL();
+  if (document.querySelector("#tab-col.on")) renderCOL();
 }
 // one line with more than one coming: ask how many arrived (orders often ship in parts)
 function markReceived(lineId){
@@ -5650,7 +5643,7 @@ function unmarkLines(lines){   // the ↩ Undo: back to not received, and out of
   if (SD.rows.some(r => mine(r) && (r.status || "sealed") !== "sealed")) return toast("Some of these are opened or sold on the Sealed tab - undo that there first.", 6000);
   COL.rec = COL.rec.filter(r => !ids.has(r.line_id) && !ids.has(r.line_id.split("::")[0])); COL.inv = COL.inv.filter(r => !ids.has(r.ref)); SD.rows = SD.rows.filter(r => !mine(r));
   lines.forEach(l => { l.in_collection = false; l.open = !l.received; });
-  markDirty("collection"); toast(`${lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders"} - back to not received.`, 4000); renderSLOrders(); if (document.querySelector("#tab-buys.on")) renderBUYS();
+  markDirty("collection"); toast(`${lines.length === 1 ? lines[0].product.slice(0, 50) : lines.length + " orders"} - back to not received.`, 4000); renderSLOrders();
 }
 const unmarkReceived = lineId => unmarkLines([SL.orders.lines.find(x => x.line_id === lineId)]);
 document.addEventListener("click", e => {
@@ -6142,7 +6135,6 @@ function colSales(){
   }).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
 function renderCOL(){
-  if (document.querySelector("#tab-buys.on") && typeof renderBUYS === "function") renderBUYS();   // Purchases reads the same rows
   if (document.querySelector("#tab-mine.on") && typeof renderWant === "function") setTimeout(renderWant, 0);   // the Want List's sets come with your collection
   const box = $("#colBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("collection"); wireJoin(box); return; }
@@ -6178,6 +6170,7 @@ function renderCOL(){
       <label class="btn ghost" style="cursor:pointer">Import CSV<input type="file" id="colImport" accept=".csv,text/csv" hidden></label>
       <button class="btn ghost" id="colExport" type="button" title="Download your cards, sealed product and Secret Lair orders as an Excel file">⬇ Export</button>
     </div>
+    <div id="colWaiting"></div>
     <div class="cv-views" role="group" aria-label="Views">${VIEWS.map(([k, l, n, tip]) => `<button type="button" class="btn small${COL.view === k ? "" : " ghost"}" data-cview="${k}" title="${esc(tip)}">${l}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("")}
       <span class="seg cv-layout" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" class="btn small${COL.layout === "binder" ? " ghost" : ""}" data-clayout="list">☰ List</button><button type="button" class="btn small${COL.layout === "binder" ? "" : " ghost"}" data-clayout="binder">▦ Binder</button></span>
       <input id="colQ" type="search" placeholder="Find a card…" value="${esc(COL.q)}" style="min-width:160px;flex:0 1 220px"></div>
@@ -6196,7 +6189,7 @@ function renderCOL(){
   if ($("#colAddS")) $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
   wireBinderChips(box, () => { renderCOL(); renderSETS(); });
   $("#colImport").addEventListener("change", e => importCSV(e.target.files[0]));
-  renderCOLList();
+  renderColWaiting(); renderCOLList();
 }
 // the ready-made views: [key, label, count, what it shows]
 function colViews(held){
@@ -6225,6 +6218,21 @@ function colAll(){
 // Recently Added: a card you just marked received counts as new (it arrived today, even if you bought it weeks ago) and goes first
 const colGot = i => (String(i.notes || "").match(/received (\d{4}-\d\d-\d\d)/g) || []).map(x => x.slice(9)).sort().pop() || "";
 const colNewest = i => [i.acquired || "", colGot(i)].sort().pop();
+// not received yet: eBay buys still "Ordered" + Secret Lair orders that shipped but aren't marked received
+function renderColWaiting(){
+  const box = $("#colWaiting"); if (!box) return;
+  const ebay = colItems().filter(i => i.status === "ordered" && i.left > 0);
+  const sl = COL.binder ? [] : (SL.orders && SL.orders.lines || []).filter(l => !l.dead && /shipped|delivered/i.test(l.status) && !isReceived(l));
+  if (!ebay.length && !sl.length){ box.innerHTML = ""; return; }
+  const row = (name, sub, btn) => `<div class="bdl-row"><span><b>${esc(name)}</b> <span class="mut">${sub}</span></span><span style="margin-left:auto;white-space:nowrap">${btn}</span></div>`;
+  // starts folded (tap the title to open); remembered on this device
+  box.innerHTML = `<details class="panel cv-wait" style="border-left:4px solid #d08a2c"${store.get("pd_wait_closed") === "0" ? " open" : ""}><summary><b>📦 Not marked received yet (${ebay.length + sl.length})</b> <span class="mut" style="font-size:12px">- arrived? Mark it so it counts as yours.</span></summary>
+    <div class="bdl-list" style="margin-top:8px;max-height:320px;overflow:auto">
+      ${ebay.map(i => row(i.name, `${esc(i.set)} · ${esc(i.condition)} · eBay buy · paid ${money(i.cost_each)}${i.acquired ? " · " + esc(i.acquired) : ""}`, `<span class="btn small" role="button" data-recv="${esc(i.id)}">Mark Received</span>`)).join("")}
+      ${sl.map(l => row(l.product.replace(/^Secret Lair x /i, ""), `Secret Lair · ×${l.qty}${recQty(l) ? ` (${recQty(l)} in)` : ""} · ${esc(acctLabel(l.account))} · ${esc(l.status)}${l.ship_date ? " " + esc(l.ship_date) : ""}${l.tracking ? " · " + trackLinks(l.tracking) : ""}`, `<span class="btn small" role="button" data-colmark="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</span>`)).join("")}
+    </div></details>`;
+  box.querySelector("details").addEventListener("toggle", e => store.set("pd_wait_closed", e.target.open ? "0" : "1"));
+}
 document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-colmark]"); if (!b) return; e.preventDefault(); markReceived(b.dataset.colmark); setTimeout(renderCOL, 50); });
 function renderCOLList(){
   const q = COL.q.trim().toLowerCase();
@@ -6286,14 +6294,13 @@ function renderCOLList(){
 }
 // Mark Received on an eBay buy: one listener for the page - the "Not marked received yet" box re-draws when Secret Lair orders
 // finish loading, which used to leave its buttons with no click handler
-async function recvBuy(id){
-  const r = COL.inv.find(x => x.id === id); if (!r) return toast("Couldn't find that card - reload the page and try again.");
+document.addEventListener("click", async e => { const b = e.target.closest("#colBody [data-recv]"); if (!b || READONLY) return; e.preventDefault();
+  const r = COL.inv.find(x => x.id === b.dataset.recv); if (!r) return toast("Couldn't find that card - reload the page and try again.");
   if (/^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "")) return openReceiveCheck(r);
   r.status = "owned"; r.notes = [r.notes, "received " + todayAZ()].filter(Boolean).join(" · "); COL.inv.splice(COL.inv.indexOf(r), 1); COL.inv.push(r);   // to the end: Recently Added shows it first
   try{ await saveCollectionNow("Marked received (Price Desk)"); renderCOL(); toast(`${r.name} marked received.`); }
   catch(err){ r.status = "ordered"; toast("Couldn't save: " + err.message, 6000); }
-}
-document.addEventListener("click", e => { const b = e.target.closest("#colBody [data-recv]"); if (!b || READONLY) return; e.preventDefault(); recvBuy(b.dataset.recv); });
+});
 function colChangeVal(i){
   if (i.value == null) return null;
   if (i.cost_each > 0) return i.value - i.cost_left;
@@ -7611,86 +7618,6 @@ function toggleComic(id){
 }
 function comicInsert(id){ const r = comicRow(id); r.insert = r.insert === "yes" ? "" : "yes"; comicTidy(r); }
 function comicSeal(id, v){ const r = comicRow(id); r.sealed = r.sealed === v ? "" : v; comicTidy(r); }
-// ---------------- Purchases (My Cards > Purchases): everything you bought - eBay buys, Secret Lair orders, and more later -
-// what's still on the way (mark it received, lost / refunded, or returned) and the history. Reads the Collection rows + Secret Lair orders.
-const BUYS = {show: store.get("pd_buys_show") || "90"};
-const BUY_GONE = /^(Lost - refunded|Returned) \d{4}-\d\d-\d\d \(qty \d+\)\.?\s*/;
-const isEbayRef = r => /^https:\/\/(www\.)?ebay\.com\/itm\//.test(r.ref || "");
-// a purchase: anything on the way / lost / returned, every eBay buy, or a card with a price paid and a real source (not "already owned", a set import or an opened pack)
-const isBuyRow = r => ["ordered", "refunded", "returned"].includes(r.status) || /^ebay$/i.test(r.source || "") || isEbayRef(r)
-  || (numOrNull(r.cost_each) > 0 && (r.source || "").trim() && !/^(already owned|set:|opened:|unspecified)/i.test(r.source));
-function renderBUYS(){
-  const box = $("#buysBody"); if (!box) return;
-  if (!MYCOL()){ box.innerHTML = joinHTML("purchases"); wireJoin(box); return; }
-  if (!COL.loaded){ box.innerHTML = `<p class="empty loadmsg">${esc(COL.error || "Loading…")}</p>`; return; }
-  const ro = READONLY && ROLE !== "user", since = BUYS.show === "all" ? "" : new Date(Date.now() - (+BUYS.show || 90) * 864e5).toISOString().slice(0, 10);
-  const rows = COL.inv.filter(r => (r.kind || "card") !== "secret_lair" && isBuyRow(r));
-  const paid = r => (numOrNull(r.cost_each) || 0) * Math.max(1, parseInt(r.qty) || parseInt((String(r.notes).match(/\(qty (\d+)\)/) || [])[1]) || 1);
-  const sl = GUESTVIEW() || !SL.orders ? [] : SL.orders.lines;
-  const slWait = sl.filter(l => !l.dead && !isReceived(l)), slGot = sl.filter(l => !l.dead && isReceived(l));
-  const wait = rows.filter(r => r.status === "ordered");
-  const gotDate = r => (String(r.notes || "").match(/received (\d{4}-\d\d-\d\d)/g) || []).map(x => x.slice(9)).sort().pop() || r.acquired || "";
-  const goneDate = r => (String(r.notes || "").match(BUY_GONE) || [""])[0].match(/\d{4}-\d\d-\d\d/)?.[0] || r.acquired || "";
-  const hist = rows.filter(r => r.status !== "ordered").map(r => ({kind: "row", r, d: ["refunded", "returned"].includes(r.status) ? goneDate(r) : gotDate(r)}))
-    .concat(slGot.map(l => ({kind: "sl", l, d: l.received || l.date || ""}))).filter(x => !since || (x.d || "") >= since).sort((a, b) => (b.d || "").localeCompare(a.d || ""));
-  const onWay = wait.reduce((t, r) => t + paid(r), 0) + slWait.reduce((t, l) => t + (+l.cost || 0), 0);
-  const d30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
-  const spent30 = rows.filter(r => !["refunded", "returned"].includes(r.status) && (r.acquired || "") >= d30).reduce((t, r) => t + paid(r), 0) + sl.filter(l => !l.dead && (l.date || "") >= d30).reduce((t, l) => t + (+l.cost || 0), 0);
-  const back = rows.filter(r => ["refunded", "returned"].includes(r.status)).reduce((t, r) => t + paid(r), 0);
-  const stat = (k, v, sub) => `<div class="stat"><span>${k}</span><b>${v}</b>${sub ? `<span>${sub}</span>` : ""}</div>`;
-  const where = r => isEbayRef(r) ? `<a href="${esc(r.ref)}" target="_blank" rel="noopener">eBay</a>` : esc(r.source || "Purchase");
-  const cardSub = r => [where(r), r.set ? esc(String(r.set).toUpperCase()) : "", r.condition ? esc(r.condition) : "", parseInt(r.qty) > 1 ? "×" + esc(r.qty) : "", "paid " + money(paid(r)), r.acquired ? "bought " + esc(r.acquired) : ""].filter(Boolean).join(" · ");
-  const slSub = l => ["Secret Lair", esc(acctLabel(l.account)), "×" + esc(l.qty) + (recQty(l) ? ` (${recQty(l)} in)` : ""), l.cost ? "paid " + money(+l.cost) : "", l.date ? "ordered " + esc(l.date) : "", esc(l.status || "Ordered") + (l.ship_date ? " " + esc(l.ship_date) : ""), l.tracking ? trackLinks(l.tracking) : ""].filter(Boolean).join(" · ");
-  const line = (name, sub, acts, cls) => `<div class="buy-row${cls ? " " + cls : ""}"><div class="buy-main"><b>${esc(name)}</b><div class="mut">${sub}</div></div>${acts ? `<div class="buy-acts">${acts}</div>` : ""}</div>`;
-  const waitHTML = wait.map(r => line(r.name, cardSub(r), ro ? "" : `<button type="button" class="btn small" data-brecv="${esc(r.id)}">Mark Received</button><button type="button" class="btn small ghost" data-bgone="refunded" data-id="${esc(r.id)}">Lost / Refunded</button><button type="button" class="btn small ghost" data-bgone="returned" data-id="${esc(r.id)}">Returned</button>`))
-    .concat(slWait.map(l => line(l.product.replace(/^Secret Lair x /i, ""), slSub(l), ro ? "" : `<button type="button" class="btn small" data-bslrecv="${esc(l.line_id)}">${l.components ? "Mark Bundle Received" : "Mark Received"}</button>`))).join("");
-  const histHTML = hist.map(x => {
-    if (x.kind === "sl"){ const l = x.l; return line(l.product.replace(/^Secret Lair x /i, ""), slSub(l) + (l.received ? " · received " + esc(l.received) : ""), "", "got"); }
-    const r = x.r, gone = ["refunded", "returned"].includes(r.status);
-    const tag = gone ? `<span class="buy-tag bad">${r.status === "refunded" ? "Lost / Refunded" : "Returned"}${x.d ? " " + esc(x.d) : ""}</span>` : `<span class="buy-tag ok">Received${x.d ? " " + esc(x.d) : ""}</span>`;
-    return line(r.name, cardSub(r) + " " + tag, gone && !ro ? `<button type="button" class="btn small ghost" data-bundo="${esc(r.id)}">↩ Undo</button>` : "", gone ? "gone" : "got");
-  }).join("");
-  box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Purchases</h2>
-      <p class="mut" style="margin:2px 0 0">Everything you've bought - eBay and Secret Lair - and what's still on the way. Mark it received when it arrives.</p></div></div>
-    <div class="stats">${stat("On the Way", String(wait.length + slWait.length), onWay ? money(onWay) + " paid" : "nothing coming")}${stat("Spent, Last 30 Days", money(spent30))}${stat("Refunded / Returned", money(back))}</div>
-    <h3 style="margin:18px 0 8px">📦 On the Way (${wait.length + slWait.length})</h3>
-    <div class="panel buy-list">${waitHTML || `<p class="mut" style="margin:0">Nothing on the way - everything you bought is marked received.</p>`}</div>
-    <div class="row" style="margin:22px 0 8px;align-items:center;gap:10px"><h3 style="margin:0">History</h3>
-      <select id="buyShow" aria-label="How far back">${[["30", "Last 30 Days"], ["90", "Last 90 Days"], ["365", "Last Year"], ["all", "All Time"]].map(([v, t]) => `<option value="${v}"${BUYS.show === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>
-    <div class="panel buy-list">${histHTML || `<p class="mut" style="margin:0">Nothing in this time.</p>`}</div>`;
-  $("#buyShow").addEventListener("change", e => { BUYS.show = e.target.value; store.set("pd_buys_show", BUYS.show); renderBUYS(); });
-}
-document.addEventListener("click", e => {
-  const box = e.target.closest("#buysBody"); if (!box || (READONLY && ROLE !== "user")) return;
-  const rc = e.target.closest("[data-brecv]"); if (rc){ e.preventDefault(); return recvBuy(rc.dataset.brecv); }
-  const sr = e.target.closest("[data-bslrecv]"); if (sr){ e.preventDefault(); return markReceived(sr.dataset.bslrecv); }
-  const g = e.target.closest("[data-bgone]"); if (g){ e.preventDefault(); return buyGone(g.dataset.id, g.dataset.bgone); }
-  const u = e.target.closest("[data-bundo]"); if (u){ e.preventDefault(); return buyUndo(u.dataset.bundo); }
-});
-// Lost / Refunded or Returned: off your collection (qty 0), kept here in History with a dated note - ↩ Undo puts it back on the way
-function buyGone(id, kind){
-  const r = COL.inv.find(x => x.id === id); if (!r) return toast("Couldn't find that purchase - reload the page and try again.");
-  const lbl = kind === "refunded" ? "Lost / Refunded" : "Returned";
-  openModal(`<h3>${lbl}?</h3><div class="mut" style="font-size:13px">${esc(r.name)}${r.set ? " [" + esc(String(r.set).toUpperCase()) + "]" : ""} · paid ${money((numOrNull(r.cost_each) || 0) * (parseInt(r.qty) || 1))}</div>
-    <p class="mut" style="font-size:13px">It comes off your collection and stays in History with today's date. You can undo it.</p>
-    <div class="acts"><button class="btn ghost" id="bgNo" type="button">Cancel</button><button class="btn" id="bgOk" type="button">${lbl}</button></div>`);
-  $("#bgNo").addEventListener("click", closeModal);
-  $("#bgOk").addEventListener("click", async () => {
-    closeModal();
-    const before = {qty: r.qty, status: r.status, notes: r.notes};
-    r.notes = `${kind === "refunded" ? "Lost - refunded" : "Returned"} ${todayAZ()} (qty ${parseInt(r.qty) || 1}). ${r.notes || ""}`.trim(); r.qty = "0"; r.status = kind;
-    try{ await saveCollectionNow(`${lbl}: ${r.name} (Price Desk)`); renderCOL(); toast(`${r.name} - ${lbl.toLowerCase()}.`); }
-    catch(err){ Object.assign(r, before); toast("Couldn't save: " + err.message, 6000); renderBUYS(); }
-  });
-}
-async function buyUndo(id){
-  const r = COL.inv.find(x => x.id === id); if (!r) return;
-  const before = {qty: r.qty, status: r.status, notes: r.notes}, m = String(r.notes || "").match(BUY_GONE);
-  r.qty = String(m ? (parseInt((m[0].match(/\(qty (\d+)\)/) || [])[1]) || 1) : 1); r.status = "ordered"; r.notes = String(r.notes || "").replace(BUY_GONE, "");
-  try{ await saveCollectionNow(`Undo: ${r.name} back on the way (Price Desk)`); renderCOL(); toast(`${r.name} - back on the way.`); }
-  catch(err){ Object.assign(r, before); toast("Couldn't save: " + err.message, 6000); renderBUYS(); }
-}
-
 // ---------------- Spindown dice: dicecollector.com's list of every Magic spindown, and which ones you have ----------------
 const DICE_COLS = ["id", "qty", "set", "kind", "acquired", "notes"];
 const DICE = {cat: null, rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all", recolor: false};
@@ -8233,7 +8160,7 @@ const GROUPS = {
   prices: {t: "Prices", s: "What your cards are worth today, and where they are heading."},
   deals: {t: "Deals", s: "Underpriced eBay listings, what the deal finder hunts for, and what's moving in the market."},
   train: {t: "Training", s: "Teach Loupe, and see how it and SlaveAI are doing."},
-  mine: {t: "My Cards", s: "Your collection, purchases, sealed product, the sets you are completing, and Secret Lair drops."},
+  mine: {t: "My Cards", s: "Your collection, sealed product, the sets you are completing, and Secret Lair drops."},
   guide: {t: "ID & Fake Guide", s: "Spot fakes and proxies, and tell look-alike editions apart."},
   setup: {t: "Settings", s: "Deal rules, alerts, fees - and connection status."},
 };
@@ -8298,7 +8225,7 @@ if (!$("#login").hidden) loginArt();
 const waitHTML = () => '<div style="min-height:260px"></div>';   // the big "Refreshing… please wait" card covers the page meanwhile - one message, not two
 function joinHTML(what){
   if (!ROLE && AUTH.token) return waitHTML();
-  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : what === "sealed" ? "Track Your Sealed Product" : what === "dice" ? "Track Your Spindown Dice" : what === "comics" ? "Track Your Magic Comics" : what === "purchases" ? "Track What You Buy" : what === "decks" ? "Build and Track Your Decks" : "Track Your Own Collection"}</h3>
+  return `<div class="panel join"><h3>${what === "sets" ? "Track the Sets You're Completing" : what === "sealed" ? "Track Your Sealed Product" : what === "dice" ? "Track Your Spindown Dice" : what === "comics" ? "Track Your Magic Comics" : what === "decks" ? "Build and Track Your Decks" : "Track Your Own Collection"}</h3>
     <p>${what === "sets" ? "See how close you are to finishing each set and what the rest would cost." : what === "sealed" ? "Log the Secret Lairs, booster boxes, packs and decks you hold, see what they're worth today, and track profit when you open or sell them." : what === "dice" ? "Every Magic spindown life counter ever made, with pictures - tap the ones you have and see which you're still missing." : what === "comics" ? "Every Magic comic, with the card each one came with - tap the ones you have and see which you're still missing." : what === "decks" ? "Paste a deck list to see every printing and its price, which cards you already own, and what the rest would cost." : "Log what you own and paid, see what it's worth today, and track profit on what you sell."}
     It's private to your account - nobody else sees it, and you see nobody else's.</p>
     <div class="row" style="justify-content:center"><button class="btn" data-join="up">Create Account</button><button class="btn ghost" data-join="in">Sign In</button></div>
@@ -8454,7 +8381,6 @@ function switchTab(name){
   if (name === "sets" && typeof loadSETS === "function") loadSETS();
   if (name === "dice") loadDICE();
   if (name === "comics") loadCOMICS();
-  if (name === "buys"){ if (MYCOL() && typeof loadCOL === "function"){ loadCOL(stale("buys") && !S.dirty.has("collection")); TABLOAD.buys = Date.now(); if (!GUESTVIEW() && typeof loadSL === "function") loadSL(); } renderBUYS(); }
   if (name === "decks") loadDECKS();
   if (name === "market") renderMarket();
   if ((name === "audit" || name === "quick") && !READONLY) renderAudit();
