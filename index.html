@@ -7727,6 +7727,8 @@ function dbxDetailHTML(b, own, ro){
     ${dbxImg((DBX.pic && pics.some(p => p[1] === DBX.pic) ? DBX.pic : "") || b.photo || dbxArt(b), dbxTitle(b), "dbx-big", b.line || "Deck Box")}
     ${!b.photo ? `<div class="mut" style="font-size:11px;text-align:center">${b.art ? "Card art from Scryfall - no box photo yet" : "No photo yet"}</div>` : ""}
     <div class="dbx-phs">${pics.map(([k, u]) => `<button type="button" class="dbx-ph-b${u ? "" : " none"}" data-dbph="${esc(u || "")}" ${u ? "" : "disabled"} aria-label="${k} photo">${u ? dbxImg(u, k, "dbx-ph-i", k) : `<span>${k}</span>`}</button>`).join("")}</div>
+    <div class="row" style="gap:6px;justify-content:center">${(() => { const q = encodeURIComponent([/wizards/i.test(b.maker || "") ? "Magic" : (b.maker || "Ultra Pro"), "MTG deck box", b.art || dbxType(b.line), b.set, b.year].filter(Boolean).join(" "));
+      return `<a class="btn small ghost" href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">🔍 Find Photos</a><a class="btn small ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Listings</a>`; })()}</div>
     <h3 style="margin:4px 0 0">${esc(dbxTitle(b))}</h3>
     <div class="dbx-tags">${own ? `<span class="dbx-tag ok">✓ Have${parseInt(own.qty) > 1 ? " ×" + esc(own.qty) : ""}</span>` : `<span class="dbx-tag">Need</span>`}${own && own.sealed ? `<span class="dbx-tag">${own.sealed === "sealed" ? "Sealed" : "Opened"}</span>` : ""}${b.release ? `<span class="dbx-tag">${esc(b.release)}</span>` : ""}${b.includes ? `<span class="dbx-tag">${esc(b.includes)}</span>` : ""}</div>
     ${ro ? "" : `<div class="row" style="gap:6px">
