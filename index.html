@@ -114,9 +114,20 @@ td.r,th.r{text-align:right}
 .cm-insb{font:inherit;font-size:11.5px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--muted);padding:4px 6px;cursor:pointer}.cm-insb.yes{color:var(--up);border-color:var(--up)}.cm-insb.no{color:var(--down);border-color:var(--down)}
 .cm-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
 .cm-it{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;gap:6px}
-.dbx-grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}.dbx-it{display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
-.dbx-it .cm-pick .dbx-img{aspect-ratio:4/3;object-fit:cover;width:100%}.dbx-ph{display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px;padding:8px;text-align:center}
-.dbx-stand{font-size:11px;color:var(--muted);text-align:center}.dbx-desc{font-size:11.5px;opacity:.8}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.dbx-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}.dbx-tbl{flex:999 1 560px;min-width:0;overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.dbx-table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px}.dbx-table th{text-align:left;padding:8px 10px;background:var(--panel);color:var(--muted);font-weight:600;white-space:nowrap}
+.dbx-table td{padding:6px 10px;border-top:1px solid var(--line);vertical-align:middle}.dbx-row{cursor:pointer}.dbx-row:hover td{background:color-mix(in srgb,var(--accent) 6%,transparent)}.dbx-row.sel td{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.dbx-nm{font-weight:600}.dbx-st-have{color:var(--up);font-weight:600}.dbx-st-need{color:var(--muted)}
+.dbx-sort{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer}.dbx-sort.on{color:var(--text,inherit)}
+.dbx-chk{width:26px;height:26px;border-radius:7px;border:2px solid var(--line);background:transparent;color:#102a1c;font-weight:800;cursor:pointer;line-height:1}.dbx-chk.on{background:var(--up);border-color:var(--up)}
+.dbx-thumb{display:block;width:56px;height:40px;object-fit:cover;border-radius:4px}span.dbx-thumb{background:var(--panel)}
+.dbx-detail{flex:1 1 360px;max-width:440px;display:flex;flex-direction:column;gap:10px;position:sticky;top:12px}
+.dbx-big{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px}.dbx-ph{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);color:var(--muted);font-size:12px;text-align:center}
+.dbx-phs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.dbx-ph-b{aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:0;overflow:hidden;cursor:pointer;color:var(--muted);font-size:10.5px}.dbx-ph-b.none{cursor:default;opacity:.6}.dbx-ph-i{width:100%;height:100%;object-fit:cover;display:block}
+.dbx-tags{display:flex;flex-wrap:wrap;gap:6px}.dbx-tag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}.dbx-tag.ok{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up);border-color:transparent}
+.dbx-dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:5px 10px;margin:0;font-size:13px}.dbx-dl dt{color:var(--muted)}.dbx-dl dd{margin:0}
+@media (max-width:900px){.dbx-detail{position:static;max-width:none}}
 .cm-pair{display:flex;flex-direction:column;gap:8px}.cm-cov-b,.cm-card-b{width:100%}
 .cm-cards{display:flex;gap:6px;justify-content:center}.cm-cards .cm-card{width:auto;flex:0 1 31%;min-width:0}
 .cm-pick{position:relative;display:flex;flex-direction:column;gap:5px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:5px;font:inherit;color:inherit;cursor:pointer;-webkit-touch-callout:none;user-select:none}
@@ -7637,9 +7648,9 @@ function comicInsert(id){ const r = comicRow(id); r.insert = r.insert === "yes" 
 function comicSeal(id, v){ const r = comicRow(id); r.sealed = r.sealed === v ? "" : v; comicTidy(r); }
 // ---------------- Deck Boxes (My Cards > Deck Boxes): the full list of official Magic deck boxes (collection/deckbox_list.csv - you add
 // pictures and info right here) and which ones you have (collection/deckboxes.csv, each account its own)
-const DBX_COLS = ["id", "qty", "sealed", "notes"];
-const DBX_CAT_COLS = ["id", "line", "name", "art", "set", "year", "maker", "photo", "notes"];
-const DBX = {cat: [], catSha: null, catBase: new Set(), rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all", line: ""};
+const DBX_COLS = ["id", "qty", "sealed", "paid", "notes"];
+const DBX_CAT_COLS = ["id", "line", "name", "art", "set", "code", "year", "maker", "artist", "upc", "release", "includes", "capacity", "photo", "photo_back", "photo_side", "photo_inside", "photo_extras", "notes"];
+const DBX = {cat: [], catSha: null, catBase: new Set(), rows: [], sha: null, base: new Set(), loaded: false, loading: false, error: "", q: "", show: "all", line: "", sort: "year", dir: 1, sel: ""};
 try{ DBX.show = store.get("pd_dbx_show") || "all"; DBX.line = store.get("pd_dbx_line") || ""; }catch{}
 async function loadDBX(){
   if (!MYCOL()) return renderDBX();
@@ -7653,81 +7664,117 @@ async function loadDBX(){
   renderDBX();
 }
 // the picture: your photo when you've added one, else the featured card's art from Scryfall (a stand-in until you add a photo)
-const dbxPic = b => b.photo ? b.photo : b.art ? `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(b.art)}&format=image&version=art_crop` : "";
+const dbxArt = b => b.art ? `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(b.art)}&format=image&version=art_crop` : "";
+const dbxPic = b => b.photo || dbxArt(b);
+const dbxTitle = b => b.art || b.name;
+const dbxType = l => String(l || "").replace(/^Deckbox\s*/i, "").replace(/^\((.*)\)$/, "$1").replace(/^\+\s*/, "+ ").trim();
+const dbxImg = (u, alt, cls, ph) => u ? `<img class="${cls}" src="${esc(u)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} dbx-ph',textContent:${esc(JSON.stringify(ph || ""))}}))">` : `<span class="${cls} dbx-ph">${esc(ph || "")}</span>`;
 function renderDBX(){
   const box = $("#dboxBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("dboxes"); wireJoin(box); return; }
   if (DBX.error){ box.innerHTML = `<p class="empty">${esc(DBX.error)}</p>`; return; }
   if (!DBX.loaded){ box.innerHTML = '<p class="empty loadmsg">Loading deck boxes…</p>'; return; }
-  const ro = READONLY && ROLE !== "user", owner = ROLE === "owner" && !READONLY;
+  const ro = READONLY && ROLE !== "user";
   const have = new Map(DBX.rows.filter(r => (parseInt(r.qty) || 0) > 0).map(r => [r.id, r]));
   const lines = [...new Set(DBX.cat.map(b => b.line).filter(Boolean))].sort();
   const q = DBX.q.trim().toLowerCase();
-  let list = DBX.cat.filter(b => (!DBX.line || b.line === DBX.line) && (!q || [b.name, b.art, b.set, b.year, b.line].join(" ").toLowerCase().includes(q)));
+  let list = DBX.cat.filter(b => (!DBX.line || b.line === DBX.line) && (!q || [b.name, b.art, b.set, b.code, b.year, b.line, b.upc, b.includes, b.artist].join(" ").toLowerCase().includes(q)));
   if (DBX.show === "have") list = list.filter(b => have.has(b.id)); else if (DBX.show === "need") list = list.filter(b => !have.has(b.id));
-  const tile = b => {
-    const on = have.has(b.id), r = have.get(b.id) || {}, pic = dbxPic(b), title = b.art ? b.art + (b.set ? " · " + b.set : "") : b.name;
-    return `<div class="dbx-it"><button type="button" class="cm-pick${on ? " on" : ""}" data-dbx="${esc(b.id)}" ${ro ? "disabled" : ""} title="${esc(b.name + (on ? " · you have it - tap to undo" : " · tap if you have it"))}"><span class="ck">✓</span>
-        ${pic ? `<img class="dbx-img" src="${esc(pic)}" alt="${esc(title)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'dbx-ph',textContent:${esc(JSON.stringify(b.line || "Deck Box"))}}))">` : `<span class="dbx-ph">${esc(b.line || "Deck Box")}</span>`}
-        ${!b.photo && pic ? `<span class="dbx-stand">card art - no photo yet</span>` : ""}</button>
-      <div class="cm-k"><b>${esc(title)}</b>${b.year ? ` <span class="cm-d">${esc(b.year)}</span>` : ""}</div>
-      <div class="cm-ins">${esc([b.line, b.maker].filter(Boolean).join(" · "))}</div>
-      <div class="cm-ins dbx-desc">${esc(b.name)}</div>
-      ${on && !ro ? `<div class="cm-seal"><button type="button" data-dbseal="${esc(b.id)}" data-v="sealed" class="${r.sealed === "sealed" ? "on" : ""}">Sealed / New</button><button type="button" data-dbseal="${esc(b.id)}" data-v="open" class="${r.sealed === "open" ? "on" : ""}">Opened / Used</button></div>` : ""}
-      ${owner ? `<button type="button" class="btn small ghost" data-dbedit="${esc(b.id)}">✎ Picture &amp; Info</button>` : ""}</div>`;
-  };
+  const key = {name: b => dbxTitle(b).toLowerCase(), set: b => (b.set || "").toLowerCase(), year: b => b.year || "0", line: b => b.line || "", includes: b => b.includes || "", capacity: b => parseInt(b.capacity) || 0, status: b => have.has(b.id) ? 0 : 1}[DBX.sort] || (b => b.year);
+  list = list.slice().sort((a, b) => { const x = key(a), y = key(b); return (x < y ? -1 : x > y ? 1 : 0) * DBX.dir || dbxTitle(a).localeCompare(dbxTitle(b)); });
+  const th = (k, label) => `<th scope="col"><button type="button" class="dbx-sort${DBX.sort === k ? " on" : ""}" data-dbsort="${k}">${label}${DBX.sort === k ? (DBX.dir > 0 ? " ▲" : " ▼") : ""}</button></th>`;
+  const row = b => { const on = have.get(b.id), sel = DBX.sel === b.id;
+    return `<tr class="dbx-row${sel ? " sel" : ""}${on ? " have" : ""}" data-dbsel="${esc(b.id)}">
+      <td><button type="button" class="dbx-chk${on ? " on" : ""}" data-dbx="${esc(b.id)}" ${ro ? "disabled" : ""} aria-label="${esc((on ? "You have " : "Mark that you have ") + dbxTitle(b))}" aria-pressed="${on ? "true" : "false"}">${on ? "✓" : ""}</button></td>
+      <td>${dbxImg(dbxPic(b), dbxTitle(b), "dbx-thumb", "")}</td>
+      <td class="dbx-nm">${esc(dbxTitle(b))}</td><td>${esc(b.set || "-")}</td><td>${esc(b.year || "-")}</td><td>${esc(dbxType(b.line) || "-")}</td>
+      <td>${esc(b.includes || "-")}</td><td>${esc(b.capacity || "-")}</td>
+      <td class="${on ? "dbx-st-have" : "dbx-st-need"}">${on ? "Have" + (on.sealed === "sealed" ? " · Sealed" : on.sealed === "open" ? " · Opened" : "") : "Need"}</td></tr>`; };
+  const sel = DBX.cat.find(b => b.id === DBX.sel);
   box.innerHTML = `<div class="row" style="justify-content:space-between;align-items:flex-end"><div><h2>Deck Boxes</h2>
-      <p class="sub" style="margin:0">Every official Magic deck box${ro ? "." : ". Tap one you have; tap again to undo."}${owner ? " Add a photo and info to any box with ✎ Picture &amp; Info." : ""}</p></div>
-      ${owner ? `<button type="button" class="btn" id="dbxAdd">+ Add Deck Box</button>` : ""}</div>
+      <p class="sub" style="margin:0">Every official Magic deck box. ${ro ? "" : "Check the ones you have; tap a row for photos and details."}</p></div>
+      ${ROLE === "owner" && !READONLY ? `<button type="button" class="btn" id="dbxAdd">+ Add Deck Box</button>` : ""}</div>
     <div class="stats"><div class="stat"><span>You have</span><b>${have.size} <span class="mut" style="font-size:14px;font-weight:500">of ${DBX.cat.length}</span></b></div>
+      <div class="stat"><span>Sealed</span><b>${[...have.values()].filter(r => r.sealed === "sealed").length}</b></div>
       <div class="stat"><span>With photos</span><b>${DBX.cat.filter(b => b.photo).length}</b></div></div>
     <div class="panel"><div class="row">
-      <input id="dbxQ" placeholder="Search deck boxes, cards, sets…" value="${esc(DBX.q)}" style="flex:1;min-width:180px">
-      <select id="dbxLine" aria-label="Type"><option value="">All Types (${DBX.cat.length})</option>${lines.map(l => `<option value="${esc(l)}"${DBX.line === l ? " selected" : ""}>${esc(l)} (${DBX.cat.filter(b => b.line === l).length})</option>`).join("")}</select>
-      <select id="dbxShow" aria-label="Show"><option value="all"${DBX.show === "all" ? " selected" : ""}>All</option><option value="have"${DBX.show === "have" ? " selected" : ""}>Have</option><option value="need"${DBX.show === "need" ? " selected" : ""}>Need</option></select>
+      <label class="sr-wrap" style="flex:1;min-width:180px"><span class="sr-only">Search deck boxes</span><input id="dbxQ" placeholder="Search card, set, year, UPC…" value="${esc(DBX.q)}" style="width:100%"></label>
+      <select id="dbxLine" aria-label="Type"><option value="">All Types (${DBX.cat.length})</option>${lines.map(l => `<option value="${esc(l)}"${DBX.line === l ? " selected" : ""}>${esc(dbxType(l))} (${DBX.cat.filter(b => b.line === l).length})</option>`).join("")}</select>
+      <select id="dbxShow" aria-label="Show"><option value="all"${DBX.show === "all" ? " selected" : ""}>Have + Need</option><option value="have"${DBX.show === "have" ? " selected" : ""}>Have</option><option value="need"${DBX.show === "need" ? " selected" : ""}>Need</option></select>
       <span class="mut" style="font-size:13px">${list.length} shown</span></div></div>
-    <div class="dc-grid cm-grid dbx-grid">${list.map(tile).join("") || '<p class="empty">No deck boxes match.</p>'}</div>`;
+    <div class="dbx-wrap"><div class="dbx-tbl"><table class="dbx-table"><thead><tr><th scope="col"><span class="sr-only">Have</span></th><th scope="col">Photo</th>${th("name", "Art / Name")}${th("set", "Expansion")}${th("year", "Year")}${th("line", "Type")}${th("includes", "Included")}${th("capacity", "Holds")}${th("status", "Status")}</tr></thead>
+      <tbody>${list.map(row).join("") || `<tr><td colspan="9" class="mut" style="padding:16px">No deck boxes match.</td></tr>`}</tbody></table></div>
+      ${sel ? dbxDetailHTML(sel, have.get(sel.id), ro) : ""}</div>`;
   $("#dbxQ").addEventListener("input", e => { DBX.q = e.target.value; const pos = e.target.selectionStart; renderDBX(); const f = $("#dbxQ"); if (f){ f.focus(); try{ f.setSelectionRange(pos, pos); }catch(err){} } });
   $("#dbxLine").addEventListener("change", e => { DBX.line = e.target.value; store.set("pd_dbx_line", DBX.line); renderDBX(); });
   $("#dbxShow").addEventListener("change", e => { DBX.show = e.target.value; store.set("pd_dbx_show", DBX.show); renderDBX(); });
   if ($("#dbxAdd")) $("#dbxAdd").addEventListener("click", () => openDbxEdit(null));
+  box.querySelectorAll("[data-dbsort]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.dbsort; if (DBX.sort === k) DBX.dir = -DBX.dir; else { DBX.sort = k; DBX.dir = 1; } renderDBX(); }));
+  box.querySelectorAll("[data-dbsel]").forEach(tr => tr.addEventListener("click", e => { if (e.target.closest("[data-dbx]")) return; DBX.sel = DBX.sel === tr.dataset.dbsel ? "" : tr.dataset.dbsel; DBX.pic = ""; renderDBX(); const p = $("#dbxDetail"); if (p && window.innerWidth < 900) p.scrollIntoView({behavior: "smooth", block: "start"}); }));
+  if ($("#dbxClose")) $("#dbxClose").addEventListener("click", () => { DBX.sel = ""; renderDBX(); });
+  if ($("#dbxEdit")) $("#dbxEdit").addEventListener("click", () => openDbxEdit(DBX.sel));
+  box.querySelectorAll("#dbxDetail [data-dbph]").forEach(t => t.addEventListener("click", () => { if (t.dataset.dbph){ DBX.pic = t.dataset.dbph; renderDBX(); } }));
   if (ro) return;
-  box.querySelectorAll("[data-dbx]").forEach(b => b.addEventListener("click", () => dbxToggle(b.dataset.dbx)));
+  box.querySelectorAll("[data-dbx]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); dbxToggle(b.dataset.dbx); }));
   box.querySelectorAll("[data-dbseal]").forEach(b => b.addEventListener("click", () => dbxSeal(b.dataset.dbseal, b.dataset.v)));
-  box.querySelectorAll("[data-dbedit]").forEach(b => b.addEventListener("click", () => openDbxEdit(b.dataset.dbedit)));
 }
-function dbxRow(id){ let r = DBX.rows.find(x => x.id === id); if (!r){ r = {id, qty: "0", sealed: "", notes: ""}; DBX.rows.push(r); } return r; }
+// #10's detail panel: every photo and every field for the row you tapped
+function dbxDetailHTML(b, own, ro){
+  const pics = [["Front", b.photo], ["Back", b.photo_back], ["Side", b.photo_side], ["Inside", b.photo_inside], ["Extras", b.photo_extras]];
+  const f = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : `<dt>${k}</dt><dd class="mut">-</dd>`;
+  return `<aside class="dbx-detail panel" id="dbxDetail" aria-label="Deck box details">
+    <div class="row" style="justify-content:space-between;align-items:center"><span class="mut" style="font-size:12px">${esc(b.id.toUpperCase())}</span><button type="button" class="btn small ghost" id="dbxClose" aria-label="Close details">✕</button></div>
+    ${dbxImg((DBX.pic && pics.some(p => p[1] === DBX.pic) ? DBX.pic : "") || b.photo || dbxArt(b), dbxTitle(b), "dbx-big", b.line || "Deck Box")}
+    ${!b.photo ? `<div class="mut" style="font-size:11px;text-align:center">${b.art ? "Card art from Scryfall - no box photo yet" : "No photo yet"}</div>` : ""}
+    <div class="dbx-phs">${pics.map(([k, u]) => `<button type="button" class="dbx-ph-b${u ? "" : " none"}" data-dbph="${esc(u || "")}" ${u ? "" : "disabled"} aria-label="${k} photo">${u ? dbxImg(u, k, "dbx-ph-i", k) : `<span>${k}</span>`}</button>`).join("")}</div>
+    <h3 style="margin:4px 0 0">${esc(dbxTitle(b))}</h3>
+    <div class="dbx-tags">${own ? `<span class="dbx-tag ok">✓ Have${parseInt(own.qty) > 1 ? " ×" + esc(own.qty) : ""}</span>` : `<span class="dbx-tag">Need</span>`}${own && own.sealed ? `<span class="dbx-tag">${own.sealed === "sealed" ? "Sealed" : "Opened"}</span>` : ""}${b.release ? `<span class="dbx-tag">${esc(b.release)}</span>` : ""}${b.includes ? `<span class="dbx-tag">${esc(b.includes)}</span>` : ""}</div>
+    ${ro ? "" : `<div class="row" style="gap:6px">
+      <button type="button" class="btn small${own ? "" : " ghost"}" data-dbx="${esc(b.id)}">${own ? "✓ I Have It" : "I Have It"}</button>
+      ${own ? `<button type="button" class="btn small${own.sealed === "sealed" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="sealed">Sealed</button><button type="button" class="btn small${own.sealed === "open" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="open">Opened</button>` : ""}</div>`}
+    <dl class="dbx-dl">${f("Type", b.line)}${f("Expansion", [b.set, b.code ? "(" + b.code + ")" : ""].filter(Boolean).join(" "))}${f("Year", b.year)}${f("Art used", b.art)}${f("Artist", b.artist)}${f("Made by", b.maker)}${f("Included", b.includes)}${f("Holds", b.capacity)}${f("Released as", b.release)}${f("Item / UPC", b.upc)}${own && own.paid ? f("You paid", "$" + own.paid) : ""}${f("Notes", b.notes)}</dl>
+    <div class="mut" style="font-size:11.5px">${esc(b.name)}</div>
+    ${ROLE === "owner" && !READONLY ? `<button type="button" class="btn small ghost" id="dbxEdit">✎ Edit Photos &amp; Info</button>` : ""}
+  </aside>`;
+}
+function dbxRow(id){ let r = DBX.rows.find(x => x.id === id); if (!r){ r = {id, qty: "0", sealed: "", paid: "", notes: ""}; DBX.rows.push(r); } return r; }
 function dbxTidy(r){ if (!(parseInt(r.qty) > 0) && !r.notes) DBX.rows.splice(DBX.rows.indexOf(r), 1); markDirty("dboxes"); const y = window.scrollY; renderDBX(); window.scrollTo(0, y); }
 function dbxToggle(id){ const r = dbxRow(id); if (parseInt(r.qty) > 0){ r.qty = "0"; r.sealed = ""; } else r.qty = "1"; dbxTidy(r); }
 function dbxSeal(id, v){ const r = dbxRow(id); r.sealed = r.sealed === v ? "" : v; dbxTidy(r); }
-// you add and fix the list here: name / type / featured card / set / year / maker / photo link / notes
+// you add and fix the list here: every field and up to 5 photo links
 function openDbxEdit(id){
   if (ROLE !== "owner" || READONLY) return;
-  const b = id ? DBX.cat.find(x => x.id === id) : {id: "", line: DBX.line || "", name: "", art: "", set: "", year: "", maker: "Ultra Pro", photo: "", notes: ""};
+  const b = id ? DBX.cat.find(x => x.id === id) : {id: "", line: DBX.line || "", maker: "Ultra Pro", release: "Retail"};
   if (!b) return;
   const lines = [...new Set(DBX.cat.map(x => x.line).filter(Boolean))].sort();
   const f = (k, label, ph) => `<label style="display:grid;gap:4px;font-weight:600;font-size:13px">${label}<input id="dbx_${k}" value="${esc(b[k] || "")}" placeholder="${esc(ph || "")}"${k === "line" ? ' list="dbxLines"' : ""}></label>`;
-  openModal(`<h3>${id ? "Deck Box - Picture &amp; Info" : "Add a Deck Box"}</h3>
-    <div style="display:grid;gap:10px;margin-top:10px">
+  const two = (...x) => `<div style="display:grid;grid-template-columns:repeat(${x.length},minmax(0,1fr));gap:10px">${x.join("")}</div>`;
+  openModal(`<h3>${id ? "Edit Deck Box" : "Add a Deck Box"}</h3>
+    <div style="display:grid;gap:10px;margin-top:10px;max-height:65vh;overflow:auto;padding-right:4px">
       ${f("name", "Description", "e.g. ULTRA PRO/MTG DECKBOX (Toploading, feat. art from …)")}
-      ${f("line", "Type", "e.g. Deckbox (Toploading)")}<datalist id="dbxLines">${lines.map(l => `<option value="${esc(l)}">`).join("")}</datalist>
-      <div style="display:grid;grid-template-columns:2fr 2fr 1fr;gap:10px">${f("art", "Featured card / art", "e.g. Griselbrand")}${f("set", "Set", "e.g. Avacyn Restored")}${f("year", "Year", "2012")}</div>
-      ${f("maker", "Made by", "Ultra Pro")}
-      ${f("photo", "Photo (paste an image link)", "https://…jpg")}
+      ${two(f("line", "Type", "Deckbox (Toploading)"), f("release", "Released as", "Retail / Pro Tour prize / Promo"))}<datalist id="dbxLines">${lines.map(l => `<option value="${esc(l)}">`).join("")}</datalist>
+      ${two(f("art", "Art used", "Griselbrand"), f("artist", "Artist", ""))}
+      ${two(f("set", "Expansion", "Avacyn Restored"), f("code", "Set code", "AVR"), f("year", "Year", "2012"))}
+      ${two(f("maker", "Made by", "Ultra Pro"), f("upc", "Item # / UPC", ""))}
+      ${two(f("includes", "What came with it", "60 sleeves, divider, spindown, promo card…"), f("capacity", "Holds", "80 cards"))}
+      <div class="mut" style="font-size:12px">Photos: paste image links (https://…jpg or .png).</div>
+      ${two(f("photo", "Front photo", "https://…"), f("photo_back", "Back", "https://…"))}
+      ${two(f("photo_side", "Side", "https://…"), f("photo_inside", "Inside", "https://…"), f("photo_extras", "Extras", "https://…"))}
       <div id="dbxPrev" style="text-align:center"></div>
-      ${f("notes", "Notes", "UPC, item number, where it came from…")}
+      ${f("notes", "Notes", "")}
     </div>
     <div class="acts"><button class="btn ghost" id="dbxNo" type="button">Cancel</button><button class="btn" id="dbxOk" type="button">Save</button></div>`);
-  const prev = () => { const u = $("#dbx_photo").value.trim(); $("#dbxPrev").innerHTML = /^https:\/\//.test(u) ? `<img src="${esc(u)}" alt="Photo preview" style="max-width:220px;max-height:220px;border-radius:8px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mut',textContent:'That link didn\\'t load as a picture.'}))">` : ""; };
+  const prev = () => { const u = $("#dbx_photo").value.trim(); $("#dbxPrev").innerHTML = /^https:\/\//.test(u) ? `<img src="${esc(u)}" alt="Front photo preview" style="max-width:200px;max-height:200px;border-radius:8px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mut',textContent:'That link didn\\'t load as a picture.'}))">` : ""; };
   $("#dbx_photo").addEventListener("input", prev); prev();
   $("#dbxNo").addEventListener("click", closeModal);
   $("#dbxOk").addEventListener("click", () => {
     const v = k => $("#dbx_" + k).value.trim();
-    if (!v("name") && !v("art")) return toast("Give it a description or a featured card.");
-    if (v("photo") && !/^https:\/\//.test(v("photo"))) return toast("The photo needs to be an https:// image link.");
+    if (!v("name") && !v("art")) return toast("Give it a description or the art used.");
+    const bad = ["photo", "photo_back", "photo_side", "photo_inside", "photo_extras"].find(k => v(k) && !/^https:\/\//.test(v(k)));
+    if (bad) return toast("Photos need to be https:// image links.");
     const t = id ? b : (() => { let n = DBX.cat.length + 1, nid; do { nid = "db-" + String(n++).padStart(3, "0"); } while (DBX.cat.some(x => x.id === nid)); const x = {id: nid}; DBX.cat.push(x); return x; })();
     DBX_CAT_COLS.filter(k => k !== "id").forEach(k => { t[k] = v(k); });
-    closeModal(); markDirty("dbcat"); renderDBX(); toast(id ? "Deck box updated." : "Deck box added.");
+    closeModal(); DBX.sel = t.id; markDirty("dbcat"); renderDBX(); toast(id ? "Deck box updated." : "Deck box added.");
   });
 }
 
