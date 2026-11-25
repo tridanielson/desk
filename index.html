@@ -126,6 +126,12 @@ td.r,th.r{text-align:right}
 .dbx-detail{flex:1 1 360px;max-width:440px;display:flex;flex-direction:column;gap:10px;position:sticky;top:calc(var(--hdr-h,64px) + 8px);max-height:calc(100vh - var(--hdr-h,64px) - 16px);overflow-y:auto;overscroll-behavior:contain}
 .dbx-dl dd{overflow-wrap:anywhere}
 .dbx-big{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px}.dbx-ph{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);color:var(--muted);font-size:12px;text-align:center}
+.dbx-hd{display:flex;align-items:flex-start;gap:6px}.dbx-hd h3{margin:0;font-size:15px;flex:1;line-height:1.3}
+.dbx-ic{flex:0 0 auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer;font-size:14px}.dbx-ic:hover{border-color:var(--accent)}
+.dbx-detail .dbx-big{aspect-ratio:auto;height:auto;max-height:min(58vh,520px);object-fit:contain;background:#0d0c0a}span.dbx-big{min-height:200px}
+.dbx-phs{grid-template-columns:repeat(5,44px)!important;gap:6px}.dbx-ph-b{aspect-ratio:1;width:44px}
+.dbx-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dbx-pill{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer}.dbx-pill.on{background:var(--up);border-color:var(--up);color:#0f2a1c}
+.dbx-links{font-size:12px;color:var(--muted)}.dbx-links a{color:var(--muted)}
 .dbx-car{position:relative}.dbx-car-sm .dbx-big{max-height:260px;object-fit:contain;background:var(--panel)}
 .dbx-view{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
 .dbx-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11.5px;padding:2px 8px;border-radius:999px}
@@ -7740,22 +7746,17 @@ function renderDBX(){
 function dbxDetailHTML(b, own, ro){
   const all = dbxAllPics(b), pi = all.length ? ((DBX.pi || 0) % all.length + all.length) % all.length : 0, cur = all[pi];
   const f = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : `<dt>${k}</dt><dd class="mut">-</dd>`;
+  const q = encodeURIComponent([/wizards/i.test(b.maker || "") ? "Magic" : (b.maker || "Ultra Pro"), "MTG deck box", b.art || dbxType(b.line), b.set, b.year].filter(Boolean).join(" "));
   return `<aside class="dbx-detail panel" id="dbxDetail" aria-label="Deck box details">
-    <div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0;font-size:16px">${esc([dbxTitle(b), b.set, b.year].filter(Boolean).join(" - "))}</h3><span class="row" style="gap:6px">${ROLE === "owner" && !READONLY ? `<button type="button" class="btn small ghost" id="dbxEdit">✎ Edit</button>` : ""}<button type="button" class="btn small ghost" id="dbxClose" aria-label="Close details">✕</button></span></div>
+    <div class="dbx-hd"><h3>${esc([dbxTitle(b), b.set, b.year].filter(Boolean).join(" - "))}</h3>${ROLE === "owner" && !READONLY ? `<button type="button" class="dbx-ic" id="dbxEdit" aria-label="Edit photos and info" title="Edit photos &amp; info">✎</button>` : ""}<button type="button" class="dbx-ic" id="dbxClose" aria-label="Close details" title="Close">✕</button></div>
     <div class="dbx-car">${dbxImg(cur ? cur.u : dbxArt(b), cur ? `${dbxTitle(b)} - ${cur.lbl}` : dbxTitle(b), "dbx-big", b.line || "Deck Box")}
-      ${cur ? `<span class="dbx-view">${esc(cur.lbl)}${cur.of > 1 ? ` ${cur.n} of ${cur.of}` : ""}</span>` : ""}
+      ${cur ? `<span class="dbx-view">${esc(cur.lbl)}${cur.of > 1 ? ` ${cur.n} of ${cur.of}` : ""}</span>` : `<span class="dbx-view">${b.art ? "Card art - no photo yet" : "No photo yet"}</span>`}
       ${all.length > 1 ? `<button type="button" class="dbx-arr l" data-dbstep="-1" aria-label="Previous photo">‹</button><button type="button" class="dbx-arr r" data-dbstep="1" aria-label="Next photo">›</button><span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}</div>
-    ${!all.length ? `<div class="mut" style="font-size:11px;text-align:center">${b.art ? "Card art from Scryfall - no box photo yet" : "No photo yet"}</div>` : ""}
-    <div class="dbx-phs">${DBX_VIEWS.map(([k, lbl]) => { const us = dbxUrls(b[k]), first = all.findIndex(p => p.lbl === lbl), on = cur && cur.lbl === lbl;
-      return `<button type="button" class="dbx-ph-b${us.length ? "" : " none"}${on ? " on" : ""}" data-dbpi="${first}" ${us.length ? "" : "disabled"} aria-label="${lbl} photos">${us.length ? dbxImg(us[0], lbl, "dbx-ph-i", lbl) + `<span class="dbx-ph-l">${lbl}${us.length > 1 ? " ×" + us.length : ""}</span>` : `<span>${lbl}</span>`}</button>`; }).join("")}</div>
-    <div class="row" style="gap:6px;justify-content:center">${(() => { const q = encodeURIComponent([/wizards/i.test(b.maker || "") ? "Magic" : (b.maker || "Ultra Pro"), "MTG deck box", b.art || dbxType(b.line), b.set, b.year].filter(Boolean).join(" "));
-      return `<a class="btn small ghost" href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">🔍 Find Photos</a><a class="btn small ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Listings</a>`; })()}</div>
-    <div class="dbx-tags">${own ? `<span class="dbx-tag ok">✓ Have${parseInt(own.qty) > 1 ? " ×" + esc(own.qty) : ""}</span>` : `<span class="dbx-tag">Need</span>`}${own && own.sealed ? `<span class="dbx-tag">${own.sealed === "sealed" ? "Sealed" : "Opened"}</span>` : ""}${b.release ? `<span class="dbx-tag">${esc(b.release)}</span>` : ""}${b.includes ? `<span class="dbx-tag">${esc(b.includes)}</span>` : ""}</div>
-    ${ro ? "" : `<div class="row" style="gap:6px">
-      <button type="button" class="btn small${own ? "" : " ghost"}" data-dbx="${esc(b.id)}">${own ? "✓ I Have It" : "I Have It"}</button>
-      ${own ? `<button type="button" class="btn small${own.sealed === "sealed" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="sealed">Sealed</button><button type="button" class="btn small${own.sealed === "open" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="open">Opened</button>` : ""}</div>`}
-    <dl class="dbx-dl">${f("Type", b.line)}${f("Expansion", [b.set, b.code ? "(" + b.code + ")" : ""].filter(Boolean).join(" "))}${f("Year", b.year)}${f("Art used", b.art)}${f("Artist", b.artist)}${f("Made by", b.maker)}${f("Included", b.includes)}${f("Holds", b.capacity)}${f("Released as", b.release)}${f("Item / UPC", b.upc)}${own && own.paid ? f("You paid", "$" + own.paid) : ""}${f("Notes", b.notes)}</dl>
-    <div class="mut" style="font-size:11.5px">${esc(b.name)}</div>
+    ${all.length ? `<div class="dbx-phs">${DBX_VIEWS.map(([k, lbl]) => { const us = dbxUrls(b[k]), first = all.findIndex(p => p.lbl === lbl), on = cur && cur.lbl === lbl;
+      return `<button type="button" class="dbx-ph-b${us.length ? "" : " none"}${on ? " on" : ""}" data-dbpi="${first}" ${us.length ? "" : "disabled"} aria-label="${lbl} photos" title="${lbl}${us.length > 1 ? " (" + us.length + ")" : ""}">${us.length ? dbxImg(us[0], lbl, "dbx-ph-i", lbl) : `<span>${lbl}</span>`}</button>`; }).join("")}</div>` : ""}
+    <div class="dbx-acts">${ro ? (own ? `<span class="dbx-tag ok">✓ Have</span>` : `<span class="dbx-tag">Need</span>`) : `<button type="button" class="dbx-pill${own ? " on" : ""}" data-dbx="${esc(b.id)}">${own ? "✓ Have" : "I Have It"}</button>${own ? `<button type="button" class="dbx-pill${own.sealed === "sealed" ? " on" : ""}" data-dbseal="${esc(b.id)}" data-v="sealed">Sealed</button><button type="button" class="dbx-pill${own.sealed === "open" ? " on" : ""}" data-dbseal="${esc(b.id)}" data-v="open">Opened</button>` : ""}`}${b.release ? `<span class="dbx-tag">${esc(b.release)}</span>` : ""}</div>
+    <dl class="dbx-dl">${f("Type", b.line)}${f("Expansion", [b.set, b.code ? "(" + b.code + ")" : ""].filter(Boolean).join(" "))}${f("Art used", b.art)}${f("Artist", b.artist)}${f("Made by", b.maker)}${f("Included", b.includes)}${f("Holds", b.capacity)}${f("Item / UPC", b.upc)}${own && own.paid ? f("You paid", "$" + own.paid) : ""}${b.notes ? f("Notes", b.notes) : ""}</dl>
+    <div class="dbx-links"><a href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">Find photos</a> · <a href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay listings</a></div>
   </aside>`;
 }
 // photos you link get copied onto your own site (desk.havothcards.com/img/deckboxes/) so they keep showing if the original link breaks;
