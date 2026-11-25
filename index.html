@@ -7694,12 +7694,13 @@ async function loadDBX(){
 const dbxArt = b => b.art ? `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(b.art)}&format=image&version=art_crop` : "";
 // each view (front, back, side, inside, extras) can hold several photo links, one per line
 const DBX_VIEWS = [["photo", "Front"], ["photo_back", "Back"], ["photo_side", "Side"], ["photo_inside", "Inside"], ["photo_extras", "Extras"]];
+const DBX_LOCAL = {};   // just-added photos: shown from this device until the site publishes the copy (about a minute)
 const dbxUrls = v => String(v || "").split(/\s+/).filter(u => /^https:\/\//.test(u));
 const dbxAllPics = b => DBX_VIEWS.flatMap(([k, lbl]) => { const us = dbxUrls(b[k]); return us.map((u, i) => ({u, lbl, n: i + 1, of: us.length})); });
 const dbxPic = b => dbxUrls(b.photo)[0] || dbxAllPics(b)[0]?.u || dbxArt(b);
 const dbxTitle = b => b.art || b.name;
 const dbxType = l => String(l || "").replace(/^Deckbox\s*/i, "").replace(/^\((.*)\)$/, "$1").replace(/^\+\s*/, "+ ").trim();
-const dbxImg = (u, alt, cls, ph) => u ? `<img class="${cls}" src="${esc(u)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} dbx-ph',textContent:${esc(JSON.stringify(ph || ""))}}))">` : `<span class="${cls} dbx-ph">${esc(ph || "")}</span>`;
+const dbxImg = (u, alt, cls, ph) => u ? `<img class="${cls}" src="${esc(DBX_LOCAL[u] || u)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} dbx-ph',textContent:${esc(JSON.stringify(ph || ""))}}))">` : `<span class="${cls} dbx-ph">${esc(ph || "")}</span>`;
 function renderDBX(){
   const box = $("#dboxBody"); if (!box) return;
   if (!MYCOL()){ box.innerHTML = joinHTML("dboxes"); wireJoin(box); return; }
@@ -7818,8 +7819,8 @@ function openDbxEdit(id){
   const P = Object.fromEntries(DBX_VIEWS.map(([k]) => [k, dbxUrls(b[k])]));
   const pid = id || (() => { let n = DBX.cat.length + 1, nid; do { nid = "db-" + String(n++).padStart(3, "0"); } while (DBX.cat.some(x => x.id === nid)); return nid; })();
   const slot = k => ({photo: "front", photo_back: "back", photo_side: "side", photo_inside: "inside", photo_extras: "extras"})[k];
-  const keep = async (k, fn) => { const box = $("#dbxPhotos"); box.classList.add("busy");
-    try{ const r = await fn(`${pid}-${slot(k)}-${Date.now().toString(36)}`); if (r && r.url) P[k].push(r.url); }
+  const keep = async (k, fn, local) => { const box = $("#dbxPhotos"); box.classList.add("busy");
+    try{ const r = await fn(`${pid}-${slot(k)}-${Date.now().toString(36)}`); if (r && r.url){ P[k].push(r.url); if (local) DBX_LOCAL[r.url] = local; } }
     catch(e){ let m = e.message || String(e); if (/unknown/i.test(m)) m = "The server needs its update first - reload the desk while signed in as admin."; toast("Couldn't add that picture: " + m, 7000); }
     box.classList.remove("busy"); drawPhotos(); };
   const shrink = file => new Promise((res, rej) => { const img = new Image(), u = URL.createObjectURL(file);
@@ -7830,7 +7831,7 @@ function openDbxEdit(id){
   function drawPhotos(){
     const box = $("#dbxPhotos"); if (!box) return;
     box.innerHTML = DBX_VIEWS.map(([k, lbl]) => `<div class="dbx-pr"><span class="dbx-pr-l">${lbl}</span><div class="dbx-pr-th">
-        ${P[k].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(u)}" alt="${esc(lbl)} photo ${i + 1}"><button type="button" class="dbx-trash" data-pvk="${k}" data-pvx="${i}" aria-label="Delete this ${esc(lbl)} photo (tap twice)" title="Delete - tap twice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Sure?</span></button></span>`).join("")}
+        ${P[k].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(DBX_LOCAL[u] || u)}" alt="${esc(lbl)} photo ${i + 1}"><button type="button" class="dbx-trash" data-pvk="${k}" data-pvx="${i}" aria-label="Delete this ${esc(lbl)} photo (tap twice)" title="Delete - tap twice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Sure?</span></button></span>`).join("")}
         ${adding === k ? `<span class="dbx-pr-add"><input id="dbxPvUrl" placeholder="Paste a picture link" aria-label="Picture link for ${esc(lbl)}"><button type="button" class="btn small" id="dbxPvGo">Add</button><label class="btn small ghost" style="cursor:pointer">📷 Upload<input type="file" id="dbxPvFile" accept="image/*" multiple hidden></label><button type="button" class="btn small ghost" id="dbxPvX" aria-label="Close">✕</button></span>`
           : `<button type="button" class="dbx-plus" data-pvadd="${k}" aria-label="Add a ${esc(lbl)} photo">+</button>`}</div></div>`).join("");
     box.querySelectorAll("[data-pvadd]").forEach(t => t.addEventListener("click", () => { adding = t.dataset.pvadd; drawPhotos(); const f = $("#dbxPvUrl"); if (f) f.focus(); }));
@@ -7840,11 +7841,11 @@ function openDbxEdit(id){
     if (!adding) return;
     const k = adding;
     const go = () => { const el = $("#dbxPvUrl"), u = el.value.trim(); if (!u) return; if (!/^https:\/\//.test(u)) return toast("That needs to be an https:// picture link.");
-      el.value = ""; adding = ""; keep(k, name => server("savePhoto", u, name)); };
+      el.value = ""; adding = ""; keep(k, name => server("savePhoto", u, name), u); };
     $("#dbxPvGo").addEventListener("click", go);
     $("#dbxPvUrl").addEventListener("paste", () => setTimeout(go, 0));   // pasting a link adds it right away
     $("#dbxPvX").addEventListener("click", () => { adding = ""; drawPhotos(); });
-    $("#dbxPvFile").addEventListener("change", async e => { adding = ""; for (const file of [...e.target.files]){ try{ const b64 = await shrink(file); await keep(k, name => server("savePhotoData", b64, "image/jpeg", name)); }catch(err){ toast(err.message, 5000); } } });
+    $("#dbxPvFile").addEventListener("change", async e => { adding = ""; for (const file of [...e.target.files]){ try{ const b64 = await shrink(file); await keep(k, name => server("savePhotoData", b64, "image/jpeg", name), "data:image/jpeg;base64," + b64); }catch(err){ toast(err.message, 5000); } } });
   }
   drawPhotos();
   $("#dbxNo").addEventListener("click", closeModal);
