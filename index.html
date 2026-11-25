@@ -136,7 +136,8 @@ td.r,th.r{text-align:right}
 .dbx-pv.on{outline:2px solid var(--accent);outline-offset:1px}.dbx-pv img{width:100%;height:100%;object-fit:cover;display:block}.dbx-pv-e{display:flex;height:100%;align-items:center;justify-content:center;font-size:22px;color:var(--muted)}
 .dbx-pv-l{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;padding:2px 0;text-align:center}
 .dbx-pv-body{margin-top:8px;display:grid;gap:8px}.dbx-pv-th{display:flex;flex-wrap:wrap;gap:6px}.dbx-pv-t{position:relative;width:72px;height:72px}.dbx-pv-t img{width:100%;height:100%;object-fit:cover;border-radius:6px}
-.dbx-pv-t button{position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;border:0;background:#c0392b;color:#fff;font-size:12px;cursor:pointer;line-height:1}
+.dbx-pv-t{width:96px;height:96px}.dbx-trash{position:absolute;top:4px;right:4px;height:28px;min-width:28px;padding:0 6px;border-radius:14px;border:0;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;font-weight:700}
+.dbx-trash span{display:none}.dbx-trash.armed{background:#c0392b}.dbx-trash.armed span{display:inline}
 .dbx-pv-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.dbx-pv-add input{flex:1 1 200px;min-width:0}#dbxPhotos.busy{opacity:.55;pointer-events:none}
 .dbx-car{position:relative}.dbx-side{display:flex;align-items:center;justify-content:center;gap:8px}.dbx-frame{position:relative;flex:0 1 auto;min-width:0;line-height:0}.dbx-frame .dbx-big{width:auto;max-width:100%;border-radius:8px}.dbx-frame .dbx-view,.dbx-frame .dbx-count{line-height:1.4}.dbx-frame span.dbx-big{width:min(300px,70vw);line-height:1.4}
 .dbx-arr2{flex:0 0 32px;height:64px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit;font-size:24px;line-height:1;cursor:pointer;padding:0}.dbx-arr2:hover{border-color:var(--accent);color:var(--accent)}
@@ -7826,11 +7827,13 @@ function openDbxEdit(id){
   function drawPhotos(){
     const box = $("#dbxPhotos"); if (!box) return;
     box.innerHTML = `<div class="dbx-pvs">${DBX_VIEWS.map(([k, lbl]) => `<button type="button" class="dbx-pv${k === view ? " on" : ""}" data-pvv="${k}">${P[k].length ? `<img src="${esc(P[k][0])}" alt="">` : `<span class="dbx-pv-e" aria-hidden="true">+</span>`}<span class="dbx-pv-l">${lbl}${P[k].length > 1 ? " ×" + P[k].length : ""}</span></button>`).join("")}</div>
-      <div class="dbx-pv-body">${P[view].length ? `<div class="dbx-pv-th">${P[view].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(u)}" alt="${esc(DBX_VIEWS.find(v => v[0] === view)[1])} photo ${i + 1}"><button type="button" data-pvx="${i}" aria-label="Remove this photo">✕</button></span>`).join("")}</div>` : ""}
+      <div class="dbx-pv-body">${P[view].length ? `<div class="dbx-pv-th">${P[view].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(u)}" alt="${esc(DBX_VIEWS.find(v => v[0] === view)[1])} photo ${i + 1}"><button type="button" class="dbx-trash" data-pvx="${i}" aria-label="Delete this photo (tap twice)" title="Delete - tap twice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Sure?</span></button></span>`).join("")}</div>` : ""}
         <div class="dbx-pv-add"><input id="dbxPvUrl" placeholder="Paste a picture link for the ${esc(DBX_VIEWS.find(v => v[0] === view)[1])}…" aria-label="Picture link"><button type="button" class="btn small" id="dbxPvGo">Add</button>
           <label class="btn small ghost" style="cursor:pointer">📷 Upload<input type="file" id="dbxPvFile" accept="image/*" multiple hidden></label></div></div>`;
     box.querySelectorAll("[data-pvv]").forEach(t => t.addEventListener("click", () => { view = t.dataset.pvv; drawPhotos(); }));
-    box.querySelectorAll("[data-pvx]").forEach(t => t.addEventListener("click", () => { P[view].splice(+t.dataset.pvx, 1); drawPhotos(); }));
+    box.querySelectorAll("[data-pvx]").forEach(t => t.addEventListener("click", () => {   // first tap arms it ("Sure?"), second tap deletes
+      if (!t.classList.contains("armed")){ box.querySelectorAll(".dbx-trash.armed").forEach(x => x.classList.remove("armed")); t.classList.add("armed"); setTimeout(() => t.classList.remove("armed"), 3500); return; }
+      P[view].splice(+t.dataset.pvx, 1); drawPhotos(); }));
     const go = () => { const el = $("#dbxPvUrl"), u = el.value.trim(); if (!u) return; if (!/^https:\/\//.test(u)) return toast("That needs to be an https:// picture link.");
       el.value = ""; keep(view, name => server("savePhoto", u, name)); };
     $("#dbxPvGo").addEventListener("click", go);
