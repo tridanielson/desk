@@ -623,11 +623,8 @@ a.tcgl{color:inherit;text-decoration:underline dotted;text-underline-offset:3px}
 #phBig .phb-wrap{position:relative;display:inline-block;max-width:calc(100vw - 110px);max-height:100%}
 #phBig .phb-wrap img{display:block;max-width:calc(100vw - 110px);max-height:calc(100vh - 90px);object-fit:contain}
 #phBig .phb-nav{flex:none;width:44px;height:64px;border-radius:10px;border:1px solid #555;background:rgba(255,255,255,.08);color:#fff;font-size:32px;line-height:1;cursor:pointer}
-.ai-spot.big{border-width:3px}.ai-spot.big i{font-size:13px;max-width:none}
 @media (max-width:700px){#phBig .phb-wrap,#phBig .phb-wrap img{max-width:calc(100vw - 80px)}#phBig .phb-nav{width:32px}}
 .sd-recent{max-height:260px;overflow-y:auto;padding-right:4px;scrollbar-gutter:stable}
-.ai-spot{position:absolute;border:2px dashed #ff3b30;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.85);pointer-events:none}
-.ai-spot i{position:absolute;left:-2px;bottom:100%;margin-bottom:2px;background:#ff3b30;color:#fff;font:600 10px/1.3 system-ui,sans-serif;font-style:normal;padding:1px 4px;border-radius:3px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 .aud-ref{width:100%;max-width:260px;border-radius:10px;display:block}
 .aud-ai{margin-top:8px;padding:8px 10px;background:var(--soft);border-radius:8px;font-size:14px}
 .aud-q{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}.aud-q>span{min-width:120px;font-size:13px;color:var(--muted)}
@@ -3282,7 +3279,7 @@ function reviewHTML(d, mode){
       <div><a href="${esc(url)}" target="_blank" rel="noopener">${esc((d.title || "").slice(0, 110))}</a></div></div>
     <div class="rv-b"><div class="rv-left">
     <div class="aud-grid${mode === "queue" ? "" : " small"}">
-      <div>${imgs.length ? `<div class="ph-car"><div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy">${spots.filter(p => p.photo === i + 1).map(p => `<span class="ai-spot" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%" title="SlaveAI: ${esc(p.what)}"><i>${esc(p.what)}</i></span>`).join("")}</div>${(d.photo_roles || "")[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>
+      <div>${imgs.length ? `<div class="ph-car"><div class="aud-photos">${imgs.map((u, i) => `<a class="aud-ph" href="${esc(url)}" target="_blank" rel="noopener" data-phbig="${i}" data-phurl="${esc(d.url)}" title="Tap to see it bigger"><div class="phz"><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l500."))}" alt="" loading="lazy"></div>${(d.photo_roles || "")[i] === "B" ? '<span class="ph-role" title="Loupe: this photo shows the back of the card">Back</span>' : ""}</a>`).join("")}</div>
         ${imgs.length > 1 ? `<button type="button" class="ph-arr l" data-phgo="-1" aria-label="Previous photo">‹</button><button type="button" class="ph-arr r" data-phgo="1" aria-label="Next photo">›</button><span class="ph-cnt">1 / ${imgs.length}</span></div>
         <div class="ph-thumbs">${imgs.map((u, i) => `<button type="button" data-phto="${i}"${i ? "" : ' class="on"'}><img src="${esc(u.replace(/\/s-l\d+\./, "/s-l140."))}" alt="" loading="lazy"></button>`).join("")}</div>` : "</div>"}`
         : `<p class="mut" style="font-size:13px">No photos saved for this one. <a href="${esc(url)}" target="_blank" rel="noopener">Open the listing</a> to look.</p>`}</div>
@@ -3297,7 +3294,7 @@ function reviewHTML(d, mode){
           ${row("Condition", aiC && aiC !== "unclear" ? `<b>about ${esc(aiC)}</b>` : "can't tell")}
           ${row("Its call", ({ok: '<b class="up">fine</b>', warn: "<b>check it yourself</b>", reject: '<b class="down">skip it</b>'}[d.ai_verdict] || esc(d.ai_verdict)))}
           ${d.ai_reason ? `<div class="rv-says-d">“${esc(d.ai_reason)}”</div>` : ""}
-          ${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 Boxed on the photos: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}</div>`; })()
+          ${aiSpots(d).length ? `<div style="font-size:12px;margin-top:3px">📍 SlaveAI saw: ${aiSpots(d).map(p => `${esc(p.what || "this")} <span class="mut">(photo ${p.photo})</span>`).join(" · ")}</div>` : ""}</div>`; })()
       : `<div class="rv-says"><div class="rv-says-h">SlaveAI thinks</div><div class="mut" style="font-size:12.5px">Didn't look at this deal - it only checks risky ones (look-alike editions, big discounts, expensive cards) to save cost. Your answers still teach it.</div></div>`}
     ${photoCheckLine(d)}
     </div><div class="rv-right">
@@ -3731,7 +3728,7 @@ function photoCheckLine(d){
   return box(row("Looks like", `<b>${esc(d.photo_pick)}</b>`) + vs()
     + (d.photo_looks_like ? row("Or (look the same in photos)", esc(d.photo_looks_like)) : "") + back());
 }
-// ---- tap a review photo: see it big, with SlaveAI's boxes, arrows between photos, and a link to the listing
+// ---- tap a review photo: see it big, arrows between photos, and a link to the listing
 function openPhotoBig(d, i){
   const imgs = String(d.images || "").split(/\s+/).filter(u => /^https:\/\/i\.ebayimg\.com\//.test(u)); if (!imgs.length) return;
   let v = $("#phBig"); if (!v){ v = document.createElement("div"); v.id = "phBig"; document.body.appendChild(v); }
@@ -3741,7 +3738,7 @@ function openPhotoBig(d, i){
     v.innerHTML = `<div class="phb-top"><b>Photo ${i + 1} of ${imgs.length}</b>${sp.length ? `<span class="phb-ai">📍 SlaveAI: ${sp.map(p => esc(p.what || "this")).join(" · ")}</span>` : ""}<span class="grow"></span>
         <a class="btn ghost small" href="${esc(ebayLink(d))}" target="_blank" rel="noopener">Open on eBay</a><button class="btn small" type="button" id="phbClose">Close</button></div>
       <div class="phb-stage">${imgs.length > 1 ? '<button class="phb-nav l" type="button" id="phbPrev" aria-label="Previous photo">‹</button>' : ""}
-        <div class="phb-wrap"><img src="${esc(imgs[i].replace(/\/s-l\d+\./, "/s-l1600."))}" alt="">${sp.map(p => `<span class="ai-spot big" style="left:${p.x * 100}%;top:${p.y * 100}%;width:${Math.max(4, p.w * 100)}%;height:${Math.max(4, p.h * 100)}%"><i>${esc(p.what)}</i></span>`).join("")}</div>
+        <div class="phb-wrap"><img src="${esc(imgs[i].replace(/\/s-l\d+\./, "/s-l1600."))}" alt=""></div>
         ${imgs.length > 1 ? '<button class="phb-nav r" type="button" id="phbNext" aria-label="Next photo">›</button>' : ""}</div>`;
     v.querySelector("#phbClose").addEventListener("click", close);
     const go = n => { i = (i + n + imgs.length) % imgs.length; draw(); };
@@ -3870,8 +3867,7 @@ if (matchMedia("(hover:hover) and (pointer:fine)").matches){
     const r = img.getBoundingClientRect(); L.fx = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)); L.fy = Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
     if (L.on !== img){ L.on = img; const src = img.currentSrc || img.src;
       L.z = 1;   // opens showing the whole photo; scroll up over it to zoom in on the spot under the pointer
-      L.box.querySelectorAll(".ai-spot").forEach(x => x.remove());   // SlaveAI's boxes come along, bigger
-      img.closest(".phz").querySelectorAll(".ai-spot").forEach(x => { const c = x.cloneNode(true); c.classList.add("big"); L.box.appendChild(c); }); L.img.src = src.replace(/\/s-l\d+\./, "/s-l1600.").replace("cards.scryfall.io/small/", "cards.scryfall.io/large/"); L.img.onerror = () => { L.img.onerror = null; L.img.src = src; }; lens.style.display = "block"; place(); }
+      L.img.src = src.replace(/\/s-l\d+\./, "/s-l1600.").replace("cards.scryfall.io/small/", "cards.scryfall.io/large/"); L.img.onerror = () => { L.img.onerror = null; L.img.src = src; }; lens.style.display = "block"; place(); }
     draw();
   }, {passive: true});
   document.addEventListener("wheel", e => {
