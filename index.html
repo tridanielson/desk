@@ -137,7 +137,10 @@ td.r,th.r{text-align:right}
 .dbx-pv-l{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:11px;font-weight:600;padding:2px 0;text-align:center}
 .dbx-pr{display:flex;gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}.dbx-pr:first-child{border-top:0}.dbx-pr-l{flex:0 0 56px;font-size:12.5px;font-weight:600;color:var(--muted)}
 .dbx-pr-th{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1;min-width:0}.dbx-plus{width:96px;height:96px;border:1px dashed var(--line);border-radius:6px;background:transparent;color:var(--muted);font-size:28px;cursor:pointer}.dbx-plus:hover{border-color:var(--accent);color:var(--accent)}
-.dbx-pr-add{display:flex;flex-wrap:wrap;gap:6px;align-items:center;flex:1 1 260px}.dbx-pr-add input{flex:1 1 160px;min-width:0}
+.dbx-tile{position:relative;width:96px;height:96px;border:1px dashed var(--accent);border-radius:6px;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:8px;box-sizing:border-box}
+.dbx-tile-link{width:220px}.dbx-tile-link input{width:100%;box-sizing:border-box;font-size:12px;padding:6px 8px}.dbx-tile-row{display:flex;gap:6px;justify-content:flex-end}
+.dbx-ib{display:flex;align-items:center;justify-content:center;gap:5px;height:30px;min-width:30px;border-radius:15px;border:0;background:rgba(0,0,0,.55);color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer;padding:0 8px}.dbx-ib:hover{background:var(--accent);color:var(--accent-ink)}.dbx-ib.ok{background:var(--up);color:#0f2a1c}
+.dbx-tile-x{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:inherit;font-size:11px;cursor:pointer;line-height:1;padding:0}
 .dbx-pv-body{margin-top:8px;display:grid;gap:8px}.dbx-pv-th{display:flex;flex-wrap:wrap;gap:6px}.dbx-pv-t{position:relative;width:72px;height:72px}.dbx-pv-t img{width:100%;height:100%;object-fit:cover;border-radius:6px}
 .dbx-pv-t{width:96px;height:96px}.dbx-trash{position:absolute;top:4px;right:4px;height:28px;min-width:28px;padding:0 6px;border-radius:14px;border:0;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;font-weight:700}
 .dbx-trash span{display:none}.dbx-trash.armed{background:#c0392b}.dbx-trash.armed span{display:inline}
@@ -7834,20 +7837,24 @@ function openDbxEdit(id){
     const box = $("#dbxPhotos"); if (!box) return;
     box.innerHTML = DBX_VIEWS.map(([k, lbl]) => `<div class="dbx-pr"><span class="dbx-pr-l">${lbl}</span><div class="dbx-pr-th">
         ${P[k].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(DBX_LOCAL[u] || u)}" alt="${esc(lbl)} photo ${i + 1}"><button type="button" class="dbx-trash" data-pvk="${k}" data-pvx="${i}" aria-label="Delete this ${esc(lbl)} photo (tap twice)" title="Delete - tap twice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Sure?</span></button></span>`).join("")}
-        ${adding === k ? `<span class="dbx-pr-add"><input id="dbxPvUrl" placeholder="Paste a picture link" aria-label="Picture link for ${esc(lbl)}"><button type="button" class="btn small" id="dbxPvGo">Add</button><label class="btn small ghost" style="cursor:pointer">📷 Upload<input type="file" id="dbxPvFile" accept="image/*" multiple hidden></label><button type="button" class="btn small ghost" id="dbxPvX" aria-label="Close">✕</button></span>`
+        ${adding === k + ":link" ? `<span class="dbx-tile dbx-tile-link"><input id="dbxPvUrl" placeholder="Paste picture link" aria-label="Picture link for ${esc(lbl)}"><span class="dbx-tile-row"><button type="button" class="dbx-ib ok" id="dbxPvGo" aria-label="Add this link">✓</button><button type="button" class="dbx-ib" id="dbxPvX" aria-label="Cancel">✕</button></span></span>`
+          : adding === k ? `<span class="dbx-tile"><label class="dbx-ib wide" title="Upload from this device"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload<input type="file" id="dbxPvFile" accept="image/*" multiple hidden></label><button type="button" class="dbx-ib wide" id="dbxPvLink" title="Paste a picture link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Link</button><button type="button" class="dbx-tile-x" id="dbxPvX" aria-label="Cancel">✕</button></span>`
           : `<button type="button" class="dbx-plus" data-pvadd="${k}" aria-label="Add a ${esc(lbl)} photo">+</button>`}</div></div>`).join("");
-    box.querySelectorAll("[data-pvadd]").forEach(t => t.addEventListener("click", () => { adding = t.dataset.pvadd; drawPhotos(); const f = $("#dbxPvUrl"); if (f) f.focus(); }));
+    box.querySelectorAll("[data-pvadd]").forEach(t => t.addEventListener("click", () => { adding = t.dataset.pvadd; drawPhotos(); }));
     box.querySelectorAll("[data-pvx]").forEach(t => t.addEventListener("click", () => {   // first tap arms it ("Sure?"), second tap deletes
       if (!t.classList.contains("armed")){ box.querySelectorAll(".dbx-trash.armed").forEach(x => x.classList.remove("armed")); t.classList.add("armed"); setTimeout(() => t.classList.remove("armed"), 3500); return; }
       P[t.dataset.pvk].splice(+t.dataset.pvx, 1); drawPhotos(); }));
     if (!adding) return;
-    const k = adding;
-    const go = () => { const el = $("#dbxPvUrl"), u = el.value.trim(); if (!u) return; if (!/^https:\/\//.test(u)) return toast("That needs to be an https:// picture link.");
-      el.value = ""; adding = ""; keep(k, name => server("savePhoto", u, name), u); };
-    $("#dbxPvGo").addEventListener("click", go);
-    $("#dbxPvUrl").addEventListener("paste", () => setTimeout(go, 0));   // pasting a link adds it right away
+    const k = adding.replace(/:link$/, "");
     $("#dbxPvX").addEventListener("click", () => { adding = ""; drawPhotos(); });
-    $("#dbxPvFile").addEventListener("change", async e => { adding = ""; for (const file of [...e.target.files]){ try{ const b64 = await shrink(file); await keep(k, name => server("savePhotoData", b64, "image/jpeg", name), "data:image/jpeg;base64," + b64); }catch(err){ toast(err.message, 5000); } } });
+    if ($("#dbxPvLink")) $("#dbxPvLink").addEventListener("click", () => { adding = k + ":link"; drawPhotos(); const f = $("#dbxPvUrl"); if (f) f.focus(); });
+    if ($("#dbxPvUrl")){
+      const go = () => { const el = $("#dbxPvUrl"), u = el.value.trim(); if (!u) return; if (!/^https:\/\//.test(u)) return toast("That needs to be an https:// picture link.");
+        el.value = ""; adding = ""; keep(k, name => server("savePhoto", u, name), u); };
+      $("#dbxPvGo").addEventListener("click", go);
+      $("#dbxPvUrl").addEventListener("paste", () => setTimeout(go, 0));   // pasting a link adds it right away
+    }
+    if ($("#dbxPvFile")) $("#dbxPvFile").addEventListener("change", async e => { adding = ""; for (const file of [...e.target.files]){ try{ const b64 = await shrink(file); await keep(k, name => server("savePhotoData", b64, "image/jpeg", name), "data:image/jpeg;base64," + b64); }catch(err){ toast(err.message, 5000); } } });
   }
   drawPhotos();
   $("#dbxNo").addEventListener("click", closeModal);
