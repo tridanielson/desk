@@ -128,13 +128,13 @@ td.r,th.r{text-align:right}
 .dbx-big{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px}.dbx-ph{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);color:var(--muted);font-size:12px;text-align:center}
 .dbx-hd{display:flex;align-items:flex-start;gap:6px}.dbx-hd h3{margin:0;font-size:15px;flex:1;line-height:1.3}
 .dbx-ic{flex:0 0 auto;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer;font-size:14px}.dbx-ic:hover{border-color:var(--accent)}
-.dbx-detail .dbx-big{aspect-ratio:auto;height:auto;max-height:min(58vh,520px);object-fit:contain;background:#0d0c0a}span.dbx-big{min-height:200px}
+.dbx-detail .dbx-big{aspect-ratio:auto;height:auto;max-height:min(58vh,520px);object-fit:contain}span.dbx-big{min-height:200px}
 .dbx-phs{grid-template-columns:repeat(5,44px)!important;gap:6px}.dbx-ph-b{aspect-ratio:1;width:44px}
 .dbx-acts{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.dbx-pill{font:inherit;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:inherit;cursor:pointer}.dbx-pill.on{background:var(--up);border-color:var(--up);color:#0f2a1c}
 .dbx-links{font-size:12px;color:var(--muted)}.dbx-links a{color:var(--muted)}
-.dbx-car{position:relative}.dbx-side{display:flex;align-items:center;gap:6px}.dbx-frame{position:relative;flex:1;min-width:0}
+.dbx-car{position:relative}.dbx-side{display:flex;align-items:center;justify-content:center;gap:8px}.dbx-frame{position:relative;flex:0 1 auto;min-width:0;line-height:0}.dbx-frame .dbx-big{width:auto;max-width:100%;border-radius:8px}.dbx-frame .dbx-view,.dbx-frame .dbx-count{line-height:1.4}.dbx-frame span.dbx-big{width:min(300px,70vw);line-height:1.4}
 .dbx-arr2{flex:0 0 32px;height:64px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit;font-size:24px;line-height:1;cursor:pointer;padding:0}.dbx-arr2:hover{border-color:var(--accent);color:var(--accent)}
-.dbx-car-sm .dbx-big{max-height:260px;object-fit:contain;background:var(--panel)}
+.dbx-car-sm .dbx-big{max-height:260px;aspect-ratio:auto;object-fit:contain}
 .dbx-view{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
 .dbx-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11.5px;padding:2px 8px;border-radius:999px}
 .dbx-arr{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:26px;line-height:1;cursor:pointer}.dbx-arr.l{left:8px}.dbx-arr.r{right:8px}.dbx-arr:hover{background:rgba(0,0,0,.75)}
@@ -7803,7 +7803,7 @@ function openDbxEdit(id){
       <div class="mut" style="font-size:12px">Photos: paste image links - as many as you like for each view, one per line.</div>
       ${two(fa("photo", "Front"), fa("photo_back", "Back"))}
       ${two(fa("photo_side", "Side"), fa("photo_inside", "Inside"), fa("photo_extras", "Extras"))}
-      <div id="dbxPrev" class="dbx-car dbx-car-sm"></div>
+      <div id="dbxPrev" class="dbx-car dbx-side dbx-car-sm"></div>
       ${f("notes", "Notes", "")}
     </div>
     <div class="acts"><button class="btn ghost" id="dbxNo" type="button">Cancel</button><button class="btn" id="dbxOk" type="button">Save</button></div>`);
@@ -7811,9 +7811,10 @@ function openDbxEdit(id){
   const prev = () => { const all = DBX_VIEWS.flatMap(([k, lbl]) => { const us = dbxUrls($("#dbx_" + k).value); return us.map((u, i) => ({u, lbl, n: i + 1, of: us.length})); });
     const el = $("#dbxPrev"); if (!all.length){ el.innerHTML = ""; return; }
     pi = (pi % all.length + all.length) % all.length; const c = all[pi];
-    el.innerHTML = `<img class="dbx-big" src="${esc(c.u)}" alt="${esc(c.lbl)} photo preview" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'dbx-big dbx-ph',textContent:'That link didn\\'t load as a picture.'}))">
-      <span class="dbx-view">${esc(c.lbl)}${c.of > 1 ? ` ${c.n} of ${c.of}` : ""}</span>
-      ${all.length > 1 ? `<button type="button" class="dbx-arr l" id="dbxPv" aria-label="Previous photo">‹</button><button type="button" class="dbx-arr r" id="dbxNx" aria-label="Next photo">›</button><span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}`;
+    el.innerHTML = `${all.length > 1 ? `<button type="button" class="dbx-arr2" id="dbxPv" aria-label="Previous photo">‹</button>` : ""}
+      <div class="dbx-frame"><img class="dbx-big" src="${esc(c.u)}" alt="${esc(c.lbl)} photo preview" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'dbx-big dbx-ph',textContent:'That link didn\\'t load as a picture.'}))">
+      <span class="dbx-view">${esc(c.lbl)}${c.of > 1 ? ` ${c.n} of ${c.of}` : ""}</span>${all.length > 1 ? `<span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}</div>
+      ${all.length > 1 ? `<button type="button" class="dbx-arr2" id="dbxNx" aria-label="Next photo">›</button>` : ""}`;
     if ($("#dbxPv")){ $("#dbxPv").addEventListener("click", () => { pi--; prev(); }); $("#dbxNx").addEventListener("click", () => { pi++; prev(); }); } };
   DBX_VIEWS.forEach(([k]) => $("#dbx_" + k).addEventListener("input", prev)); prev();
   $("#dbxNo").addEventListener("click", closeModal);
