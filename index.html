@@ -4311,9 +4311,10 @@ function scoreRows(){
     ["Loupe · Which printing", "#e08a4f", [
       L("sure", "When it's sure", "The times it decides on its own"),
       L("never_seen", "Cards it has never seen", "Random cards from all of Magic it was never taught"),
-      L("all", "All listings it checked", "Your reviews, slabs and listing titles together"),
+      L("all", "All listings it checked", "Your reviews and graded slabs (listing titles no longer count)"),
       L("yours", "Listings you checked", "Graded against your own reviews (new, harder ones keep joining)", {fx: "fixed"}),
-      L("fixed", "Same test every time", "The same 1,901 reviewed listings, re-graded - the fairest trend"),
+      L("held", "Locked-away test", "About 630 of your reviews Loupe is never allowed to learn from - the honest trend"),
+      L("fixed", "Same test every time", "The same 1,901 reviewed listings, re-graded (it has learned from some of them)"),
       L("read", "Reading the set code", "Code and number printed on newer cards"),
       L("titles", "Listing titles", "Against what the seller's title says"),
       L("paintings", "Right painting", "Cards with several paintings in one set", {fx: "fixed_paintings"})]],
@@ -4386,7 +4387,7 @@ function reportCardHTML(){
     <div class="mut" style="font-size:12px">Loupe vs SlaveAI on the same listings (printing)</div>
     <span class="sc-v ${ln == null || sn == null ? "flat" : ln - sn >= 3 ? "up" : sn - ln >= 3 ? "dn" : "flat"}">${ln == null || sn == null ? "Not enough yet" : ln - sn >= 3 ? "Loupe is ahead" : sn - ln >= 3 ? "SlaveAI is ahead" : "Tied"}</span></div>`;
   return `<div class="panel"><b style="font-size:16px">📋 Report Card</b> <span class="mut" style="font-size:12px">- the 4 numbers that matter most</span>
-    <div class="rc-grid">${tile(["loupe:sure"], "Can I trust it?", "Right when it decides on its own")}${tile(["loupe:fixed", "loupe:yours"], "Is it learning?", "The same test every time - the honest trend")}
+    <div class="rc-grid">${tile(["loupe:sure"], "Can I trust it?", "Right when it decides on its own")}${tile(["loupe:held", "loupe:fixed", "loupe:yours"], "Is it learning?", "Your reviews it's never allowed to learn from")}
     ${tile(["loupe:cond_near"], "Can it grade?", "Condition within one grade (NM/LP/MP/HP/DMG)")}${race}</div></div>`;
 }
 function scorecardHTML(){
