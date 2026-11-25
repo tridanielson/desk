@@ -7739,7 +7739,7 @@ function dbxDetailHTML(b, own, ro){
   const all = dbxAllPics(b), pi = all.length ? ((DBX.pi || 0) % all.length + all.length) % all.length : 0, cur = all[pi];
   const f = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : `<dt>${k}</dt><dd class="mut">-</dd>`;
   return `<aside class="dbx-detail panel" id="dbxDetail" aria-label="Deck box details">
-    <div class="row" style="justify-content:space-between;align-items:center"><span class="mut" style="font-size:12px">${esc([dbxType(b.line), b.year].filter(Boolean).join(" · "))}</span><span class="row" style="gap:6px">${ROLE === "owner" && !READONLY ? `<button type="button" class="btn small ghost" id="dbxEdit">✎ Edit</button>` : ""}<button type="button" class="btn small ghost" id="dbxClose" aria-label="Close details">✕</button></span></div>
+    <div class="row" style="justify-content:space-between;align-items:center"><h3 style="margin:0;font-size:16px">${esc(dbxTitle(b))}${b.year ? ` <span class="mut" style="font-weight:500">${esc(b.year)}</span>` : ""}</h3><span class="row" style="gap:6px">${ROLE === "owner" && !READONLY ? `<button type="button" class="btn small ghost" id="dbxEdit">✎ Edit</button>` : ""}<button type="button" class="btn small ghost" id="dbxClose" aria-label="Close details">✕</button></span></div>
     <div class="dbx-car">${dbxImg(cur ? cur.u : dbxArt(b), cur ? `${dbxTitle(b)} - ${cur.lbl}` : dbxTitle(b), "dbx-big", b.line || "Deck Box")}
       ${cur ? `<span class="dbx-view">${esc(cur.lbl)}${cur.of > 1 ? ` ${cur.n} of ${cur.of}` : ""}</span>` : ""}
       ${all.length > 1 ? `<button type="button" class="dbx-arr l" data-dbstep="-1" aria-label="Previous photo">‹</button><button type="button" class="dbx-arr r" data-dbstep="1" aria-label="Next photo">›</button><span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}</div>
@@ -7748,12 +7748,11 @@ function dbxDetailHTML(b, own, ro){
       return `<button type="button" class="dbx-ph-b${us.length ? "" : " none"}${on ? " on" : ""}" data-dbpi="${first}" ${us.length ? "" : "disabled"} aria-label="${lbl} photos">${us.length ? dbxImg(us[0], lbl, "dbx-ph-i", lbl) + `<span class="dbx-ph-l">${lbl}${us.length > 1 ? " ×" + us.length : ""}</span>` : `<span>${lbl}</span>`}</button>`; }).join("")}</div>
     <div class="row" style="gap:6px;justify-content:center">${(() => { const q = encodeURIComponent([/wizards/i.test(b.maker || "") ? "Magic" : (b.maker || "Ultra Pro"), "MTG deck box", b.art || dbxType(b.line), b.set, b.year].filter(Boolean).join(" "));
       return `<a class="btn small ghost" href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">🔍 Find Photos</a><a class="btn small ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Listings</a>`; })()}</div>
-    <h3 style="margin:4px 0 0">${esc(dbxTitle(b))}</h3>
     <div class="dbx-tags">${own ? `<span class="dbx-tag ok">✓ Have${parseInt(own.qty) > 1 ? " ×" + esc(own.qty) : ""}</span>` : `<span class="dbx-tag">Need</span>`}${own && own.sealed ? `<span class="dbx-tag">${own.sealed === "sealed" ? "Sealed" : "Opened"}</span>` : ""}${b.release ? `<span class="dbx-tag">${esc(b.release)}</span>` : ""}${b.includes ? `<span class="dbx-tag">${esc(b.includes)}</span>` : ""}</div>
     ${ro ? "" : `<div class="row" style="gap:6px">
       <button type="button" class="btn small${own ? "" : " ghost"}" data-dbx="${esc(b.id)}">${own ? "✓ I Have It" : "I Have It"}</button>
       ${own ? `<button type="button" class="btn small${own.sealed === "sealed" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="sealed">Sealed</button><button type="button" class="btn small${own.sealed === "open" ? "" : " ghost"}" data-dbseal="${esc(b.id)}" data-v="open">Opened</button>` : ""}</div>`}
-    <dl class="dbx-dl">${f("Type", b.line)}${f("Expansion", [b.set, b.code ? "(" + b.code + ")" : ""].filter(Boolean).join(" "))}${f("Year", b.year)}${f("Art used", b.art)}${f("Artist", b.artist)}${f("Made by", b.maker)}${f("Included", b.includes)}${f("Holds", b.capacity)}${f("Released as", b.release)}${f("Item / UPC", b.upc)}${own && own.paid ? f("You paid", "$" + own.paid) : ""}${f("Notes", String(b.notes || "").split(" · ").filter(x => !/^(\w+ )?photo from https?:/.test(x)).join(" · "))}</dl>
+    <dl class="dbx-dl">${f("Type", b.line)}${f("Expansion", [b.set, b.code ? "(" + b.code + ")" : ""].filter(Boolean).join(" "))}${f("Year", b.year)}${f("Art used", b.art)}${f("Artist", b.artist)}${f("Made by", b.maker)}${f("Included", b.includes)}${f("Holds", b.capacity)}${f("Released as", b.release)}${f("Item / UPC", b.upc)}${own && own.paid ? f("You paid", "$" + own.paid) : ""}${f("Notes", b.notes)}</dl>
     <div class="mut" style="font-size:11.5px">${esc(b.name)}</div>
   </aside>`;
 }
@@ -7767,8 +7766,7 @@ async function dbxKeepPhotos(b){
   let ok = 0, err = "";
   for (const t of todo){
     try{ const r = await server("savePhoto", t.u, t.name);
-      if (r && r.url){ b[t.k] = dbxUrls(b[t.k]).map(x => x === t.u ? r.url : x).join("\n"); ok++;
-        if (!String(b.notes || "").includes(t.u)) b.notes = [b.notes, `photo from ${t.u}`].filter(Boolean).join(" · "); } }
+      if (r && r.url){ b[t.k] = dbxUrls(b[t.k]).map(x => x === t.u ? r.url : x).join("\n"); ok++; } }
     catch(e){ err = e.message || String(e); if (/unknown|not a function|savePhoto/i.test(err)) err = "The server needs its update first - reload the desk while signed in as admin, then save again."; break; }
   }
   if (ok){ markDirty("dbcat"); renderDBX(); toast(`${ok} photo${ok === 1 ? "" : "s"} saved to your site - ${ok === 1 ? "it" : "they"} won't break if the original link does.`); }
