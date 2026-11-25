@@ -124,6 +124,11 @@ td.r,th.r{text-align:right}
 .dbx-thumb{display:block;width:56px;height:40px;object-fit:cover;border-radius:4px}span.dbx-thumb{background:var(--panel)}
 .dbx-detail{flex:1 1 360px;max-width:440px;display:flex;flex-direction:column;gap:10px;position:sticky;top:12px}
 .dbx-big{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px}.dbx-ph{display:flex;align-items:center;justify-content:center;border:1px dashed var(--line);color:var(--muted);font-size:12px;text-align:center}
+.dbx-car{position:relative}.dbx-car-sm .dbx-big{max-height:260px;object-fit:contain;background:var(--panel)}
+.dbx-view{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.65);color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px}
+.dbx-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:11.5px;padding:2px 8px;border-radius:999px}
+.dbx-arr{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:26px;line-height:1;cursor:pointer}.dbx-arr.l{left:8px}.dbx-arr.r{right:8px}.dbx-arr:hover{background:rgba(0,0,0,.75)}
+.dbx-ph-b{position:relative}.dbx-ph-b.on{outline:2px solid var(--accent);outline-offset:1px}.dbx-ph-l{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:600;padding:1px 0}
 .dbx-phs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.dbx-ph-b{aspect-ratio:1;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:0;overflow:hidden;cursor:pointer;color:var(--muted);font-size:10.5px}.dbx-ph-b.none{cursor:default;opacity:.6}.dbx-ph-i{width:100%;height:100%;object-fit:cover;display:block}
 .dbx-tags{display:flex;flex-wrap:wrap;gap:6px}.dbx-tag{font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}.dbx-tag.ok{background:color-mix(in srgb,var(--up) 18%,transparent);color:var(--up);border-color:transparent}
 .dbx-dl{display:grid;grid-template-columns:110px minmax(0,1fr);gap:5px 10px;margin:0;font-size:13px}.dbx-dl dt{color:var(--muted)}.dbx-dl dd{margin:0}
@@ -7667,7 +7672,11 @@ async function loadDBX(){
 }
 // the picture: your photo when you've added one, else the featured card's art from Scryfall (a stand-in until you add a photo)
 const dbxArt = b => b.art ? `https://api.scryfall.com/cards/named?fuzzy=${encodeURIComponent(b.art)}&format=image&version=art_crop` : "";
-const dbxPic = b => b.photo || dbxArt(b);
+// each view (front, back, side, inside, extras) can hold several photo links, one per line
+const DBX_VIEWS = [["photo", "Front"], ["photo_back", "Back"], ["photo_side", "Side"], ["photo_inside", "Inside"], ["photo_extras", "Extras"]];
+const dbxUrls = v => String(v || "").split(/\s+/).filter(u => /^https:\/\//.test(u));
+const dbxAllPics = b => DBX_VIEWS.flatMap(([k, lbl]) => { const us = dbxUrls(b[k]); return us.map((u, i) => ({u, lbl, n: i + 1, of: us.length})); });
+const dbxPic = b => dbxUrls(b.photo)[0] || dbxAllPics(b)[0]?.u || dbxArt(b);
 const dbxTitle = b => b.art || b.name;
 const dbxType = l => String(l || "").replace(/^Deckbox\s*/i, "").replace(/^\((.*)\)$/, "$1").replace(/^\+\s*/, "+ ").trim();
 const dbxImg = (u, alt, cls, ph) => u ? `<img class="${cls}" src="${esc(u)}" alt="${esc(alt)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} dbx-ph',textContent:${esc(JSON.stringify(ph || ""))}}))">` : `<span class="${cls} dbx-ph">${esc(ph || "")}</span>`;
@@ -7712,23 +7721,30 @@ function renderDBX(){
   $("#dbxShow").addEventListener("change", e => { DBX.show = e.target.value; store.set("pd_dbx_show", DBX.show); renderDBX(); });
   if ($("#dbxAdd")) $("#dbxAdd").addEventListener("click", () => openDbxEdit(null));
   box.querySelectorAll("[data-dbsort]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.dbsort; if (DBX.sort === k) DBX.dir = -DBX.dir; else { DBX.sort = k; DBX.dir = 1; } renderDBX(); }));
-  box.querySelectorAll("[data-dbsel]").forEach(tr => tr.addEventListener("click", e => { if (e.target.closest("[data-dbx]")) return; DBX.sel = DBX.sel === tr.dataset.dbsel ? "" : tr.dataset.dbsel; DBX.pic = ""; renderDBX(); const p = $("#dbxDetail"); if (p && window.innerWidth < 900) p.scrollIntoView({behavior: "smooth", block: "start"}); }));
+  box.querySelectorAll("[data-dbsel]").forEach(tr => tr.addEventListener("click", e => { if (e.target.closest("[data-dbx]")) return; DBX.sel = DBX.sel === tr.dataset.dbsel ? "" : tr.dataset.dbsel; DBX.pi = 0; renderDBX(); const p = $("#dbxDetail"); if (p && window.innerWidth < 900) p.scrollIntoView({behavior: "smooth", block: "start"}); }));
   if ($("#dbxClose")) $("#dbxClose").addEventListener("click", () => { DBX.sel = ""; renderDBX(); });
   if ($("#dbxEdit")) $("#dbxEdit").addEventListener("click", () => openDbxEdit(DBX.sel));
-  box.querySelectorAll("#dbxDetail [data-dbph]").forEach(t => t.addEventListener("click", () => { if (t.dataset.dbph){ DBX.pic = t.dataset.dbph; renderDBX(); } }));
+  box.querySelectorAll("#dbxDetail [data-dbpi]").forEach(t => t.addEventListener("click", () => { const i = +t.dataset.dbpi; if (i >= 0){ DBX.pi = i; renderDBX(); } }));
+  box.querySelectorAll("#dbxDetail [data-dbstep]").forEach(t => t.addEventListener("click", () => { DBX.pi = (DBX.pi || 0) + (+t.dataset.dbstep); renderDBX(); }));
+  const car = box.querySelector("#dbxDetail .dbx-car"); if (car){ let x0 = null;   // swipe on a phone
+    car.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+    car.addEventListener("touchend", e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 40){ DBX.pi = (DBX.pi || 0) + (dx < 0 ? 1 : -1); renderDBX(); } }); }
   if (ro) return;
   box.querySelectorAll("[data-dbx]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); dbxToggle(b.dataset.dbx); }));
   box.querySelectorAll("[data-dbseal]").forEach(b => b.addEventListener("click", () => dbxSeal(b.dataset.dbseal, b.dataset.v)));
 }
 // #10's detail panel: every photo and every field for the row you tapped
 function dbxDetailHTML(b, own, ro){
-  const pics = [["Front", b.photo], ["Back", b.photo_back], ["Side", b.photo_side], ["Inside", b.photo_inside], ["Extras", b.photo_extras]];
+  const all = dbxAllPics(b), pi = all.length ? ((DBX.pi || 0) % all.length + all.length) % all.length : 0, cur = all[pi];
   const f = (k, v) => v ? `<dt>${k}</dt><dd>${esc(v)}</dd>` : `<dt>${k}</dt><dd class="mut">-</dd>`;
   return `<aside class="dbx-detail panel" id="dbxDetail" aria-label="Deck box details">
     <div class="row" style="justify-content:space-between;align-items:center"><span class="mut" style="font-size:12px">${esc(b.id.toUpperCase())}</span><button type="button" class="btn small ghost" id="dbxClose" aria-label="Close details">✕</button></div>
-    ${dbxImg((DBX.pic && pics.some(p => p[1] === DBX.pic) ? DBX.pic : "") || b.photo || dbxArt(b), dbxTitle(b), "dbx-big", b.line || "Deck Box")}
-    ${!b.photo ? `<div class="mut" style="font-size:11px;text-align:center">${b.art ? "Card art from Scryfall - no box photo yet" : "No photo yet"}</div>` : ""}
-    <div class="dbx-phs">${pics.map(([k, u]) => `<button type="button" class="dbx-ph-b${u ? "" : " none"}" data-dbph="${esc(u || "")}" ${u ? "" : "disabled"} aria-label="${k} photo">${u ? dbxImg(u, k, "dbx-ph-i", k) : `<span>${k}</span>`}</button>`).join("")}</div>
+    <div class="dbx-car">${dbxImg(cur ? cur.u : dbxArt(b), cur ? `${dbxTitle(b)} - ${cur.lbl}` : dbxTitle(b), "dbx-big", b.line || "Deck Box")}
+      ${cur ? `<span class="dbx-view">${esc(cur.lbl)}${cur.of > 1 ? ` ${cur.n} of ${cur.of}` : ""}</span>` : ""}
+      ${all.length > 1 ? `<button type="button" class="dbx-arr l" data-dbstep="-1" aria-label="Previous photo">‹</button><button type="button" class="dbx-arr r" data-dbstep="1" aria-label="Next photo">›</button><span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}</div>
+    ${!all.length ? `<div class="mut" style="font-size:11px;text-align:center">${b.art ? "Card art from Scryfall - no box photo yet" : "No photo yet"}</div>` : ""}
+    <div class="dbx-phs">${DBX_VIEWS.map(([k, lbl]) => { const us = dbxUrls(b[k]), first = all.findIndex(p => p.lbl === lbl), on = cur && cur.lbl === lbl;
+      return `<button type="button" class="dbx-ph-b${us.length ? "" : " none"}${on ? " on" : ""}" data-dbpi="${first}" ${us.length ? "" : "disabled"} aria-label="${lbl} photos">${us.length ? dbxImg(us[0], lbl, "dbx-ph-i", lbl) + `<span class="dbx-ph-l">${lbl}${us.length > 1 ? " ×" + us.length : ""}</span>` : `<span>${lbl}</span>`}</button>`; }).join("")}</div>
     <div class="row" style="gap:6px;justify-content:center">${(() => { const q = encodeURIComponent([/wizards/i.test(b.maker || "") ? "Magic" : (b.maker || "Ultra Pro"), "MTG deck box", b.art || dbxType(b.line), b.set, b.year].filter(Boolean).join(" "));
       return `<a class="btn small ghost" href="https://www.google.com/search?tbm=isch&q=${q}" target="_blank" rel="noopener">🔍 Find Photos</a><a class="btn small ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}" target="_blank" rel="noopener">eBay Listings</a>`; })()}</div>
     <h3 style="margin:4px 0 0">${esc(dbxTitle(b))}</h3>
@@ -7743,18 +7759,20 @@ function dbxDetailHTML(b, own, ro){
 }
 // photos you link get copied onto your own site (desk.havothcards.com/img/deckboxes/) so they keep showing if the original link breaks;
 // the original link stays in the notes
-const DBX_PHOTOS = [["photo", "front"], ["photo_back", "back"], ["photo_side", "side"], ["photo_inside", "inside"], ["photo_extras", "extras"]];
 async function dbxKeepPhotos(b){
-  const todo = DBX_PHOTOS.filter(([k]) => /^https:\/\//.test(b[k] || "") && !/^https:\/\/desk\.havothcards\.com\//.test(b[k]));
+  const todo = [];
+  [["photo", "front"], ["photo_back", "back"], ["photo_side", "side"], ["photo_inside", "inside"], ["photo_extras", "extras"]].forEach(([k, slot]) =>
+    dbxUrls(b[k]).forEach((u, i) => { if (!/^https:\/\/desk\.havothcards\.com\//.test(u)) todo.push({k, u, name: `${b.id}-${slot}${i ? "-" + (i + 1) : ""}`}); }));
   if (!todo.length) return;
   let ok = 0, err = "";
-  for (const [k, slot] of todo){
-    try{ const r = await server("savePhoto", b[k], `${b.id}-${slot}`);
-      if (r && r.url){ const src = b[k]; b[k] = r.url; ok++; if (!String(b.notes || "").includes(src)) b.notes = [b.notes, `${slot} photo from ${src}`].filter(Boolean).join(" · "); } }
+  for (const t of todo){
+    try{ const r = await server("savePhoto", t.u, t.name);
+      if (r && r.url){ b[t.k] = dbxUrls(b[t.k]).map(x => x === t.u ? r.url : x).join("\n"); ok++;
+        if (!String(b.notes || "").includes(t.u)) b.notes = [b.notes, `photo from ${t.u}`].filter(Boolean).join(" · "); } }
     catch(e){ err = e.message || String(e); if (/unknown|not a function|savePhoto/i.test(err)) err = "The server needs its update first - reload the desk while signed in as admin, then save again."; break; }
   }
   if (ok){ markDirty("dbcat"); renderDBX(); toast(`${ok} photo${ok === 1 ? "" : "s"} saved to your site - ${ok === 1 ? "it" : "they"} won't break if the original link does.`); }
-  if (err) toast("Kept the photo link, but couldn't save a copy: " + err, 7000);
+  if (err) toast("Kept the photo links, but couldn't save copies: " + err, 8000);
 }
 function dbxRow(id){ let r = DBX.rows.find(x => x.id === id); if (!r){ r = {id, qty: "0", sealed: "", paid: "", notes: ""}; DBX.rows.push(r); } return r; }
 function dbxTidy(r){ if (!(parseInt(r.qty) > 0) && !r.notes) DBX.rows.splice(DBX.rows.indexOf(r), 1); markDirty("dboxes"); const y = window.scrollY; renderDBX(); window.scrollTo(0, y); }
@@ -7767,6 +7785,7 @@ function openDbxEdit(id){
   if (!b) return;
   const lines = [...new Set(DBX.cat.map(x => x.line).filter(Boolean))].sort();
   const f = (k, label, ph) => `<label style="display:grid;gap:4px;font-weight:600;font-size:13px">${label}<input id="dbx_${k}" value="${esc(b[k] || "")}" placeholder="${esc(ph || "")}"${k === "line" ? ' list="dbxLines"' : ""}></label>`;
+  const fa = (k, label) => `<label style="display:grid;gap:4px;font-weight:600;font-size:13px">${label}<textarea id="dbx_${k}" rows="2" placeholder="https://… (one per line)" style="resize:vertical;font-size:12px">${esc(dbxUrls(b[k]).join("\n"))}</textarea></label>`;
   const two = (...x) => `<div style="display:grid;grid-template-columns:repeat(${x.length},minmax(0,1fr));gap:10px">${x.join("")}</div>`;
   openModal(`<h3>${id ? "Edit Deck Box" : "Add a Deck Box"}</h3>
     <div style="display:grid;gap:10px;margin-top:10px;max-height:65vh;overflow:auto;padding-right:4px">
@@ -7776,23 +7795,30 @@ function openDbxEdit(id){
       ${two(f("set", "Expansion", "Avacyn Restored"), f("code", "Set code", "AVR"), f("year", "Year", "2012"))}
       ${two(f("maker", "Made by", "Ultra Pro"), f("upc", "Item # / UPC", ""))}
       ${two(f("includes", "What came with it", "60 sleeves, divider, spindown, promo card…"), f("capacity", "Holds", "80 cards"))}
-      <div class="mut" style="font-size:12px">Photos: paste image links (https://…jpg or .png).</div>
-      ${two(f("photo", "Front photo", "https://…"), f("photo_back", "Back", "https://…"))}
-      ${two(f("photo_side", "Side", "https://…"), f("photo_inside", "Inside", "https://…"), f("photo_extras", "Extras", "https://…"))}
-      <div id="dbxPrev" style="text-align:center"></div>
+      <div class="mut" style="font-size:12px">Photos: paste image links - as many as you like for each view, one per line.</div>
+      ${two(fa("photo", "Front"), fa("photo_back", "Back"))}
+      ${two(fa("photo_side", "Side"), fa("photo_inside", "Inside"), fa("photo_extras", "Extras"))}
+      <div id="dbxPrev" class="dbx-car dbx-car-sm"></div>
       ${f("notes", "Notes", "")}
     </div>
     <div class="acts"><button class="btn ghost" id="dbxNo" type="button">Cancel</button><button class="btn" id="dbxOk" type="button">Save</button></div>`);
-  const prev = () => { const u = $("#dbx_photo").value.trim(); $("#dbxPrev").innerHTML = /^https:\/\//.test(u) ? `<img src="${esc(u)}" alt="Front photo preview" style="max-width:200px;max-height:200px;border-radius:8px" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'mut',textContent:'That link didn\\'t load as a picture.'}))">` : ""; };
-  $("#dbx_photo").addEventListener("input", prev); prev();
+  let pi = 0;   // the preview cycles through every photo link with the arrows, labeled with its view
+  const prev = () => { const all = DBX_VIEWS.flatMap(([k, lbl]) => { const us = dbxUrls($("#dbx_" + k).value); return us.map((u, i) => ({u, lbl, n: i + 1, of: us.length})); });
+    const el = $("#dbxPrev"); if (!all.length){ el.innerHTML = ""; return; }
+    pi = (pi % all.length + all.length) % all.length; const c = all[pi];
+    el.innerHTML = `<img class="dbx-big" src="${esc(c.u)}" alt="${esc(c.lbl)} photo preview" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'dbx-big dbx-ph',textContent:'That link didn\\'t load as a picture.'}))">
+      <span class="dbx-view">${esc(c.lbl)}${c.of > 1 ? ` ${c.n} of ${c.of}` : ""}</span>
+      ${all.length > 1 ? `<button type="button" class="dbx-arr l" id="dbxPv" aria-label="Previous photo">‹</button><button type="button" class="dbx-arr r" id="dbxNx" aria-label="Next photo">›</button><span class="dbx-count">${pi + 1} / ${all.length}</span>` : ""}`;
+    if ($("#dbxPv")){ $("#dbxPv").addEventListener("click", () => { pi--; prev(); }); $("#dbxNx").addEventListener("click", () => { pi++; prev(); }); } };
+  DBX_VIEWS.forEach(([k]) => $("#dbx_" + k).addEventListener("input", prev)); prev();
   $("#dbxNo").addEventListener("click", closeModal);
   $("#dbxOk").addEventListener("click", () => {
     const v = k => $("#dbx_" + k).value.trim();
     if (!v("name") && !v("art")) return toast("Give it a description or the art used.");
-    const bad = ["photo", "photo_back", "photo_side", "photo_inside", "photo_extras"].find(k => v(k) && !/^https:\/\//.test(v(k)));
-    if (bad) return toast("Photos need to be https:// image links.");
+    const bad = DBX_VIEWS.find(([k]) => v(k).split(/\s+/).filter(Boolean).some(u => !/^https:\/\//.test(u)));
+    if (bad) return toast(`${bad[1]} photos need to be https:// image links, one per line.`);
     const t = id ? b : (() => { let n = DBX.cat.length + 1, nid; do { nid = "db-" + String(n++).padStart(3, "0"); } while (DBX.cat.some(x => x.id === nid)); const x = {id: nid}; DBX.cat.push(x); return x; })();
-    DBX_CAT_COLS.filter(k => k !== "id").forEach(k => { t[k] = v(k); });
+    DBX_CAT_COLS.filter(k => k !== "id").forEach(k => { t[k] = DBX_VIEWS.some(([x]) => x === k) ? dbxUrls(v(k)).join("\n") : v(k); });
     closeModal(); DBX.sel = t.id; markDirty("dbcat"); renderDBX(); toast(id ? "Deck box updated." : "Deck box added.");
     dbxKeepPhotos(t);
   });
