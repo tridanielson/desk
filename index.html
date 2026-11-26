@@ -2436,7 +2436,8 @@ function qualityHTML(d){
     ? `<span class="flag sus" title="The listing doesn't say which version this is. It's valued as the one you track - if it's the ${esc(d.reprint)} instead, it isn't a deal. Check the photos.">which version? could be ${esc(d.reprint)}</span> `
     : `<span class="flag sus" title="Priced like the ${esc(d.reprint)} reprint - check the photos (border, corners)">possible ${esc(d.reprint)}?</span> `;
   const tl = tcgLowOf(d);
-  if (tl && +d.total > tl.v) h += `<span class="flag sus" title="TCGplayer's cheapest copy was ${money(tl.v)}${tl.date ? " (" + esc(tl.date) + " data)" : ""} - this one costs more, so you could just buy it there. It won't ring your phone.">cheaper on TCGplayer</span>`;
+  // TCGplayer's Low is its cheapest copy in any condition: it only counts when it's believable for a copy as good as this one
+  if (tl && +d.total > tl.v && !(+d.fair > 0 && tl.v < 0.8 * +d.fair)) h += `<span class="flag sus" title="TCGplayer's cheapest copy was ${money(tl.v)}${tl.date ? " (" + esc(tl.date) + " data)" : ""} - close to what a ${esc(d.condition || "")} copy is worth, and this one costs more. It won't ring your phone.">cheaper on TCGplayer</span>`;
   return h;
 }
 /* TCGplayer's cheapest copy of the deal's card (from the scan, or the card's daily prices) */
