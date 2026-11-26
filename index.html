@@ -445,6 +445,9 @@ tr.cv-lot td{background:var(--soft);font-size:13px}
 .own-chip:hover{border-color:var(--accent)}.own-chip .cname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:700px){#setBinder{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}.own-grid{grid-template-columns:1fr}}
 .is-binder #colTiles,.is-binder #colTable{display:none!important}
+.pk-tick{position:absolute;top:6px;left:6px;z-index:2;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(20,16,12,.75);border:1.5px solid #fff;color:#fff;font-size:14px;font-weight:700;line-height:1}
+.pocket.picked .pk-tick{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}.pocket.picked .pk-card{outline:3px solid var(--accent);outline-offset:1px}
+#colSelBar{position:sticky;bottom:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid var(--accent);background:var(--panel);grid-column:1/-1}
 .pocket{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}.pocket:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:9px}
 .pk-card{position:relative;aspect-ratio:63/88;border-radius:9px;overflow:hidden;background:#1b1b1b;display:grid;place-items:center;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 .pk-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
@@ -5483,7 +5486,7 @@ function binderChipsHTML(withAdd){
 function wireBinderChips(box, rerender){
   if (box.querySelector("#binderAdd")) box.querySelector("#binderAdd").addEventListener("click", addBinder);
   box.querySelectorAll("[data-brename]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); renameBinder(b.dataset.brename); }));
-  box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} rerender(); }));
+  box.querySelectorAll("[data-binder]").forEach(b => b.addEventListener("click", () => { COL.sel = null; COL.binder = b.dataset.binder; try{ localStorage.setItem("pd_binder", COL.binder); }catch(e){} rerender(); }));
 }
 function renameBinder(b){
   const main = !b, count = COL.inv.filter(r => binderOf(r) === b).length, others = binderList().filter(([k]) => k !== b);
@@ -6252,7 +6255,7 @@ function renderCOL(){
     </div>
     <div id="colWaiting"></div>
     <div class="cv-views" role="group" aria-label="Views">${VIEWS.map(([k, l, n, tip]) => `<button type="button" class="btn small${COL.view === k ? "" : " ghost"}" data-cview="${k}" title="${esc(tip)}">${l}${n != null ? ` <b>${n}</b>` : ""}</button>`).join("")}
-      <span class="seg cv-layout" role="group" aria-label="Layout" style="margin-left:auto"><button type="button" class="btn small${COL.layout === "binder" ? " ghost" : ""}" data-clayout="list">☰ List</button><button type="button" class="btn small${COL.layout === "binder" ? "" : " ghost"}" data-clayout="binder">▦ Binder</button></span>
+      ${COL.layout === "binder" && !READONLY ? `<button type="button" class="btn small${COL.sel ? "" : " ghost"}" id="colSelBtn" style="margin-left:auto" title="Tick several cards, then move them to another binder">${COL.sel ? "Done Selecting" : "Select"}</button>` : ""}<span class="seg cv-layout" role="group" aria-label="Layout"${COL.layout === "binder" && !READONLY ? "" : ' style="margin-left:auto"'}><button type="button" class="btn small${COL.layout === "binder" ? " ghost" : ""}" data-clayout="list">☰ List</button><button type="button" class="btn small${COL.layout === "binder" ? "" : " ghost"}" data-clayout="binder">▦ Binder</button></span>
       <input id="colQ" type="search" placeholder="Find a card…" value="${esc(COL.q)}" style="min-width:160px;flex:0 1 220px"></div>
     ${COL.back ? `<div class="row" style="gap:8px;margin:6px 0 0"><span class="mut" style="font-size:12.5px">Showing your copies of <b>${esc(COL.q)}</b> · Back returns to ${esc(COL.back.name)}</span></div>` : ""}
     <p class="mut" id="colViewTip" style="font-size:12px;margin:4px 0 8px">${esc((VIEWS.find(v => v[0] === COL.view) || [])[3] || "")}</p>
@@ -6263,7 +6266,8 @@ function renderCOL(){
   // picking a view (again) drops any column sort you clicked, so each view shows its own order - Recently added = the order you entered them
   box.querySelectorAll("[data-cview]").forEach(b => b.addEventListener("click", () => { COL.view = b.dataset.cview; COL.limit = 150; COL.showBulk = false; delete TSORT["colTable"]; renderCOL(); }));
   $("#colMore").addEventListener("click", () => { COL.limit += 300; renderCOLList(); });
-  box.querySelectorAll("[data-clayout]").forEach(b => b.addEventListener("click", () => { COL.layout = b.dataset.clayout; store.set("pd_col_layout", COL.layout); renderCOL(); }));
+  if (box.querySelector("#colSelBtn")) box.querySelector("#colSelBtn").addEventListener("click", () => { COL.sel = COL.sel ? null : new Set(); renderCOL(); });
+  box.querySelectorAll("[data-clayout]").forEach(b => b.addEventListener("click", () => { COL.sel = null; COL.layout = b.dataset.clayout; store.set("pd_col_layout", COL.layout); renderCOL(); }));
   $("#colAdd").addEventListener("click", () => openColEdit(null));
   $("#colPaste").addEventListener("click", openColPaste);
   if ($("#colAddS")) $("#colAddS").addEventListener("click", () => { if (!SL.data && typeof loadSL === "function") loadSL(); openSDEdit(null); });
@@ -6367,7 +6371,12 @@ function renderCOLList(){
     || '<p class="empty">Nothing here yet.</p>';
   // the binder holds singles only - sealed product lives on the Sealed tab (and in the List view)
   if (COL.layout === "binder") $("#colBinder").innerHTML = colBinderHTML(show.map((i, k) => Object.assign({}, i, {_k: k})).filter(i => i.kind === "card"), bulk);
-  document.querySelectorAll("#colBinder [data-pocket]").forEach(b => b.addEventListener("click", () => openPocket(show[+b.dataset.pocket])));
+  document.querySelectorAll("#colBinder [data-pocket]").forEach(b => b.addEventListener("click", () => { const i = show[+b.dataset.pocket];
+    if (!COL.sel) return openPocket(i);
+    const ids = colSelIds(i); if (!ids.length) return toast("Secret Lair cards stay with their order.");
+    const on = ids.every(x => COL.sel.has(x)); ids.forEach(x => on ? COL.sel.delete(x) : COL.sel.add(x));
+    const y = $("#colPanel").scrollTop; renderCOLList(); $("#colPanel").scrollTop = y; }));
+  colSelBar();
   document.querySelectorAll("#colTable [data-trend], #colTiles [data-trend]").forEach(b => b.addEventListener("click", () => openPocket(show.find(x => (x.gkey || x.id) === b.dataset.trend))));
   document.querySelectorAll("#colBody [data-cgrp]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.cgrp; open.has(k) ? open.delete(k) : open.add(k); renderCOLList(); }));
   document.querySelectorAll("#colBody [data-showbulk]").forEach(b => b.addEventListener("click", () => { COL.showBulk = true; COL.limit = 100000; renderCOLList(); }));
@@ -6400,10 +6409,29 @@ const COND_BADGE = {NM: ["#ece6dc", "#1b120a"], LP: ["#c9d6e2", "#1b120a"], MP: 
 const cardImg = i => i.sid ? `https://cards.scryfall.io/normal/front/${i.sid[0]}/${i.sid[1]}/${i.sid}.jpg`
   : i.set && i.number ? `https://api.scryfall.com/cards/${encodeURIComponent(i.set.toLowerCase())}/${encodeURIComponent(i.number)}?format=image&version=normal`
   : i.set && i.name ? sfImgNamed(i.name.split(" // ")[0], encodeURIComponent(i.set.toLowerCase())) : "";   // no number saved: the card by name in that set
+// Select (binder view): tick several cards, then move them to another binder. Whole lots; Secret Lair cards stay with their order.
+const colSelIds = i => (i.lots || [i]).filter(l => l.row && l.row.kind !== "secret_lair").map(l => l.id);
+function colSelBar(){
+  const panel = $("#colPanel"); if (!panel) return; let bar = $("#colSelBar");
+  if (!COL.sel || !COL.sel.size || COL.layout !== "binder"){ if (bar) bar.remove(); return; }
+  if (!bar){ bar = document.createElement("div"); bar.id = "colSelBar"; panel.appendChild(bar); }
+  const rows = COL.inv.filter(r => COL.sel.has(r.id)), sold = {}; COL.sales.forEach(x => { if (x.item_id) sold[x.item_id] = (sold[x.item_id] || 0) + (parseInt(x.qty) || 1); });
+  const n = rows.reduce((t, r) => t + Math.max(0, (parseInt(r.qty) || 0) - (sold[r.id] || 0)), 0), cur = COL.binder || "", keep = (bar.querySelector("#colSelTo") || {}).value;
+  bar.innerHTML = `<b>${n} selected</b><span class="grow"></span><span class="mut">Move to</span><select id="colSelTo" aria-label="Move to binder">${binderList().filter(([k]) => k !== cur).map(([k, nm]) => `<option value="${k}"${keep === k ? " selected" : ""}>${esc(nm)}</option>`).join("")}<option value="__new"${keep === "__new" ? " selected" : ""}>New Binder…</option></select>
+    <button type="button" class="btn small" id="colSelGo">Move ${n} Card${n === 1 ? "" : "s"}</button>`;
+  const move = to => { rows.forEach(r => { r.binder = to; }); markDirty("collection"); COL.sel = null; renderCOL(); renderSETS(); toast(`${n} card${n === 1 ? "" : "s"} moved to ${binderName(to)}.`, 5000); };
+  bar.querySelector("#colSelGo").addEventListener("click", () => { const to = bar.querySelector("#colSelTo").value; if (to !== "__new") return move(to);
+    openModal(`<h3>New Binder</h3><label for="brName">Name</label><input id="brName" maxlength="40" style="width:100%">
+      <div class="acts"><button class="btn ghost" type="button" id="brCancel">Cancel</button><button class="btn" type="button" id="brOk">Add Binder And Move</button></div>`);
+    const put = () => { const v = $("#brName").value.replace(/[|\r\n=\[\]]/g, " ").trim(); if (!v) return toast("Give it a name.");
+      const k = "b-" + Date.now().toString(36); binderSave(binderList().slice(1).concat([[k, v]])); closeModal(); move(k); };
+    $("#brOk").addEventListener("click", put); $("#brCancel").addEventListener("click", closeModal); $("#brName").focus(); });
+}
 function colBinderHTML(show, bulk){
   const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.row && i.row.grade ? String(i.row.grade) : i.condition || "NM").toUpperCase(), [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
-    return `<button type="button" class="pocket" data-pocket="${k}" title="${esc(i.name)}">
-      <span class="pk-card">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
+    const on = COL.sel && colSelIds(i).length && colSelIds(i).every(x => COL.sel.has(x));
+    return `<button type="button" class="pocket${on ? " picked" : ""}" data-pocket="${k}" title="${esc(i.name)}"${COL.sel ? ` aria-pressed="${!!on}"` : ""}>
+      <span class="pk-card">${COL.sel ? `<span class="pk-tick">${on ? "✓" : ""}</span>` : ""}${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
         ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c)}${i.left > 1 ? " ×" + i.left : ""}${i.own > i.left ? " · own " + i.own : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
         ${i.finish && i.finish !== "nonfoil" ? `<span class="pk-foil">${i.finish === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}
         ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
