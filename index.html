@@ -144,7 +144,8 @@ td.r,th.r{text-align:right}
 .dbx-pv-body{margin-top:8px;display:grid;gap:8px}.dbx-pv-th{display:flex;flex-wrap:wrap;gap:6px}.dbx-pv-t{position:relative;width:72px;height:72px}.dbx-pv-t img{width:100%;height:100%;object-fit:cover;border-radius:6px}
 .dbx-pv-t{width:96px;height:96px}.dbx-trash{position:absolute;top:4px;right:4px;height:28px;min-width:28px;padding:0 6px;border-radius:14px;border:0;background:rgba(0,0,0,.7);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:11.5px;font-weight:700}
 .dbx-trash span{display:none}.dbx-trash.armed{background:#c0392b}.dbx-trash.armed span{display:inline}
-.dbx-pv-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.dbx-pv-add input{flex:1 1 200px;min-width:0}#dbxPhotos.busy{opacity:.55;pointer-events:none}
+.dbx-pv-add{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.dbx-pv-add input{flex:1 1 200px;min-width:0}.dbx-wait{border-radius:6px;background:var(--soft);overflow:hidden}.dbx-wait img{opacity:.4}
+.dbx-wait i{position:absolute;inset:0;margin:auto;width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,.35);border-top-color:var(--accent);animation:spin .8s linear infinite}
 .dbx-car{position:relative}.dbx-side{display:flex;align-items:center;justify-content:center;gap:8px}.dbx-frame{position:relative;flex:0 1 auto;min-width:0;line-height:0}.dbx-frame .dbx-big{width:auto;max-width:100%;border-radius:8px;cursor:zoom-in}.dbx-frame .dbx-view,.dbx-frame .dbx-count{line-height:1.4}.dbx-frame span.dbx-big{width:min(300px,70vw);line-height:1.4}
 .dbx-arr2{flex:0 0 32px;height:64px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:inherit;font-size:24px;line-height:1;cursor:pointer;padding:0}.dbx-arr2:hover{border-color:var(--accent);color:var(--accent)}
 .dbx-car-sm .dbx-big{max-height:260px;aspect-ratio:auto;object-fit:contain}
@@ -7890,10 +7891,13 @@ function openDbxEdit(id){
   const P = Object.fromEntries(DBX_VIEWS.map(([k]) => [k, dbxUrls(b[k])]));
   const pid = id || (() => { let n = DBX.cat.length + 1, nid; do { nid = "db-" + String(n++).padStart(3, "0"); } while (DBX.cat.some(x => x.id === nid)); return nid; })();
   const slot = k => ({photo: "front", photo_back: "back", photo_side: "side", photo_inside: "inside", photo_extras: "extras"})[k];
-  const keep = async (k, fn, local) => { const box = $("#dbxPhotos"); box.classList.add("busy");
-    try{ const r = await fn(`${pid}-${slot(k)}-${Date.now().toString(36)}`); if (r && r.url){ P[k].push(r.url); if (local) DBX_LOCAL[r.url] = local; } }
+  // a picture being saved shows right away as its own tile with a spinner (nothing freezes); Save waits until they're done
+  const WAIT = Object.fromEntries(DBX_VIEWS.map(([k]) => [k, []]));
+  const waiting = () => DBX_VIEWS.some(([k]) => WAIT[k].length);
+  const keep = async (k, fn, local) => { const w = {src: local || ""}; WAIT[k].push(w); drawPhotos();
+    try{ const r = await fn(`${pid}-${slot(k)}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`); if (r && r.url){ P[k].push(r.url); if (local) DBX_LOCAL[r.url] = local; } }
     catch(e){ let m = e.message || String(e); if (/unknown/i.test(m)) m = "The server needs its update first - reload the desk while signed in as admin."; toast("Couldn't add that picture: " + m, 7000); }
-    box.classList.remove("busy"); drawPhotos(); };
+    WAIT[k].splice(WAIT[k].indexOf(w), 1); drawPhotos(); };
   const shrink = file => new Promise((res, rej) => { const img = new Image(), u = URL.createObjectURL(file);
     img.onload = () => { const m = 1600, sc = Math.min(1, m / Math.max(img.width, img.height)), c = document.createElement("canvas"); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL("image/jpeg", 0.85).split(",")[1]); };
@@ -7903,9 +7907,11 @@ function openDbxEdit(id){
     const box = $("#dbxPhotos"); if (!box) return;
     box.innerHTML = DBX_VIEWS.map(([k, lbl]) => `<div class="dbx-pr"><span class="dbx-pr-l">${lbl}</span><div class="dbx-pr-th">
         ${P[k].map((u, i) => `<span class="dbx-pv-t"><img src="${esc(DBX_LOCAL[u] || u)}" alt="${esc(lbl)} photo ${i + 1}"><button type="button" class="dbx-trash" data-pvk="${k}" data-pvx="${i}" aria-label="Delete this ${esc(lbl)} photo (tap twice)" title="Delete - tap twice"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg><span>Sure?</span></button></span>`).join("")}
+        ${WAIT[k].map(w => `<span class="dbx-pv-t dbx-wait" role="status" aria-label="Saving this ${esc(lbl)} photo">${w.src ? `<img src="${esc(w.src)}" alt="" onerror="this.remove()">` : ""}<i></i></span>`).join("")}
         ${adding === k + ":link" ? `<span class="dbx-tile dbx-tile-link"><input id="dbxPvUrl" placeholder="Paste picture link" aria-label="Picture link for ${esc(lbl)}"><span class="dbx-tile-row"><button type="button" class="dbx-ib ok" id="dbxPvGo" aria-label="Add this link">✓</button><button type="button" class="dbx-ib" id="dbxPvX" aria-label="Cancel">✕</button></span></span>`
           : adding === k ? `<span class="dbx-tile"><label class="dbx-ib wide" title="Upload from this device"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg>Upload<input type="file" id="dbxPvFile" accept="image/*" multiple hidden></label><button type="button" class="dbx-ib wide" id="dbxPvLink" title="Paste a picture link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>Link</button><button type="button" class="dbx-tile-x" id="dbxPvX" aria-label="Cancel">✕</button></span>`
           : `<button type="button" class="dbx-plus" data-pvadd="${k}" aria-label="Add a ${esc(lbl)} photo">+</button>`}</div></div>`).join("");
+    const ok = $("#dbxOk"); if (ok){ ok.disabled = waiting(); ok.textContent = waiting() ? "Saving Photo…" : "Save"; }
     box.querySelectorAll("[data-pvadd]").forEach(t => t.addEventListener("click", () => { adding = t.dataset.pvadd; drawPhotos(); }));
     box.querySelectorAll("[data-pvx]").forEach(t => t.addEventListener("click", () => {   // first tap arms it ("Sure?"), second tap deletes
       if (!t.classList.contains("armed")){ box.querySelectorAll(".dbx-trash.armed").forEach(x => x.classList.remove("armed")); t.classList.add("armed"); setTimeout(() => t.classList.remove("armed"), 3500); return; }
