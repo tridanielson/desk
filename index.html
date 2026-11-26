@@ -6068,8 +6068,17 @@ function colItems(b){
   if (b === undefined) b = COL.binder || "";
   const val = new Map(((COL.data && COL.data.items) || []).map(i => [i.id, i]));
   const sold = {}; COL.sales.forEach(s => { if (s.item_id) sold[s.item_id] = (sold[s.item_id] || 0) + (parseInt(s.qty) || 1); });
+  // a card just added isn't priced until the next price run - but when you already own that printing, its price and
+  // history are known: lend them to the new entry (the worth only when the condition etc. match too)
+  const printKey = r => [(r.name || "").trim().toLowerCase(), (r.set || "").toLowerCase(), String(r.number || "").toLowerCase(), r.finish || "nonfoil"].join("|");
+  const lendP = new Map(), lendV = new Map();
+  COL.inv.forEach(r => { const x = val.get(r.id); if (!x || (r.kind || "card") !== "card" || r.proof === "artist") return; const sid = r.scryfall_id || x.sid; if (!sid) return;
+    if (!lendP.has(printKey(r))) lendP.set(printKey(r), {sid, set_name: x.set_name || "", market_each: x.market_each ?? null, url: x.url || "", lent: true});
+    if (x.value_each != null && !lendV.has(colCardKey(r))) lendV.set(colCardKey(r), x); });
+  const lend = r => { if ((r.kind || "card") !== "card" || r.proof === "artist" || !r.set || !r.number) return null; const a = lendP.get(printKey(r)); if (!a) return null;
+    const w = lendV.get(colCardKey(r)); return Object.assign({}, a, w ? {value_each: w.value_each, approx: w.approx} : {}); };
   return COL.inv.map((r, idx) => [r, idx]).filter(([r]) => b === "*" || binderOf(r) === b).map(([r, idx]) => {
-    const v = val.get(r.id) || {}; const qty = parseInt(r.qty) || 0; const left = Math.max(0, qty - (sold[r.id] || 0));
+    const v = val.get(r.id) || lend(r) || {}; const qty = parseInt(r.qty) || 0; const left = Math.max(0, qty - (sold[r.id] || 0));
     const cost = numOrNull(r.cost_each) || 0; let each = v.value_each ?? null, approxSL = false;
     if (r.proof === "artist") each = numOrNull(r.own_value);   // no market for an Artist Proof: your number (or none)
     if (each == null && r.kind === "secret_lair" && r.ref && SL.orders){ const ln = SL.orders.lines.find(x => x.line_id === r.ref); if (ln && ln.value != null && ln.qty){ each = Math.round(ln.value / ln.qty * 100) / 100; approxSL = true; } }
@@ -6077,7 +6086,7 @@ function colItems(b){
       finish: r.finish || "nonfoil", condition: r.condition || "NM", qty, left, cost_each: cost, source: r.source || "Unspecified",
       status: left === 0 && sold[r.id] ? "sold" : (r.status || "owned"), kind: r.kind || "card", value_each: each, market_each: v.market_each ?? null,
       value: each == null ? null : Math.round(each * left * 100) / 100, cost_left: Math.round(cost * left * 100) / 100,
-      pending: !val.has(r.id) && !approxSL && r.proof !== "artist", approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || "",
+      pending: !val.has(r.id) && !(v.lent && v.value_each != null) && !approxSL && r.proof !== "artist", approx: !!v.approx || approxSL, url: v.url || "", list_price: numOrNull(r.list_price), notes: r.notes || "", acquired: r.acquired || "",
       base_each: v.base_each ?? null, base_at: v.base_at || "", idx, sid: r.scryfall_id || v.sid || "", binder: binderOf(r)};   // idx: order added (newest = highest)   // its value when first priced: "since added"
   });
 }
@@ -6329,6 +6338,10 @@ function renderCOLList(){
     out.forEach(x => { if (!x.lots || x.lots.length < 2) return; const cs = new Set(x.lots.map(l => l.cost_each)); x.cost_each = cs.size === 1 ? x.lots[0].cost_each : -1; x.value = x.value == null ? null : Math.round(x.value * 100) / 100; });
     rows = out.sort((a, b) => (b.value || 0) - (a.value || 0));
   }
+  if (v === "recent"){   // each entry stays its own tile here - but it knows every copy you own of that card
+    const all = new Map(); colAll().forEach(i => { if (i.kind !== "card" || !i.row || i.ordered || !i.left) return; const k = colCardKey(i.row); (all.get(k) || all.set(k, []).get(k)).push(i); });
+    rows.forEach(i => { if (i.kind !== "card" || !i.row) return; const l = all.get(colCardKey(i.row)) || []; if (l.length > 1){ i.allLots = l.slice().sort((a, b) => (b.idx ?? -1) - (a.idx ?? -1)); i.own = l.reduce((t, x) => t + x.left, 0); } });
+  }
   const open = COL.openGrp || (COL.openGrp = new Set());
   $("#colCount").textContent = "";
   const show = rows.slice(0, COL.limit);
@@ -6347,7 +6360,7 @@ function renderCOLList(){
      '<tr><td colspan="8" class="empty">Nothing here yet. Add cards, import a CSV, or mark Secret Lair orders received.</td></tr>') + "</tbody>";
   $("#colTiles").innerHTML = show.map(i => { const many = i.lots && i.lots.length > 1, isOpen = many && open.has(i.gkey);
     const tile = (x, lot) => `<div class="tile${lot ? " cv-lot" : ""}"><div class="t-main"><div class="t-name">${lot ? `↳ ${esc(x.source || "Unspecified")}` : esc(x.name)}</div><div class="t-sub">${lot ? esc(x.acquired || "") : meta(x)}</div>
-      <div class="t-sub">Have ${x.left}${x.cost_each > 0 ? ` · paid ${money(x.cost_each)} each` : x.cost_each < 0 ? " · paid: mixed" : ""}</div><div class="t-chips mk">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</div></div>
+      <div class="t-sub">Have ${x.left}${x.own > x.left ? " · own " + x.own : ""}${x.cost_each > 0 ? ` · paid ${money(x.cost_each)} each` : x.cost_each < 0 ? " · paid: mixed" : ""}</div><div class="t-chips mk">${many && !lot ? `<button class="btn ghost small" type="button" data-cgrp="${esc(i.gkey)}">${isOpen ? "▴" : "▾"} ${x.lots.length} lots</button>` : acts(x)}</div></div>
       <div class="t-right"><div class="t-price">${worth(x)}</div>${x.value == null ? "" : `<div style="font-size:12px">${many && !lot ? colChangeSum(x.lots) : colChange(x)}</div>`}${!lot && myP(x) && myP(x).c30 != null && !(x.row && x.row.proof === "artist") ? `<div style="font-size:12px">30d ${myTrend(x, i)}</div>` : ""}</div></div>`;
     return tile(i, false) + (isOpen ? i.lots.map(l => tile(l, true)).join("") : ""); }).join("")
     + (bulk.length ? `<div class="tile cv-bulk"><div class="t-main"><div class="t-name">Bulk under ${"$" + BULK_EACH}</div><div class="t-sub">${bulk.reduce((t, i) => t + i.left, 0)} cards</div><div class="t-chips"><button class="btn ghost small" type="button" data-showbulk="1">Show Bulk</button></div></div><div class="t-right"><div class="t-price">${money(Math.round(bulk.reduce((t, i) => t + (i.value || 0), 0) * 100) / 100)}</div></div></div>` : "")
@@ -6391,7 +6404,7 @@ function colBinderHTML(show, bulk){
   const pocket = (i, k0) => { const k = i._k ?? k0, c = (i.row && i.row.grade ? String(i.row.grade) : i.condition || "NM").toUpperCase(), [bg, fg] = isGrade(c) ? SLAB_BADGE : COND_BADGE[c] || COND_BADGE.NM, lang = (i.row && i.row.language || "EN").toUpperCase(), img = i.kind === "card" ? cardImg(i) : "";
     return `<button type="button" class="pocket" data-pocket="${k}" title="${esc(i.name)}">
       <span class="pk-card">${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.remove()">` : ""}<span class="pk-fallback">${esc(i.name)}${i.kind === "sealed" ? "<br><small>Sealed</small>" : ""}</span>
-        ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c)}${i.left > 1 ? " ×" + i.left : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
+        ${i.kind === "card" ? `<span class="pk-cond" style="background:${bg};color:${fg}">${isGrade(c) ? "🏅 " : ""}${esc(c)}${i.left > 1 ? " ×" + i.left : ""}${i.own > i.left ? " · own " + i.own : ""}</span>` : i.left > 1 ? `<span class="pk-cond" style="background:#ece6dc;color:#1b120a">×${i.left}</span>` : ""}
         ${i.finish && i.finish !== "nonfoil" ? `<span class="pk-foil">${i.finish === "etched" ? "ETCHED" : "FOIL"}</span>` : ""}
         ${lang !== "EN" ? `<span class="pk-lang">${esc(langName(lang).toUpperCase())}</span>` : ""}
         ${i.row && (i.row.signed || i.row.proof || variantOf(i.row.variant)) ? `<span class="pk-sp">${i.row.proof === "artist" ? "AP" : ""}${variantOf(i.row.variant) ? " " + variantOf(i.row.variant)[2] : ""}${i.row.signed ? " ✍" : ""}</span>` : ""}</span>
@@ -6409,16 +6422,17 @@ function myTrend(x, g){ const m = x.row && x.row.proof === "artist" ? null : myP
 function openPocket(i){
   if (!i) return;
   if (i.kind === "sealed"){ SD.q = i.name.slice(0, 40); SD.status = "sealed"; switchTab("sealed"); return; }
-  const lots = i.lots || [i], img = cardImg(i);
+  const lots = i.allLots || i.lots || [i], img = cardImg(i);
+  const tot = lots.reduce((t, l) => t + l.left, 0), vals = lots.map(l => l.value).filter(x => x != null), worthAll = i.allLots ? (vals.length ? Math.round(vals.reduce((t, x) => t + x, 0) * 100) / 100 : null) : i.value;
   const stat = (label, v) => `<div class="stat"><span>${label}</span><b>${v}</b></div>`;
   openModal(`<div style="display:flex;gap:14px;flex-wrap:wrap">${img ? `<img src="${esc(img)}" alt="" class="zoomable" data-big="${esc(img.replace("/normal/", "/large/"))}" style="width:180px;height:auto;align-self:flex-start;border-radius:9px;cursor:zoom-in">` : ""}
     <div style="flex:1;min-width:220px"><h3 style="margin:0">${esc(i.name)}</h3><p class="mut" style="margin:2px 0 10px">${esc(i.set_name || i.set || "")}${i.number ? " #" + esc(i.number) : ""} · ${esc(i.finish || "")} · ${esc(i.condition || "")}</p>
       ${dkTagOf(i) ? `<p style="margin:0 0 8px">${dkTagHTML(i)}</p>` : ""}
-      <p style="margin:0 0 10px">Have <b>${i.left}</b> · worth <b>${i.value == null ? "–" : money(i.value)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
+      <p style="margin:0 0 10px">Have <b>${i.allLots ? tot : i.left}</b> · worth <b>${worthAll == null ? "–" : money(worthAll)}</b>${i.value_each != null ? ` (${money(i.value_each)} each)` : ""}</p>
       ${(m => m ? `<div class="stats" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr));margin:0 0 10px">${stat("Market (NM)", money(m.p))}${stat("CK buylist", money(m.ck))}${stat("30 days", pct(m.c30))}${stat("90 days", pct(m.c90))}${stat("1 year", pct(m.c1y))}</div>
         ${m.h && m.h.length > 1 ? `<div class="row" id="pkRanges" style="justify-content:flex-end;margin-bottom:4px">${["3M","6M","1Y","All"].map(r => `<button class="btn ghost small" data-r="${r}">${r}</button>`).join("")}</div><div class="chartbox" style="height:200px"><canvas id="pkChart"></canvas></div>
         <p class="mut" style="font-size:12px;margin:4px 0 10px">Near Mint market and Card Kingdom's cash buylist, since ${esc(m.since || "–")}.</p>` : ""}` : "")(i.kind === "card" && !(i.row && i.row.proof === "artist") ? myP(i) : null)}
-      ${lots.map(l => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:6px 0;gap:8px"><span>${l.left}× · ${esc(l.source || "Unspecified")}${l.acquired ? " · " + esc(l.acquired) : ""}${l.cost_each > 0 ? " · paid " + money(l.cost_each) : ""}</span>
+      ${lots.map(l => `<div class="row" style="justify-content:space-between;border-top:1px solid var(--line);padding:6px 0;gap:8px"><span>${l.left}× · ${esc(l.source || "Unspecified")}${l.acquired ? " · " + esc(l.acquired) : ""}${l.cost_each > 0 ? " · paid " + money(l.cost_each) : ""}${i.allLots && l.id === i.id ? ' <span class="mut">(this entry)</span>' : ""}</span>
         <span><button class="btn ghost small" data-pkrem="${esc(l.id)}">Remove</button> <button class="btn ghost small" data-pkedit="${esc(l.id)}">Edit</button></span></div>`).join("")}
     </div></div><div class="acts"><button class="btn" id="pkClose" type="button">Close</button></div>`);
   $("#pkClose").addEventListener("click", closeModal);
