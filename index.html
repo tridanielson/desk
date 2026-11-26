@@ -4065,6 +4065,7 @@ function gradePool(){
   const seen = new Set(), R = {DMG: 0, HP: 1, MP: 2, LP: 3, NM: 4};
   return S.deals.concat(QP.items).filter(d => {
     if (!d.url || seen.has(d.url)) return false; seen.add(d.url);
+    if (cheapJunk(d)) return false;
     if (!/i\.ebayimg\.com/.test(d.images || "") || d._graded || /\b(psa|bgs|cgc|sgc|beckett)\b/i.test(d.title || "") || (DC.map[d.url] || {}).c) return false;
     const a = audOf(d);
     if (a && (COND_LIST.includes(a.condition) || a.edition === "wrong" || a.verdict === "reject" || /photo problem|can't grade/.test(a.note || ""))) return false;
@@ -4186,11 +4187,14 @@ function qkCap(list){
   list.filter(d => !loupeSure(d)).forEach(d => ((n[d.card] || 0) >= QK_CAP ? hi : lo).push(d));   // Loupe already sure of the printing: no need to ask you
   return lo.concat(hi);
 }
+// priced far under value and never confirmed as the right card: almost always another game's card or a cheap reprint.
+// Kept in Deals > Hidden (Too Cheap To Trust) to look at, but not something to spend reviews on.
+const cheapJunk = d => !!d.suspicious && !(d.ai_verdict === "ok" && d.ai_edition === "matches");
 function audQueue0(){
   const f = AUD.filter;
   if (f === "quick" && qgMode() === "cond") return gradePool();
   const m = AUD.model, sq = f === "quick" ? "" : String(AUD.q || "").trim().toLowerCase();
-  return S.deals.filter(d => d.url && (!m || (d.ai_model || "") === m) && (!sq || [d.seller, d.card, d.title].join(" ").toLowerCase().includes(sq)) && (
+  return S.deals.filter(d => d.url && (f === "done" || !cheapJunk(d)) && (!m || (d.ai_model || "") === m) && (!sq || [d.seller, d.card, d.title].join(" ").toLowerCase().includes(sq)) && (
     f === "todo" ? aiChecked(d) && !audOf(d) :
     f === "reject" ? d.ai_verdict === "reject" && !audOf(d) :
     f === "warn" ? d.ai_verdict === "warn" && !audOf(d) :
