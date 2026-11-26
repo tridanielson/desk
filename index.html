@@ -311,6 +311,8 @@ th.has-hint{cursor:help;text-decoration:underline dotted color-mix(in srgb,var(-
 .mk-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .mk-svg path{fill:none;stroke:rgba(255,236,0,.62);stroke-linecap:round;stroke-linejoin:round}
 .mk-svg path.mk-under{stroke:rgba(0,0,0,.35)}
+#mkRing{display:none;position:absolute;border:1.5px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.7);pointer-events:none}
+#mkView .mk-size{display:flex;align-items:center;gap:6px;font-size:12px;color:#bbb;flex:none}#mkView .mk-size input{width:110px;accent-color:#ffec00}
 #mkLive{stroke:rgba(255,236,0,.75)}
 .mk-lab{position:absolute;transform:translate(-50%,-130%);display:flex;align-items:center;gap:3px;pointer-events:none;white-space:nowrap}.mk-lab button{flex:none}
 .mk-lab .mk-t{flex:none;width:auto;min-width:0;height:auto;line-height:1.3;margin:0;pointer-events:auto;background:#111;color:#ffe600;border:1px solid #ffe600;font:inherit;font-size:11px;padding:2px 6px;border-radius:4px;white-space:nowrap;cursor:pointer}.mk-lab .mk-t:disabled{cursor:default;opacity:1}
@@ -3513,7 +3515,15 @@ async function markPhotos(root, d){
 function openMarker(i, onClose){   // highlighter: paint over the wear (strokes saved as points, 0-1 of the photo)
   MK.cur = i; MK.hist = []; MK.zoom = 1;
   let v = $("#mkView"); if (!v){ v = document.createElement("div"); v.id = "mkView"; document.body.appendChild(v); }
-  const brush = () => 0.025 / (MK.zoom || 1);
+  if (!MK.size){ let z = 1; try{ z = +localStorage.getItem("mkSize") || 1; }catch(e){} MK.size = Math.min(4, Math.max(0.25, z)); }
+  const brush = () => 0.025 * MK.size / (MK.zoom || 1);   // your size, thinner when zoomed in so it looks the same on screen
+  const setSize = z => { MK.size = Math.min(4, Math.max(0.25, z)); try{ localStorage.setItem("mkSize", String(MK.size)); }catch(e){}
+    const live = v.querySelector("#mkLive"), sl = v.querySelector("#mkSize"); if (live) live.setAttribute("stroke-width", brush() * 1000); if (sl) sl.value = MK.size; ring(); };
+  let lastXY = null;
+  const ring = e => { const c = v.querySelector("#mkRing"), w = v.querySelector("#mkWrap"); if (!c || !w) return; if (e) lastXY = [e.clientX, e.clientY];
+    if (!lastXY || (MK.pan && MK.zoom > 1)){ c.style.display = "none"; return; }
+    const r = w.getBoundingClientRect(), d = Math.max(6, brush() * r.width);
+    c.style.cssText = `display:block;width:${d}px;height:${d}px;left:${lastXY[0] - r.left - d / 2}px;top:${lastXY[1] - r.top - d / 2}px`; };
   const undo = () => { const h = MK.hist.pop(); if (h){ MK.marks = h; draw(); } };
   v.oncontextmenu = e => { e.preventDefault(); undo(); };   // PC: right-click = undo the last mark
   document.removeEventListener("keydown", MK.keys);
@@ -3524,9 +3534,9 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
   const strokes = () => MK.marks.map((m, k) => [m, k]).filter(([m]) => m.i === MK.cur);
   const draw = () => {
     v.innerHTML = `<div class="mk-top"><b>Highlight the wear</b><span class="grow"></span><button class="btn ghost small" id="mkZoom" type="button">${MK.zoom > 1 ? "Zoom Out" : "🔍 Zoom In"}</button>${MK.zoom > 1 ? `<button class="btn${MK.pan ? "" : " ghost"} small" id="mkPan" type="button" title="Move around the zoomed photo">${MK.pan ? "✋ Moving" : "✋ Move"}</button>` : ""}<button class="btn ghost small" id="mkUndo" type="button"${MK.hist.length ? "" : " disabled"}>↶ Undo</button><button class="btn small" id="mkDone" type="button">Done</button></div>
-      <div class="mk-tags"><span class="mk-hint">Edge or Surface is picked from where you mark · tap a label to change it: Edge → Surface → Crease / Dent<span class="mk-keys"> · Right-click or Ctrl+Z: undo the last mark</span></span></div>
+      <div class="mk-tags"><span class="mk-hint">Edge or Surface is picked from where you mark · tap a label to change it: Edge → Surface → Crease / Dent<span class="mk-keys"> · Scroll wheel: brush size · Right-click or Ctrl+Z: undo the last mark</span></span><span class="grow"></span><label class="mk-size">Brush<input type="range" id="mkSize" min="0.25" max="4" step="0.05" value="${MK.size}" aria-label="Brush size"></label></div>
       <div class="mk-stage" id="mkStage"><div class="mk-wrap${MK.zoom > 1 ? " zoomed" : ""}${MK.pan && MK.zoom > 1 ? " pan" : ""}" id="mkWrap"><img id="mkImg" src="${esc(MK.imgs[MK.cur])}" alt="" draggable="false">
-        <svg class="mk-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">${strokes().map(([m]) => `<path class="mk-under" d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000 + 8}"/><path d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000}"/>`).join("")}<path id="mkLive" d="" stroke-width="${brush() * 1000}"/></svg>
+        <svg class="mk-svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">${strokes().map(([m]) => `<path class="mk-under" d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000 + 8}"/><path d="${pathD(m)}" stroke-width="${(m.s || 0.025) * 1000}"/>`).join("")}<path id="mkLive" d="" stroke-width="${brush() * 1000}"/></svg><div id="mkRing"></div>
         ${strokes().map(([m, k]) => `<div class="mk-lab" style="left:${Math.min(0.92, Math.max(0.08, m.p[0][0])) * 100}%;top:${Math.max(0.06, m.p[0][1]) * 100}%"><button type="button" class="mk-t" data-flip="${k}" title="Tap to change: Edge → Surface → Crease / Dent">${esc(mkGroup(m.t) === "edge" ? "Edge" : mkGroup(m.t) === "surface" ? "Surface" : mkGroup(m.t) === "crease" ? "Crease / Dent" : m.t)}</button><button type="button" data-del="${k}" aria-label="Remove">✕</button></div>`).join("")}</div></div>
       ${MK.imgs.length > 1 ? `<div class="mk-thumbs">${MK.imgs.map((u, k) => { const n = MK.marks.filter(m => m.i === k).length; return `<button type="button" class="mk-th${k === MK.cur ? " on" : ""}" data-go="${k}"><img src="${esc(u.replace(/s-l\d+\./, "s-l140."))}" alt="">${n ? `<b>${n}</b>` : ""}</button>`; }).join("")}</div>` : ""}`;
     v.querySelector("#mkDone").addEventListener("click", () => { v.remove(); document.removeEventListener("keydown", MK.keys); onClose && onClose(); });
@@ -3542,6 +3552,12 @@ function openMarker(i, onClose){   // highlighter: paint over the wear (strokes 
     if (MK.zoom > 1){ stage.classList.add("zoomed"); wrap.style.width = Math.round((MK.baseW || stage.clientWidth) * MK.zoom) + "px";
       if (MK.scroll){ stage.scrollLeft = MK.scroll[0]; stage.scrollTop = MK.scroll[1]; } }
     stage.addEventListener("scroll", () => { MK.scroll = [stage.scrollLeft, stage.scrollTop]; });
+    v.querySelector("#mkSize").addEventListener("input", e => setSize(+e.target.value));
+    // PC: the wheel sizes the brush (while "Move" is on, it scrolls the zoomed photo as usual)
+    stage.addEventListener("wheel", e => { if (MK.pan && MK.zoom > 1) return; e.preventDefault(); setSize(MK.size * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, {passive: false});
+    wrap.addEventListener("pointermove", e => { if (e.pointerType === "mouse") ring(e); });
+    wrap.addEventListener("pointerleave", () => { lastXY = null; ring(); });
+    ring();
     const pt = e => { const r = wrap.getBoundingClientRect(); return [Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), Math.min(1, Math.max(0, (e.clientY - r.top) / r.height))]; };
     // zoomed in: one finger paints; the stage scrolls with two fingers / the scroll bars
     wrap.addEventListener("pointerdown", e => { if (e.button > 0 || e.target.closest("[data-del],[data-flip]") || (e.pointerType === "touch" && !e.isPrimary) || (MK.pan && MK.zoom > 1)) return; e.preventDefault(); wrap.setPointerCapture(e.pointerId); pts = [pt(e)];
