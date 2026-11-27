@@ -4252,7 +4252,8 @@ function condBoard(){   // Loupe's condition grader (watch mode) - data/photo_ch
   const counts = `${sum(a.you)} from you · ${sum(a.slab)} graded slabs · ${sum(a.ai)} SlaveAI reads`;
   return `<br><b>🔍 Condition</b> <span class="mut" style="font-size:12px">(NM / LP / MP / HP / DMG from the photos - learning, not used yet)</span><br>`
     + (c.n ? `Right grade <b>${c.exact}%</b>, within one grade <b>${c.within_one}%</b> on ${c.n} answers it didn't learn from`
-      + (c.vs_slaveai ? ` · same listings: Loupe <b>${c.vs_slaveai.loupe}%</b> vs SlaveAI <b>${c.vs_slaveai.slaveai}%</b>` : "") : esc(c.why || "Learning."))
+      + (c.vs_slaveai ? ` · same listings: Loupe <b>${c.vs_slaveai.loupe}%</b> vs SlaveAI <b>${c.vs_slaveai.slaveai}%</b>` : "")
+      + (c.held ? `<br>Locked-away test (a third of the graded answers, never learned from): right grade <b>${c.held.exact}%</b>, within one <b>${c.held.within_one}%</b> on ${c.held.n}` : "") : esc(c.why || "Learning."))
     + `<span class="mut" style="font-size:12px"> · ${counts} - Quick Review → Condition adds more</span>`;
 }
 function audBoard(noLoupe){
